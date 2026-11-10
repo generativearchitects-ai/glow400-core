@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic: one program with every scalar type and the three explicit usages. -->
+<pcml version="6.0">
+  <program name="SCALARS" path="/QSYS.LIB/DEMOLIB.LIB/SCALARS.PGM">
+    <data name="P_CHAR" type="char" length="10" usage="input"/>
+    <data name="P_CHAR_CCSID" type="char" length="20" ccsid="37" usage="input"/>
+    <data name="P_INT" type="int" length="4" precision="31" usage="input"/>
+    <data name="P_PACKED" type="packed" length="9" precision="2" usage="output"/>
+    <data name="P_ZONED" type="zoned" length="7" precision="0" usage="output"/>
+    <data name="P_FLOAT" type="float" length="8" usage="output"/>
+    <data name="P_BYTE" type="byte" length="16" usage="inputoutput"/>
+    <data name="P_DATE" type="date" dateformat="ISO" dateseparator="hyphen" usage="input"/>
+    <data name="P_TIME" type="time" timeformat="ISO" timeseparator="period" usage="input"/>
+    <data name="P_STAMP" type="timestamp" usage="output"/>
+    <data name="P_VARCHAR" type="varchar" length="40" varlength="2" usage="input"/>
+  </program>
+</pcml>

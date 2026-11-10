@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="LINE">
+    <data name="LINENO" type="int" length="4"/>
+  </struct>
+  <program name="DYNROWS" path="/QSYS.LIB/DEMOLIB.LIB/DYNROWS.PGM">
+    <data name="ROWCOUNT" type="int" length="4" usage="input"/>
+    <data name="TEXTLEN" type="int" length="4" usage="input"/>
+    <data name="TEXT" type="char" length="TEXTLEN" usage="input"/>
+    <data name="LINES" type="struct" struct="LINE" count="ROWCOUNT" usage="output"/>
+  </program>
+</pcml>

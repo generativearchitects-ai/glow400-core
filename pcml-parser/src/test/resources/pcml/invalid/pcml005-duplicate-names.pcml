@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="S">
+    <data name="F" type="char" length="1"/>
+  </struct>
+  <struct name="S">
+    <data name="G" type="char" length="1"/>
+  </struct>
+  <program name="P">
+    <data name="A" type="char" length="1"/>
+    <data name="A" type="char" length="2"/>
+  </program>
+  <program name="P">
+    <data name="B" type="char" length="1"/>
+  </program>
+</pcml>

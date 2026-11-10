@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="NODE">
+    <data name="NEXT" type="struct" struct="OTHER"/>
+  </struct>
+  <struct name="OTHER">
+    <data name="BACK" type="struct" struct="NODE"/>
+  </struct>
+</pcml>
