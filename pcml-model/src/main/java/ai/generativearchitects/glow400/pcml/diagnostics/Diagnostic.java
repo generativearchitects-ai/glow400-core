@@ -1,4 +1,4 @@
-package ai.generativearchitects.glow400.pcml.parser;
+package ai.generativearchitects.glow400.pcml.diagnostics;
 
 import ai.generativearchitects.glow400.pcml.model.SourceLocation;
 import java.util.Objects;
@@ -6,7 +6,8 @@ import java.util.Objects;
 /**
  * A finding about a PCML source: a stable code, a severity, a message and a position.
  *
- * <p>Codes {@code PCML001} to {@code PCML007} are defined by the parser; see {@link PcmlParser}.
+ * <p>Codes are stable and shared by all modules: {@code PCML...} for the PCML parser, {@code OVL...}
+ * for overlay files, {@code API...} for the API model.
  *
  * @param code     stable identifier, for example {@code PCML004}; never blank
  * @param severity how serious the finding is
