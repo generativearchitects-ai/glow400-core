@@ -1,0 +1,3 @@
+# Maps alternative commit identities to one canonical name, so AUTHORS lists each person once.
+# Format: Proper Name <proper@email> <commit@email>
+Fabio Testa <fabtesta@users.noreply.github.com> <2025908+fabtesta@users.noreply.github.com>

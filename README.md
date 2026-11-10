@@ -32,3 +32,7 @@ result.document().ifPresent(doc -> doc.programs().forEach(p -> System.out.printl
 ```
 
 The parser never throws for malformed input; problems are returned as diagnostics with stable codes (`PCML001` to `PCML007`).
+
+## Authors
+
+See [AUTHORS](AUTHORS). The list is generated from the git history after each merge into `main`, so contributors are added automatically.
