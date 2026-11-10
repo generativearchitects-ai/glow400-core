@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="PRICE" path="/QSYS.LIB/DEMOLIB.LIB/PRICESRV.SRVPGM" entrypoint="GETPRICE" returnvalue="integer" threadsafe="true">
+    <data name="SKU" type="char" length="12" usage="input"/>
+    <data name="AMOUNT" type="packed" length="11" precision="2" usage="output"/>
+  </program>
+</pcml>

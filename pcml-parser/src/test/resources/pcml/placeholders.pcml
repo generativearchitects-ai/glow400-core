@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="ORDSTAT" path="/QSYS.LIB/${LIBRARY}.LIB/ORDSTAT.PGM">
+    <data name="ORDNO" type="char" length="10" usage="input"/>
+  </program>
+</pcml>

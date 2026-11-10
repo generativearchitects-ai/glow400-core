@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="P">
+    <data type="char" length="1"/>
+    <data name="NOTYPE" length="1"/>
+    <data name="BADTYPE" type="decimal"/>
+    <data name="BADUSAGE" type="char" length="1" usage="sideways"/>
+    <data name="NOLENGTH" type="char"/>
+    <data name="NOPREC" type="packed" length="5"/>
+    <data name="NOSTRUCT" type="struct"/>
+  </program>
+  <program>
+    <data name="X" type="char" length="1"/>
+  </program>
+</pcml>

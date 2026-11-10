@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="ADDRESS">
+    <data name="STREET" type="char" length="30"/>
+    <data name="CITY" type="char" length="20"/>
+  </struct>
+  <struct name="CUSTOMER">
+    <data name="CUSTID" type="int" length="4"/>
+    <data name="HOME" type="struct" struct="ADDRESS"/>
+    <struct name="BILLING" usage="input">
+      <data name="IBAN" type="char" length="34"/>
+    </struct>
+  </struct>
+  <program name="GETCUST" path="/QSYS.LIB/DEMOLIB.LIB/GETCUST.PGM">
+    <data name="REQ" type="struct" struct="CUSTOMER" usage="input"/>
+    <data name="RESP" type="struct" struct="CUSTOMER" usage="inherit"/>
+    <struct name="NOTE" usage="output">
+      <data name="TEXT" type="char" length="50"/>
+    </struct>
+  </program>
+</pcml>

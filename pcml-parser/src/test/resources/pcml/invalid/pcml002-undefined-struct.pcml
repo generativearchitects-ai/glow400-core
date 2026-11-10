@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="P">
+    <data name="A" type="struct" struct="MISSING" usage="input"/>
+  </program>
+</pcml>

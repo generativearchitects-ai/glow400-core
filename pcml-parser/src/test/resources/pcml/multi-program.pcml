@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="KEY">
+    <data name="ID" type="char" length="10"/>
+  </struct>
+  <program name="PROGA" path="/QSYS.LIB/DEMOLIB.LIB/PROGA.PGM">
+    <data name="K" type="struct" struct="KEY" usage="input"/>
+  </program>
+  <program name="PROGB" path="/QSYS.LIB/DEMOLIB.LIB/PROGB.PGM">
+    <data name="K" type="struct" struct="KEY" usage="input"/>
+    <data name="RC" type="int" length="4" usage="output"/>
+  </program>
+</pcml>
