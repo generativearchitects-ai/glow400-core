@@ -73,4 +73,22 @@ class ModelInvariantsTest {
         assertThat(new WireType.Packed(9, 2)).isEqualTo(new WireType.Packed(9, 2));
         assertThat(field("A")).isEqualTo(field("A"));
     }
+
+    @Test
+    void zeroIsAllowedWhereNegativeIsNot() {
+        assertThat(new SourceLocation("f", 0, 0)).hasToString("f:0:0");
+        assertThat(new Count.Fixed(0).value()).isZero();
+        assertThat(new Length.Fixed(0).value()).isZero();
+        assertThatThrownBy(() -> new SourceLocation("f", 0, -1)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new Count.Fixed(-1)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void referencesAndStructNamesMustNotBeBlank() {
+        assertThatThrownBy(() -> new Length.Ref(" ")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new Count.Ref(" ")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new WireType.Struct(" ")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new Length.Ref(null)).isInstanceOf(NullPointerException.class);
+        assertThat(new SourceLocation("a.pcml", 3, 7)).hasToString("a.pcml:3:7");
+    }
 }
