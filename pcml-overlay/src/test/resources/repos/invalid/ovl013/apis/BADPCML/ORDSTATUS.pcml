@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="ORDSTATUS">
+    <data name="P0ORDN" type="decimal"/>
+  </program>
+</pcml>

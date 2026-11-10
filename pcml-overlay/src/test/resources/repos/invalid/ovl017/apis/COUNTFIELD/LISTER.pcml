@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="ROW">
+    <data name="X" type="char" length="1"/>
+  </struct>
+  <program name="LISTER" path="/QSYS.LIB/DEMOLIB.LIB/LISTER.PGM">
+    <data name="P0ROWS" type="struct" struct="ROW" count="10" usage="output"/>
+    <data name="P0ERR" type="char" length="2" usage="output"/>
+  </program>
+</pcml>

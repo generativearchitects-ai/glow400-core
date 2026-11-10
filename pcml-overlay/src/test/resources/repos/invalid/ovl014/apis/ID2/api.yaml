@@ -1,0 +1,9 @@
+program: ORDSTATUS
+pcml: ORDSTATUS.pcml
+route: /two
+method: GET
+version: 1.0.0
+
+parameters:
+  P0ORDN: { name: orderNumber, in: query }
+id: shared-id

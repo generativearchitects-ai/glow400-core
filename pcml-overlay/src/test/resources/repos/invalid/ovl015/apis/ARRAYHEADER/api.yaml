@@ -1,0 +1,9 @@
+program: SEARCH
+pcml: SEARCH.pcml
+route: /search
+method: POST
+version: 1.0.0
+
+parameters:
+  P0KEY: { in: body }
+  P0IDS: { in: header }

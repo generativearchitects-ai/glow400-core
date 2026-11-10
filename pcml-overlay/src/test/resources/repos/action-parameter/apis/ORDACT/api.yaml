@@ -1,0 +1,19 @@
+pcml: ORDACT.pcml
+version: 1.0.0
+program: ORDACT
+
+parameters:
+  P0ORDN: { direction: request, name: orderNumber, in: path }
+  P0RES:  { direction: response, name: result }
+
+operations:
+  - id: cancel-order
+    route: /orders/{orderNumber}/cancel
+    method: POST
+    inject:
+      P0ACT: CANCEL
+  - id: hold-order
+    route: /orders/{orderNumber}/hold
+    method: POST
+    inject:
+      P0ACT: HOLD

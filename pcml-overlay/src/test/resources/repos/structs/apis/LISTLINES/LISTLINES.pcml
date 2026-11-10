@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="LINE">
+    <data name="ITEMCD" type="char" length="10"/>
+    <data name="QTY" type="char" length="5"/>
+    <data name="FILLER" type="char" length="3"/>
+    <struct name="PRICE">
+      <data name="AMT" type="packed" length="9" precision="2"/>
+      <data name="CUR" type="char" length="3"/>
+    </struct>
+  </struct>
+  <program name="LISTLINES" path="/QSYS.LIB/DEMOLIB.LIB/LISTLINES.PGM">
+    <data name="P0ORDN" type="char" length="10" usage="input"/>
+    <data name="P0NROW" type="int" length="4" usage="output"/>
+    <data name="P0ROWS" type="struct" struct="LINE" count="500" usage="output"/>
+  </program>
+</pcml>

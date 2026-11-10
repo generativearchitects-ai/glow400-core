@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="ORDSTATUS" path="/QSYS.LIB/DEMOLIB.LIB/ORDSTATUS.PGM">
+    <data name="P0ORDN" type="char" length="10" usage="input"/>
+    <data name="P0STAT" type="char" length="1" usage="output"/>
+    <data name="P0DATE" type="char" length="8" usage="output"/>
+  </program>
+</pcml>

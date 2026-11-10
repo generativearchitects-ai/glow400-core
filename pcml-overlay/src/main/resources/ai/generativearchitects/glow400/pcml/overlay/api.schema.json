@@ -1,0 +1,500 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "glow400 overlay file (api.yaml), format v0.4",
+  "description": "One overlay file per folder under apis/. Common form: route and method at the top level. Several operations: an operations list. The loader applies further rules that a schema cannot express (for example that a parameter exists in the PCML).",
+  "type": "object",
+  "required": [
+    "pcml",
+    "version"
+  ],
+  "properties": {
+    "pcml": {
+      "type": "string",
+      "minLength": 1,
+      "description": "PCML file, relative to this file."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "call": {
+      "enum": [
+        "auto",
+        "pcml",
+        "raw"
+      ]
+    },
+    "program": {
+      "type": "string",
+      "minLength": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "route": {
+      "$ref": "#/$defs/route"
+    },
+    "method": {
+      "$ref": "#/$defs/method"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tags": {
+      "$ref": "#/$defs/tags"
+    },
+    "inject": {
+      "$ref": "#/$defs/inject"
+    },
+    "parameters": {
+      "$ref": "#/$defs/parameters"
+    },
+    "error": {
+      "$ref": "#/$defs/error"
+    },
+    "cache": {
+      "$ref": "#/$defs/cache"
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/operation"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "if": {
+    "required": [
+      "operations"
+    ]
+  },
+  "then": {
+    "not": {
+      "anyOf": [
+        {
+          "required": [
+            "route"
+          ]
+        },
+        {
+          "required": [
+            "method"
+          ]
+        },
+        {
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "required": [
+            "summary"
+          ]
+        },
+        {
+          "required": [
+            "description"
+          ]
+        }
+      ]
+    },
+    "if": {
+      "not": {
+        "required": [
+          "program"
+        ]
+      }
+    },
+    "then": {
+      "properties": {
+        "operations": {
+          "items": {
+            "required": [
+              "program"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "else": {
+    "required": [
+      "route",
+      "method",
+      "program"
+    ]
+  },
+  "$defs": {
+    "member": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exposed name in the API."
+        },
+        "type": {
+          "enum": [
+            "string",
+            "integer",
+            "decimal",
+            "boolean",
+            "date",
+            "time",
+            "datetime",
+            "binary"
+          ],
+          "description": "Semantic type."
+        },
+        "format": {
+          "type": "string",
+          "description": "Date or time pattern, for example yyyyMMdd."
+        },
+        "pad": {
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "padChar": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "nullAs": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "example": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "fields": {
+          "$ref": "#/$defs/members"
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "Struct member that is not exposed."
+        }
+      },
+      "additionalProperties": false
+    },
+    "members": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/member"
+      },
+      "description": "Settings per struct member, by PCML name."
+    },
+    "parameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exposed name in the API."
+        },
+        "type": {
+          "enum": [
+            "string",
+            "integer",
+            "decimal",
+            "boolean",
+            "date",
+            "time",
+            "datetime",
+            "binary"
+          ],
+          "description": "Semantic type."
+        },
+        "format": {
+          "type": "string",
+          "description": "Date or time pattern, for example yyyyMMdd."
+        },
+        "pad": {
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "padChar": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "nullAs": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "example": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "fields": {
+          "$ref": "#/$defs/members"
+        },
+        "direction": {
+          "enum": [
+            "request",
+            "response",
+            "both",
+            "internal"
+          ]
+        },
+        "in": {
+          "enum": [
+            "path",
+            "query",
+            "header",
+            "body"
+          ]
+        },
+        "trim": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "countField"
+              ],
+              "properties": {
+                "countField": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "required": [
+                "dropBlank"
+              ],
+              "properties": {
+                "dropBlank": {
+                  "const": true
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "inject": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": [
+              "number",
+              "boolean"
+            ]
+          },
+          {
+            "type": "string",
+            "pattern": "^(?!.*\\$\\{)"
+          },
+          {
+            "type": "string",
+            "pattern": "^\\$\\{(environment|tenant)\\.[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*\\}$"
+          }
+        ]
+      },
+      "description": "Parameters filled by the runtime: a literal, or ${environment.<name>} / ${tenant.<name>}."
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/parameter"
+      }
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "when": {
+          "type": "object",
+          "required": [
+            "field"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "equals": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "notEquals": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "in": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            }
+          },
+          "additionalProperties": false,
+          "oneOf": [
+            {
+              "required": [
+                "equals"
+              ]
+            },
+            {
+              "required": [
+                "notEquals"
+              ]
+            },
+            {
+              "required": [
+                "in"
+              ]
+            }
+          ]
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "httpStatus": {
+          "type": "integer",
+          "minimum": 400,
+          "maximum": 599
+        },
+        "statusByCode": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "cache": {
+      "type": "object",
+      "required": [
+        "ttlSeconds"
+      ],
+      "properties": {
+        "ttlSeconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      }
+    },
+    "route": {
+      "type": "string",
+      "pattern": "^/([^{}]|\\{[^{}/]+\\})*$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "method": {
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    "operation": {
+      "type": "object",
+      "required": [
+        "id",
+        "route",
+        "method"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "program": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "$ref": "#/$defs/route"
+        },
+        "method": {
+          "$ref": "#/$defs/method"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tags": {
+          "$ref": "#/$defs/tags"
+        },
+        "inject": {
+          "$ref": "#/$defs/inject"
+        },
+        "parameters": {
+          "$ref": "#/$defs/parameters"
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        },
+        "cache": {
+          "$ref": "#/$defs/cache"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

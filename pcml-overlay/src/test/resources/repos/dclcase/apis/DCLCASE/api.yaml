@@ -1,0 +1,5 @@
+program: DCLCASE
+pcml: DCLCASE.pcml
+route: /orders/{orderNumber}
+method: GET
+version: 1.0.0

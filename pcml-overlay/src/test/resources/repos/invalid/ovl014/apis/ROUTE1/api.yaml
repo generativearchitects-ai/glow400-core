@@ -1,0 +1,9 @@
+id: route-one
+program: ORDSTATUS
+pcml: ORDSTATUS.pcml
+route: /same/{orderNumber}
+method: GET
+version: 1.0.0
+
+parameters:
+  P0ORDN: { name: orderNumber }

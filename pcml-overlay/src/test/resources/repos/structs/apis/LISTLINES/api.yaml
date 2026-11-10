@@ -1,0 +1,23 @@
+program: LISTLINES
+pcml: LISTLINES.pcml
+route: /orders/{orderNumber}/lines
+method: GET
+version: 2.1.0
+
+parameters:
+  P0ORDN: { name: orderNumber }
+  P0NROW: { direction: internal }
+  P0ROWS:
+    direction: response
+    name: lines
+    trim:
+      countField: P0NROW
+    fields:
+      ITEMCD: { name: itemCode }
+      QTY:    { name: quantity, type: integer, pad: left, padChar: "0" }
+      FILLER: { hidden: true }
+      PRICE:
+        name: price
+        fields:
+          AMT: { name: amount }
+          CUR: { name: currency }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="KEY">
+    <data name="A" type="char" length="1"/>
+  </struct>
+  <program name="SEARCH" path="/QSYS.LIB/DEMOLIB.LIB/SEARCH.PGM">
+    <data name="P0KEY" type="struct" struct="KEY" usage="input"/>
+    <data name="P0IDS" type="char" length="4" count="5" usage="input"/>
+  </program>
+</pcml>

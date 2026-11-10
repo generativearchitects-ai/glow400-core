@@ -1,0 +1,10 @@
+program: ORDSTATUS
+pcml: ORDSTATUS.pcml
+route: /orders/{orderNumber}/status
+method: GET
+version: 1.0.0
+
+parameters:
+  P0ORDN: { name: orderNumber }
+  P0STAT: { name: same }
+  P0DATE: { name: same }
