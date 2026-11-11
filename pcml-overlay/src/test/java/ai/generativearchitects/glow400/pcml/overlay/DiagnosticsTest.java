@@ -77,6 +77,7 @@ class DiagnosticsTest {
     void ovl012MissingKeyOrInvalidValue() {
         assertThat(diagnostics("ovl012")).containsExactly(
                 error("OVL012", "apis/EXPRESSION/api.yaml", 11),
+                error("OVL012", "apis/INRESPONSE/api.yaml", 9),
                 error("OVL012", "apis/METHOD/api.yaml", 4),
                 error("OVL012", "apis/NOVERSION/api.yaml", 1),
                 error("OVL012", "apis/STATUS/api.yaml", 12),
@@ -110,6 +111,8 @@ class DiagnosticsTest {
     void ovl015StructOrArrayCannotBeBoundToPathQueryOrHeader() {
         assertThat(diagnostics("ovl015")).containsExactly(
                 error("OVL015", "apis/ARRAYHEADER/api.yaml", 9),
+                error("OVL015", "apis/DELETEBODY/api.yaml", 8),
+                error("OVL015", "apis/GETBODY/api.yaml", 8),
                 error("OVL015", "apis/GETSTRUCT/api.yaml", 1),
                 error("OVL015", "apis/GETSTRUCT/api.yaml", 1));
         assertThat(operationIds("ovl015")).isEmpty();
@@ -154,9 +157,48 @@ class DiagnosticsTest {
     }
 
     @Test
+    void inOnAParameterWithoutARequestSideIsOvl012AtTheInValue() {
+        Diagnostic d = Repos.load("invalid/ovl012").diagnostics().stream()
+                .filter(x -> x.location().file().equals("apis/INRESPONSE/api.yaml")).findFirst().orElseThrow();
+        assertThat(d.location().line()).isEqualTo(9);
+        assertThat(d.location().column()).isEqualTo(31);
+        assertThat(d.message()).contains("'in'").contains("P0STAT").contains("response");
+    }
+
+    @Test
+    void aRequestBodyOnGetAndDeleteIsOvl015AtTheInValue() {
+        List<Diagnostic> found = Repos.load("invalid/ovl015").diagnostics();
+        assertThat(found).filteredOn(d -> d.location().file().matches("apis/(GET|DELETE)BODY/api.yaml"))
+                .extracting(d -> d.location().line(), d -> d.location().column())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(8, 36), org.assertj.core.groups.Tuple.tuple(8, 36));
+        assertThat(found).extracting(Diagnostic::message).anySatisfy(m -> assertThat(m).contains("DELETE").contains("POST, PUT or PATCH"))
+                .anySatisfy(m -> assertThat(m).contains("GET").contains("POST, PUT or PATCH"));
+    }
+
+    @Test
+    void ovl002IsReportedTogetherWithTheOtherErrorsOfTheSameOverlay() {
+        assertThat(diagnostics("multiple")).containsExactly(
+                error("OVL016", "apis/DIRECTIONANDNAME/api.yaml", 8),
+                error("OVL002", "apis/DIRECTIONANDNAME/api.yaml", 9),
+                error("OVL011", "apis/KEYANDNAME/api.yaml", 1),
+                error("OVL002", "apis/KEYANDNAME/api.yaml", 10),
+                // Only OVL013 when the program cannot be found: there is nothing to check the names against.
+                error("OVL013", "apis/NOPROGRAM/api.yaml", 1),
+                error("OVL012", "apis/ROUTEANDNAME/api.yaml", 3),
+                error("OVL002", "apis/ROUTEANDNAME/api.yaml", 9),
+                // A shared entry that no program has is not reported while an operation of the file is not loaded.
+                error("OVL012", "apis/SHAREDANDVERSION/api.yaml", 2),
+                error("OVL012", "apis/TYPEONSTRUCT/api.yaml", 9),
+                error("OVL002", "apis/TYPEONSTRUCT/api.yaml", 11),
+                error("OVL012", "apis/VERSIONANDNAME/api.yaml", 5),
+                error("OVL002", "apis/VERSIONANDNAME/api.yaml", 9));
+        assertThat(operationIds("multiple")).isEmpty();
+    }
+
+    @Test
     void everyOverlayDiagnosticCarriesAnOverlayFileExceptWhenThereIsNone() {
         for (String repository : List.of("ovl001", "ovl002", "ovl004", "ovl010", "ovl011", "ovl012", "ovl013", "ovl014",
-                "ovl015", "ovl016", "ovl017", "ovl018", "ovl020")) {
+                "ovl015", "ovl016", "ovl017", "ovl018", "ovl020", "multiple")) {
             for (Diagnostic d : Repos.load("invalid/" + repository).diagnostics()) {
                 if (d.code().startsWith("OVL")) {
                     assertThat(d.location().file()).as("%s %s", repository, d).matches(".*api\\.ya?ml");

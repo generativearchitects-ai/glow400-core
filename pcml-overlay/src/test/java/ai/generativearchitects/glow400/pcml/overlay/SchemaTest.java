@@ -86,7 +86,9 @@ class SchemaTest {
 
     static Stream<String> schemaLevelFixtures() {
         return Stream.of("ovl011/apis/TOPLEVEL", "ovl011/apis/PARAMETER", "ovl012/apis/METHOD", "ovl012/apis/NOVERSION",
-                "ovl012/apis/VERSION", "ovl012/apis/STATUS", "ovl012/apis/EXPRESSION", "ovl020/apis/BOTHFORMS");
+                "ovl012/apis/VERSION", "ovl012/apis/STATUS", "ovl012/apis/EXPRESSION", "ovl020/apis/BOTHFORMS",
+                "multiple/apis/VERSIONANDNAME", "multiple/apis/ROUTEANDNAME", "multiple/apis/KEYANDNAME",
+                "multiple/apis/SHAREDANDVERSION");
     }
 
     @ParameterizedTest(name = "{0}")
@@ -101,7 +103,11 @@ class SchemaTest {
                 "ovl004/apis/PLACEHOLDER", "ovl004/apis/BINDING", "ovl013/apis/NOPCML", "ovl013/apis/NOPROGRAM",
                 "ovl014/apis/NAMES", "ovl014/apis/ID1", "ovl014/apis/ROUTE1", "ovl015/apis/GETSTRUCT",
                 "ovl015/apis/ARRAYHEADER", "ovl016/apis/INPUT", "ovl016/apis/OUTPUT", "ovl017/apis/COUNTFIELD",
-                "ovl017/apis/ERRORFIELD", "ovl018/apis/BOTH");
+                "ovl017/apis/ERRORFIELD", "ovl018/apis/BOTH",
+                // 'in' where it has no effect, and a body on GET or DELETE, need the direction and the method together:
+                // the schema leaves them to the loader.
+                "ovl012/apis/INRESPONSE", "ovl015/apis/GETBODY", "ovl015/apis/DELETEBODY",
+                "multiple/apis/DIRECTIONANDNAME", "multiple/apis/TYPEONSTRUCT", "multiple/apis/NOPROGRAM");
     }
 
     @ParameterizedTest(name = "{0}")

@@ -143,32 +143,50 @@ public final class OverlayLoader {
             report("OVL013", Severity.ERROR, "The PCML file " + pcmlPath + " has errors", file.pcml().at());
             return List.of();
         }
-        return build(file, pcml.document().get(), defaults, pcmlPath, parsed.get().complete());
+        return build(parsed.get(), pcml.document().get(), defaults, pcmlPath);
     }
 
-    private List<ApiOperation> build(OverlayFile file, PcmlDocument pcml, GatewayDefaults defaults, String pcmlPath,
-                                     boolean complete) {
+    /**
+     * Merges the operations of one overlay file. An operation without errors is built in full. One that has errors in
+     * the overlay is not built, but its names are still checked against its program ({@code OVL002}), so that one run
+     * shows everything that is wrong. Nothing is checked for an operation whose program cannot be found ({@code OVL013}).
+     */
+    private List<ApiOperation> build(OverlayParser.Parsed parsed, PcmlDocument pcml, GatewayDefaults defaults,
+                                     String pcmlPath) {
+        OverlayFile file = parsed.file();
         ApiBuilder builder = new ApiBuilder(defaults, pcml, file.path(), pcmlPath, diagnostics);
         List<ApiOperation> operations = new ArrayList<>();
         List<String> programNames = new ArrayList<>();
         boolean allResolved = true;
-        for (OperationSettings operation : file.operations()) {
-            Located<String> programName = operation.program().or(file.shared()::program).orElseThrow();
+        for (int i = 0; i < file.operations().size(); i++) {
+            OperationSettings operation = file.operations().get(i);
+            Optional<Located<String>> programName = operation.program().or(file.shared()::program);
+            if (programName.isEmpty()) {
+                allResolved = false; // the missing or invalid 'program' has been reported by the parser
+                continue;
+            }
             Optional<ProgramDef> program = pcml.programs().stream()
-                    .filter(p -> p.name().equals(programName.value())).findFirst();
+                    .filter(p -> p.name().equals(programName.get().value())).findFirst();
             if (program.isEmpty()) {
-                report("OVL013", Severity.ERROR, "Program '" + programName.value() + "' is not in the PCML file " + pcmlPath,
-                        programName.at());
+                report("OVL013", Severity.ERROR, "Program '" + programName.get().value() + "' is not in the PCML file "
+                        + pcmlPath, programName.get().at());
                 allResolved = false;
                 continue;
             }
             programNames.add(program.get().name());
-            builder.build(file, operation, program.get(), programName).ifPresent(operations::add);
+            if (parsed.fileValid() && parsed.operationValid().get(i)) {
+                builder.build(file, operation, program.get(), programName.get()).ifPresent(operations::add);
+            } else {
+                builder.checkNames(file, operation, program.get());
+            }
         }
-        if (allResolved && complete && builder.errorCount() == 0) {
+        // A shared entry that no program has is reported only when every operation of the file was loaded: read without
+        // errors, its program found, and built without errors. Until then the entry may be meant for an operation that
+        // is not loaded.
+        if (allResolved && parsed.complete() && parsed.fileValid() && builder.errorCount() == 0) {
             builder.reportUnmatchedShared(file.shared(), programNames);
         }
-        return operations;
+        return parsed.fileValid() ? operations : List.of();
     }
 
     /** The PCML file named by the overlay, if it exists and lies inside the repository. */

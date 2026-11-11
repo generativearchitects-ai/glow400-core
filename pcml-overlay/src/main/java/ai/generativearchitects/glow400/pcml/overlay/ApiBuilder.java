@@ -96,17 +96,13 @@ final class ApiBuilder {
         HttpMethod method = operation.method().orElseThrow().value();
         List<String> routeNames = RouteRules.placeholders(route.value());
 
-        // Inject entries, shared first so that the operation's own win. Both are marked as matched.
+        markMatches(program, shared, operation);
+
+        // Inject entries, shared first so that the operation's own win.
         Map<String, Located<String>> inject = new LinkedHashMap<>();
         for (FieldDef parameter : program.parameters()) {
             Located<String> own = operation.inject().get(parameter.name());
             Located<String> common = shared.inject().get(parameter.name());
-            if (common != null) {
-                matched.add(common.at());
-            }
-            if (own != null) {
-                matched.add(own.at());
-            }
             if (own != null || common != null) {
                 inject.put(parameter.name(), own != null ? own : common);
             }
@@ -130,10 +126,7 @@ final class ApiBuilder {
         Optional<ErrorMapping> errorMapping = errorMapping(shared, operation, program);
         Optional<CacheSettings> cache = operation.cache().or(shared::cache).map(Located::value);
 
-        if (errors == errorsBefore) {
-            // After another error the walk over the settings may have stopped early; do not report cascading OVL002.
-            reportUnmatched(operation.inject(), operation.parameters(), program.name());
-        }
+        reportUnmatched(operation.inject(), operation.parameters(), program.name());
 
         if (errors > errorsBefore) {
             return Optional.empty();
@@ -143,6 +136,57 @@ final class ApiBuilder {
                 id, file.version().value(), operation.summary().map(Located::value),
                 operation.description().map(Located::value), tags, program, pcmlPath, overlayPath,
                 route.value(), method, file.call().value(), bindings, errorMapping, cache, operation.source()));
+    }
+
+    /**
+     * Checks only that the names in the overlay exist in the program ({@code OVL002}), without building bindings. Used
+     * for an operation that has other errors in the overlay, so that one run reports everything there is to fix.
+     */
+    void checkNames(OverlayFile file, OperationSettings operation, ProgramDef program) {
+        operationAt = operation.source();
+        markMatches(program, file.shared(), operation);
+        reportUnmatched(operation.inject(), operation.parameters(), program.name());
+    }
+
+    /**
+     * Marks the overlay entries (inject keys, parameters, struct members) that name something in the program. This walks
+     * the program, not the bindings, so it does not depend on whether the bindings could be built.
+     */
+    private void markMatches(ProgramDef program, OperationSettings shared, OperationSettings operation) {
+        for (FieldDef parameter : program.parameters()) {
+            Located<String> own = operation.inject().get(parameter.name());
+            Located<String> common = shared.inject().get(parameter.name());
+            if (own != null) {
+                matched.add(own.at());
+            }
+            if (common != null) {
+                matched.add(common.at());
+            }
+            List<FieldSettings> layers = new ArrayList<>();
+            addLayer(layers, shared.parameters().get(parameter.name()));
+            addLayer(layers, operation.parameters().get(parameter.name()));
+            markFieldMatches(parameter, layers, new ArrayDeque<>());
+        }
+    }
+
+    private void markFieldMatches(FieldDef field, List<FieldSettings> layers, Deque<String> structStack) {
+        layers.forEach(layer -> matched.add(layer.source()));
+        if (!(field.wire() instanceof WireType.Struct struct)) {
+            return;
+        }
+        StructDef definition = pcml.structs().get(struct.structName());
+        if (definition == null || structStack.contains(struct.structName())) {
+            return;
+        }
+        structStack.push(struct.structName());
+        for (FieldDef member : definition.fields()) {
+            List<FieldSettings> memberLayers = new ArrayList<>();
+            for (FieldSettings layer : layers) {
+                addLayer(memberLayers, layer.fields().get(member.name()));
+            }
+            markFieldMatches(member, memberLayers, structStack);
+        }
+        structStack.pop();
     }
 
     private static void addLayer(List<FieldSettings> layers, FieldSettings settings) {
@@ -157,7 +201,6 @@ final class ApiBuilder {
     private Optional<FieldBinding> bind(FieldDef parameter, String path, List<FieldSettings> layers,
                                         Located<String> injection, Located<String> route, List<String> routeNames,
                                         HttpMethod method, ProgramDef program) {
-        layers.forEach(layer -> matched.add(layer.source()));
         boolean composite = isComposite(parameter);
         SourceLocation source = layers.isEmpty() ? parameter.source() : layers.get(layers.size() - 1).source();
 
@@ -173,18 +216,34 @@ final class ApiBuilder {
         String exposedName = last(layers, FieldSettings::name).map(Located::value)
                 .orElseGet(() -> NameRules.exposedName(parameter.name()));
 
+        Optional<Located<Location>> explicit = last(layers, FieldSettings::in);
         Optional<Location> location = Optional.empty();
         if (direction.get() == Direction.REQUEST || direction.get() == Direction.BOTH) {
-            Optional<Located<Location>> explicit = last(layers, FieldSettings::in);
             Location chosen = explicit.map(Located::value)
                     .orElseGet(() -> defaultLocation(exposedName, routeNames, method));
+            SourceLocation at = explicit.map(Located::at).orElse(source);
+            boolean noBody = method == HttpMethod.GET || method == HttpMethod.DELETE;
+            if (composite && noBody) {
+                error("OVL015", "Parameter '" + path + "' is a struct or an array and cannot be sent with "
+                        + method + ": use POST, PUT or PATCH", at);
+                return Optional.empty();
+            }
             if (composite && chosen != Location.BODY) {
                 error("OVL015", "Parameter '" + path + "' is a struct or an array and cannot be sent in the "
-                        + chosen.name().toLowerCase(Locale.ROOT) + "; set 'in: body'",
-                        explicit.map(Located::at).orElse(source));
+                        + chosen.name().toLowerCase(Locale.ROOT) + "; set 'in: body'", at);
+                return Optional.empty();
+            }
+            if (noBody && chosen == Location.BODY) {
+                error("OVL015", "Parameter '" + path + "' cannot be sent in the body with " + method
+                        + ": use 'in: query', or POST, PUT or PATCH", at);
                 return Optional.empty();
             }
             location = Optional.of(chosen);
+        } else if (explicit.isPresent()) {
+            error("OVL012", "'in' has no effect on parameter '" + path + "': its direction is "
+                    + direction.get().name().toLowerCase(Locale.ROOT) + ", and only request fields have a location",
+                    explicit.get().at());
+            return Optional.empty();
         }
 
         if (!validTrim(parameter, layers, program)) {
@@ -198,6 +257,8 @@ final class ApiBuilder {
     private Optional<FieldBinding> injected(FieldDef parameter, String path, List<FieldSettings> layers,
                                             Located<String> injection, boolean composite) {
         if (!layers.isEmpty()) {
+            last(layers, FieldSettings::in).ifPresent(in -> error("OVL012", "'in' has no effect on parameter '" + path
+                    + "': its direction is injected, and only request fields have a location", in.at()));
             error("OVL018", "Parameter '" + path + "' is configured by both 'inject' and 'parameters'", injection.at());
             return Optional.empty();
         }
@@ -268,7 +329,6 @@ final class ApiBuilder {
             for (FieldSettings layer : layers) {
                 addLayer(memberLayers, layer.fields().get(member.name()));
             }
-            memberLayers.forEach(layer -> matched.add(layer.source()));
             SourceLocation source = memberLayers.isEmpty() ? member.source()
                     : memberLayers.get(memberLayers.size() - 1).source();
             String name = last(memberLayers, FieldSettings::name).map(Located::value)

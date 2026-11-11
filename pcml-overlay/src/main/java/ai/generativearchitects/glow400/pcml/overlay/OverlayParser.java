@@ -20,12 +20,17 @@ import org.snakeyaml.engine.v2.nodes.Node;
 final class OverlayParser {
 
     /**
-     * Result of parsing.
+     * Result of parsing: whatever could be read, even if there are errors, so that the names in it can still be checked
+     * against the PCML. Only a file whose root, {@code pcml} or operations cannot be read at all gives no result.
      *
-     * @param file     the overlay file; operations that had errors are not in it
-     * @param complete {@code false} if any operation was dropped because of errors
+     * @param file           the overlay file as far as it could be read; operations that could not be read at all are missing
+     * @param operationValid for each operation of {@code file}, whether it is free of errors
+     * @param fileValid      {@code false} if the header, the shared settings or the list itself has an error; no operation
+     *                       of such a file is used
+     * @param complete       {@code true} if every operation in the file was read and is free of errors; only then can a
+     *                       shared entry that no operation uses be reported
      */
-    record Parsed(OverlayFile file, boolean complete) {
+    record Parsed(OverlayFile file, List<Boolean> operationValid, boolean fileValid, boolean complete) {
     }
 
     private enum Level { SINGLE, SHARED, OPERATION }
@@ -103,6 +108,7 @@ final class OverlayParser {
         OperationSettings shared;
         boolean sharedProgramKey = false;
         List<OperationSettings> operations = new ArrayList<>();
+        List<Boolean> operationValid = new ArrayList<>();
         boolean complete = true;
         int fileLevelErrors;
         if (list) {
@@ -112,28 +118,34 @@ final class OverlayParser {
             if (items.isPresent() && items.get().isEmpty()) {
                 yaml.error("OVL012", "'operations' must have at least one operation", operationsEntry.get().keyAt());
             }
-            // Errors so far belong to the file as a whole; from here on an error only drops its own operation.
+            // Errors so far belong to the file as a whole; from here on an error only invalidates its own operation.
             fileLevelErrors = yaml.errorCount() - errorsBefore;
             for (Node item : items.orElse(List.of())) {
                 int before = yaml.errorCount();
                 Optional<OperationSettings> operation = operation(item, shared, sharedProgramKey);
-                if (operation.isPresent() && yaml.errorCount() == before) {
-                    operations.add(operation.get());
-                } else {
-                    complete = false;
-                }
+                boolean valid = operation.isPresent() && yaml.errorCount() == before;
+                operation.ifPresent(o -> {
+                    operations.add(o);
+                    operationValid.add(valid);
+                });
+                complete &= valid;
             }
         } else {
             shared = emptySettings(yaml.at(root));
             OperationSettings single = settings(entries, Level.SINGLE, yaml.at(root));
             requireProgram(entries, single, shared, false);
             operations.add(single);
+            // The file is one operation: any error invalidates it.
             fileLevelErrors = yaml.errorCount() - errorsBefore;
+            operationValid.add(fileLevelErrors == 0);
         }
-        if (fileLevelErrors > 0 || pcml.isEmpty() || version.isEmpty() || operations.isEmpty()) {
+        if (pcml.isEmpty() || operations.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(new Parsed(new OverlayFile(path, pcml.get(), version.get(), call, shared, operations), complete));
+        // An invalid version is replaced by a placeholder: the operations of such a file are never used.
+        Located<String> versionValue = version.orElseGet(() -> new Located<>("0.0.0", yaml.at(root)));
+        return Optional.of(new Parsed(new OverlayFile(path, pcml.get(), versionValue, call, shared, operations),
+                operationValid, fileLevelErrors == 0, complete));
     }
 
     private Optional<YamlReader.Entry> required(List<YamlReader.Entry> entries, String key, SourceLocation where) {

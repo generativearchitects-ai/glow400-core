@@ -1,0 +1,10 @@
+pcml: ORDSTATUS.pcml
+version: "1.0"
+program: ORDSTATUS
+parameters:
+  P0ORDN: { in: path, name: orderNumber }
+  P0GONE: { name: gone }
+operations:
+  - id: one
+    route: /one/{orderNumber}
+    method: GET
