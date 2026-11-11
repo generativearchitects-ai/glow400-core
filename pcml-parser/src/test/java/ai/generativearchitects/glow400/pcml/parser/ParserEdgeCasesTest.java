@@ -131,4 +131,82 @@ class ParserEdgeCasesTest {
         assertThat(parameters.get(1).source()).isEqualTo(new SourceLocation("edge.pcml", 3, 122));
         assertThat(parameters.get(2).source()).isEqualTo(new SourceLocation("edge.pcml", 4, 9));
     }
+
+    // ---- references that start with the program name (PCML003)
+
+    @Test
+    void aReferenceCanBeWrittenWithTheProgramNameInFront() {
+        // HDR refers to the top-level struct H; the reference goes through it.
+        String xml = "<pcml version=\"6.0\">\n<struct name=\"H\"><data name=\"TOTAL\" type=\"int\" length=\"4\"/></struct>\n"
+                + "<program name=\"P\">\n<data name=\"N\" type=\"int\" length=\"4\"/>\n<data name=\"HDR\" type=\"struct\" struct=\"H\"/>\n"
+                + "<data name=\"A\" type=\"char\" length=\"1\" count=\"P.N\"/>\n"
+                + "<data name=\"B\" type=\"char\" length=\"1\" count=\"P.HDR.TOTAL\"/>\n</program>\n</pcml>";
+        assertThat(parse(xml).diagnostics()).isEmpty();
+    }
+
+    @Test
+    void aReferenceWithAnotherProgramNameOrOnlyTheProgramNameIsUnresolved() {
+        for (String reference : new String[] {"Q.N", "P", "P.NOPE", "P.N.X"}) {
+            ParseResult result = parse(program("<data name=\"N\" type=\"int\" length=\"4\"/>\n"
+                    + "<data name=\"A\" type=\"char\" length=\"1\" count=\"" + reference + "\"/>"));
+            assertThat(result.diagnostics()).as(reference).extracting(Diagnostic::code, d -> d.location().line())
+                    .containsExactly(org.assertj.core.groups.Tuple.tuple("PCML003", 4));
+        }
+    }
+
+    // ---- numbers
+
+    @Test
+    void aValueThatMerelyStartsOrEndsLikeANumberIsAReference() {
+        for (String value : new String[] {"1:", ":1", "/", "1/", "/1", "1a", "a1", "-1", "+1", "1.5", " 1", "1 "}) {
+            ParseResult result = parse(program("<data name=\"A\" type=\"char\" length=\"" + value + "\"/>"));
+            FieldDef field = result.document().orElseThrow().programs().get(0).parameters().get(0);
+            assertThat(field.wire()).as(value).isEqualTo(new WireType.Char(new Length.Ref(value), Optional.empty()));
+        }
+    }
+
+    @Test
+    void everyDigitIsPartOfANumber() {
+        ParseResult result = parse(program("<data name=\"A\" type=\"char\" length=\"0123456789\"/>\n"
+                + "<data name=\"B\" type=\"char\" length=\"09\" count=\"90\"/>"));
+        assertThat(result.diagnostics()).isEmpty();
+        var parameters = result.document().orElseThrow().programs().get(0).parameters();
+        assertThat(parameters.get(0).wire()).isEqualTo(new WireType.Char(new Length.Fixed(123456789), Optional.empty()));
+        assertThat(parameters.get(1).wire()).isEqualTo(new WireType.Char(new Length.Fixed(9), Optional.empty()));
+        assertThat(parameters.get(1).count()).isEqualTo(new Count.Fixed(90));
+    }
+
+    @Test
+    void anEmptyNumberIsAnErrorWhereANumberIsRequiredAndIgnoredForCcsid() {
+        ParseResult result = parse(program("<data name=\"A\" type=\"packed\" length=\"\" precision=\"2\"/>\n"
+                + "<data name=\"B\" type=\"char\" length=\"1\" ccsid=\"\"/>"));
+        assertThat(result.diagnostics()).extracting(Diagnostic::code, d -> d.location().line())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("PCML004", 3));
+        FieldDef b = result.document().orElseThrow().programs().get(0).parameters().get(0);
+        assertThat(b.name()).isEqualTo("B");
+        assertThat(b.wire()).isEqualTo(new WireType.Char(new Length.Fixed(1), Optional.empty()));
+        assertThat(b.attributes()).containsEntry("ccsid", "");
+    }
+
+    @Test
+    void aVarcharWithoutVarlengthHasNoLengthPrefixSize() {
+        ParseResult result = parse(program("<data name=\"A\" type=\"varchar\" length=\"5\"/>"));
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.document().orElseThrow().programs().get(0).parameters().get(0).wire())
+                .isEqualTo(new WireType.VarChar(new Length.Fixed(5), Optional.empty(), Optional.empty()));
+    }
+
+    // ---- order of diagnostics
+
+    @Test
+    void diagnosticsOnTheSameLineAreOrderedByColumnEvenWhenFoundInTheOtherOrder() {
+        // Programs are checked before structs, but here the struct comes first in the line.
+        String xml = "<pcml version=\"6.0\"><struct name=\"S\"><data name=\"A\" type=\"char\" length=\"X1\"/></struct>"
+                + "<program name=\"P\"><data name=\"B\" type=\"char\" length=\"X2\"/></program></pcml>";
+        ParseResult result = parse(xml);
+        assertThat(result.diagnostics()).hasSize(2);
+        assertThat(result.diagnostics().get(0).message()).contains("'A'");
+        assertThat(result.diagnostics().get(1).message()).contains("'B'");
+        assertThat(result.diagnostics().get(0).location().column()).isLessThan(result.diagnostics().get(1).location().column());
+    }
 }
