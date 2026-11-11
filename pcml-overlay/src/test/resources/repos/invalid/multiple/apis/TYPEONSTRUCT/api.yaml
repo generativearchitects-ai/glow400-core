@@ -1,0 +1,11 @@
+program: SEARCH
+pcml: SEARCH.pcml
+route: /search
+method: POST
+version: 1.0.0
+
+parameters:
+  REQ:
+    type: string
+    fields:
+      NOPE: { name: x }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="BODY">
+    <data name="Q" type="char" length="2"/>
+  </struct>
+  <program name="SEARCH" path="/QSYS.LIB/DEMOLIB.LIB/SEARCH.PGM">
+    <data name="REQ" type="struct" struct="BODY" usage="input"/>
+  </program>
+</pcml>

@@ -555,7 +555,8 @@ final class ModelBuilder {
         return value == null || value.isBlank() ? null : value;
     }
 
-    private static boolean isNumber(String raw) {
+    /** Whether the text is a non-empty sequence of decimal digits, and nothing else. */
+    static boolean isNumber(String raw) {
         if (raw.isEmpty()) {
             return false;
         }

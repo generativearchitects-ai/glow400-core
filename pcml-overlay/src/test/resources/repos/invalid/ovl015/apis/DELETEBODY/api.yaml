@@ -1,0 +1,8 @@
+program: ORDSTATUS
+pcml: ORDSTATUS.pcml
+route: /orders
+method: DELETE
+version: 1.0.0
+
+parameters:
+  P0ORDN: { name: orderNumber, in: body }

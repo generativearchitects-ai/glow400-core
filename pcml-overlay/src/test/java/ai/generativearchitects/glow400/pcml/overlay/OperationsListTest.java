@@ -176,6 +176,24 @@ class OperationsListTest {
     }
 
     @Test
+    void aSharedEntryThatNoProgramHasIsNotReportedWhileAnOperationOfTheFileHasAnError(@TempDir Path dir) {
+        // P0GONE would be OVL002, but the second operation cannot be built (P0RSN gets a contradicting direction).
+        String overlay = HEADER + "parameters:\n  P0ORDN: { in: path, name: orderNumber }\n  P0GONE: { name: gone }\n  P0STAT: { name: status }\n  P0DATA: { direction: response }\n  P0ERR: { direction: internal }\noperations:\n"
+                + OP_ONE + OP_TWO + "    parameters:\n      P0RSN: { direction: response }\n";
+        RepositoryResult result = load(dir, overlay);
+        assertThat(result.diagnostics()).extracting(Diagnostic::code).containsExactly("OVL016");
+        assertThat(result.model().orElseThrow().operations()).extracting(ApiOperation::id).containsExactly("one");
+    }
+
+    @Test
+    void aSharedEntryThatNoProgramHasIsNotReportedWhileTheHeaderHasAnError(@TempDir Path dir) {
+        String overlay = "pcml: SRV.pcml\nversion: \"1\"\nprogram: ONE\nparameters:\n  P0ORDN: { in: path, name: orderNumber }\n  P0GONE: { name: gone }\n  P0STAT: { name: status }\n  P0DATA: { direction: response }\n  P0ERR: { direction: internal }\noperations:\n"
+                + OP_ONE.replace("    program: ONE\n", "");
+        RepositoryResult result = load(dir, overlay);
+        assertThat(codesAndLines(result)).containsExactly(Tuple.tuple("OVL012", 2));
+    }
+
+    @Test
     void anOperationsOwnEntryThatItsProgramLacksLeavesOutThatOperationOnly(@TempDir Path dir) {
         // P0RSN exists in TWO but not in ONE.
         String overlay = HEADER + "parameters:\n  P0ORDN: { in: path, name: orderNumber }\n  P0ERR: { direction: internal }\noperations:\n"
@@ -210,6 +228,26 @@ class OperationsListTest {
         RepositoryResult result = load(dir, overlay);
         assertThat(result.diagnostics()).extracting(Diagnostic::code).containsExactly("OVL013");
         assertThat(result.diagnostics().get(0).location().line()).isEqualTo(7);
+    }
+
+    @Test
+    void aSharedInOnAParameterThatIsAResponseInOneOperationDropsOnlyThatOperation(@TempDir Path dir) {
+        // P0ORDN is a request field in both programs; P0STAT exists in ONE only, as a response field.
+        String overlay = HEADER + "parameters:\n  P0ORDN: { in: path, name: orderNumber }\n  P0STAT: { in: header, name: status }\n  P0ERR: { direction: internal }\n  P0DATA: { direction: response }\noperations:\n"
+                + OP_ONE + OP_TWO + "    parameters:\n      P0RSN: { name: reason }\n";
+        RepositoryResult result = load(dir, overlay);
+        assertThat(codesAndLines(result)).containsExactly(Tuple.tuple("OVL012", 5));
+        assertThat(result.diagnostics().get(0).location().column()).isEqualTo(17);
+        assertThat(result.model().orElseThrow().operations()).extracting(ApiOperation::id).containsExactly("two");
+    }
+
+    @Test
+    void anInThatEveryOperationUsesAsARequestFieldIsFine(@TempDir Path dir) {
+        String overlay = HEADER + "parameters:\n  P0ORDN: { in: query, name: orderNumber }\n  P0STAT: { name: status }\n  P0ERR: { direction: internal }\n  P0DATA: { direction: response }\n  P0RSN: { name: reason }\noperations:\n"
+                + OP_ONE.replace("/one/{orderNumber}", "/one") + OP_TWO.replace("/two/{orderNumber}", "/two");
+        RepositoryResult result = load(dir, overlay);
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(binding(result.model().orElseThrow().operations().get(0), "P0ORDN").location()).contains(Location.QUERY);
     }
 
     // ---- uniqueness

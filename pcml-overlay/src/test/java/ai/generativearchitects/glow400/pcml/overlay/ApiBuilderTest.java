@@ -105,11 +105,34 @@ class ApiBuilderTest {
     }
 
     @Test
-    void locationAppliesToRequestFieldsOnly(@TempDir Path dir) {
-        ApiOperation op = single(load(dir, yaml("/m", "POST", DIRECTIONS + "  OUT: { in: header }\n")));
-        assertThat(binding(op, "OUT").location()).isEmpty();
+    void inOnAParameterWithoutARequestSideIsOvl012AtTheInValue(@TempDir Path dir) {
+        // Response by usage, internal by direction, response by direction: none of them has a request side.
+        for (String entry : List.of("  OUT: { in: header }\n", "  ID: { direction: internal, in: query }\n",
+                "  OUT: { direction: response, in: body }\n", "  OUT: { direction: internal, in: path }\n")) {
+            RepositoryResult result = load(dir.resolve(String.valueOf(entry.hashCode())), yaml("/m", "POST", DIRECTIONS + entry));
+            assertThat(codes(result)).as(entry).containsExactly(Tuple.tuple("OVL012", Severity.ERROR));
+            assertThat(result.diagnostics().get(0).location().line()).as(entry).isEqualTo(9);
+            assertThat(result.diagnostics().get(0).location().column()).as(entry).isGreaterThan(entry.indexOf("in:") + 1);
+            assertThat(result.model().orElseThrow().operations()).as(entry).isEmpty();
+        }
+    }
+
+    @Test
+    void inOnAParameterWithARequestSideStillWorks(@TempDir Path dir) {
+        ApiOperation op = single(load(dir, yaml("/m", "POST", "parameters:\n  IO: { direction: both, in: header }\n  INH: { direction: response }\n"
+                + "  ID: { in: query }\n")));
+        assertThat(binding(op, "IO").location()).contains(Location.HEADER);
+        assertThat(binding(op, "ID").location()).contains(Location.QUERY);
         assertThat(binding(op, "INH").location()).isEmpty();
-        assertThat(binding(op, "IO").location()).contains(Location.BODY);
+    }
+
+    @Test
+    void inOnAnInjectedParameterIsOvl012AndOvl018(@TempDir Path dir) {
+        RepositoryResult result = load(dir, yaml("/m", "POST", DIRECTIONS + "  A: { in: query }\n\ninject:\n  A: x\n"));
+        assertThat(result.diagnostics()).extracting(Diagnostic::code, d -> d.location().line())
+                .containsExactlyInAnyOrder(Tuple.tuple("OVL012", 9), Tuple.tuple("OVL018", 12));
+        assertThat(result.diagnostics()).filteredOn(d -> d.code().equals("OVL012")).extracting(Diagnostic::message)
+                .allSatisfy(m -> assertThat(m).contains("injected"));
     }
 
     @Test
@@ -408,20 +431,62 @@ class ApiBuilderTest {
     }
 
     @Test
-    void structsAndArraysNeedTheBodyOnGetToo(@TempDir Path dir) {
-        RepositoryResult result = search(dir, "GET", "");
-        assertThat(codes(result)).containsExactly(Tuple.tuple("OVL015", Severity.ERROR), Tuple.tuple("OVL015", Severity.ERROR));
-        assertThat(result.diagnostics()).extracting(Diagnostic::message)
-                .anySatisfy(m -> assertThat(m).contains("'REQ'").contains("query"))
-                .anySatisfy(m -> assertThat(m).contains("'IDS'").contains("query"));
+    void structsAndArraysCannotBeSentWithGetOrDelete(@TempDir Path dir) {
+        for (String method : List.of("GET", "DELETE")) {
+            RepositoryResult result = search(dir.resolve(method), method, "");
+            assertThat(codes(result)).as(method).containsExactly(Tuple.tuple("OVL015", Severity.ERROR), Tuple.tuple("OVL015", Severity.ERROR));
+            assertThat(result.diagnostics()).extracting(Diagnostic::message)
+                    .anySatisfy(m -> assertThat(m).contains("'REQ'").contains(method).contains("POST, PUT or PATCH"))
+                    .anySatisfy(m -> assertThat(m).contains("'IDS'").contains(method).contains("POST, PUT or PATCH"));
+        }
     }
 
     @Test
-    void anExplicitBodyOnGetIsAllowedAndMembersFollowIt(@TempDir Path dir) {
-        ApiOperation op = single(search(dir, "GET", "parameters:\n  REQ: { in: body }\n  IDS: { in: body }\n"));
-        assertThat(binding(op, "REQ").location()).contains(Location.BODY);
-        assertThat(binding(op, "IDS").location()).contains(Location.BODY);
-        assertThat(binding(op, "REQ").children()).extracting(FieldBinding::location).containsOnly(Optional.of(Location.BODY));
+    void aStructOrArrayOnGetIsOvl015WhateverItsLocation(@TempDir Path dir) {
+        for (String location : List.of("body", "query", "header")) {
+            RepositoryResult result = search(dir.resolve(location), "GET",
+                    "parameters:\n  REQ: { in: " + location + " }\n  IDS: { in: " + location + " }\n");
+            assertThat(codes(result)).as(location).containsExactly(Tuple.tuple("OVL015", Severity.ERROR), Tuple.tuple("OVL015", Severity.ERROR));
+            assertThat(result.diagnostics()).extracting(d -> d.location().line()).as(location).containsExactly(7, 8);
+        }
+    }
+
+    @Test
+    void aScalarCannotBeSentInTheBodyOfGetOrDelete(@TempDir Path dir) {
+        for (String method : List.of("GET", "DELETE")) {
+            RepositoryResult result = load(dir.resolve(method), yaml("/m", method, DIRECTIONS + "  A: { in: body }\n"));
+            assertThat(codes(result)).as(method).containsExactly(Tuple.tuple("OVL015", Severity.ERROR));
+            assertThat(result.diagnostics().get(0).message()).contains("'A'").contains(method).contains("POST, PUT or PATCH");
+            assertThat(result.diagnostics().get(0).location().line()).isEqualTo(9);
+        }
+    }
+
+    @Test
+    void scalarsOnGetAndDeleteKeepTheirDefaultsAndMayUseQueryHeaderOrPath(@TempDir Path dir) {
+        for (String method : List.of("GET", "DELETE")) {
+            ApiOperation op = single(load(dir.resolve(method), yaml("/x/{b}", method,
+                    DIRECTIONS + "  A: { in: header }\n  ID: { in: query }\n")));
+            assertThat(binding(op, "A").location()).contains(Location.HEADER);
+            assertThat(binding(op, "ID").location()).contains(Location.QUERY);
+            assertThat(binding(op, "B").location()).contains(Location.PATH);
+            assertThat(binding(op, "IO").location()).contains(Location.QUERY);
+        }
+    }
+
+    @Test
+    void aBothFieldOnGetIsInTheQueryAndNeverInTheBody(@TempDir Path dir) {
+        RepositoryResult result = load(dir, yaml("/m", "GET", "parameters:\n  IO: { direction: both, in: body }\n  INH: { direction: response }\n"));
+        assertThat(codes(result)).containsExactly(Tuple.tuple("OVL015", Severity.ERROR));
+    }
+
+    @Test
+    void anExplicitBodyOnPostPutAndPatchIsAllowedAndMembersFollowIt(@TempDir Path dir) {
+        for (String method : List.of("POST", "PUT", "PATCH")) {
+            ApiOperation op = single(search(dir.resolve(method), method, "parameters:\n  REQ: { in: body }\n  IDS: { in: body }\n"));
+            assertThat(binding(op, "REQ").location()).contains(Location.BODY);
+            assertThat(binding(op, "IDS").location()).contains(Location.BODY);
+            assertThat(binding(op, "REQ").children()).extracting(FieldBinding::location).containsOnly(Optional.of(Location.BODY));
+        }
     }
 
     @Test

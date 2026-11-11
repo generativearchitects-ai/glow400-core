@@ -95,9 +95,6 @@ class OverlayParsingTest {
                 rejects("example is null", overlay("parameters:\n  P0ORDN: { example: ~ }\n"), "OVL012", 7),
                 rejects("fields is a list", overlay("parameters:\n  P0ORDN: { fields: [a] }\n"), "OVL012", 7),
                 rejects("hidden on a parameter", overlay("parameters:\n  P0ORDN: { hidden: true }\n"), "OVL011", 7),
-                rejects("direction on a member", overlay("parameters:\n  P0ORDN:\n    fields:\n      M: { direction: request }\n"), "OVL011", 9),
-                rejects("in on a member", overlay("parameters:\n  P0ORDN:\n    fields:\n      M: { in: body }\n"), "OVL011", 9),
-                rejects("trim on a member", overlay("parameters:\n  P0ORDN:\n    fields:\n      M: { trim: { dropBlank: true } }\n"), "OVL011", 9),
                 // ---- trim
                 rejects("trim is a scalar", overlay("parameters:\n  P0ORDN: { trim: yes }\n"), "OVL012", 7),
                 rejects("trim with both choices", overlay("parameters:\n  P0ORDN: { trim: { countField: A, dropBlank: true } }\n"), "OVL012", 7),
@@ -152,6 +149,18 @@ class OverlayParsingTest {
                 rejects("duplicate parameter", overlay("parameters:\n  P0ORDN: {}\n  P0ORDN: {}\n"), "OVL010", 8),
                 rejects("tab indentation", overlay("parameters:\n\tP0ORDN: {}\n"), "OVL010", 7),
                 rejects("custom tag", overlay("summary: !!binary aGk=\n"), "OVL010", 6));
+    }
+
+    /** Keys that a struct member does not accept; the member is not in the PCML either, so OVL002 comes with them. */
+    @ParameterizedTest(name = "{0}")
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"direction: request", "in: body", "trim: { dropBlank: true }"})
+    void aKeyThatAMemberDoesNotAcceptIsReportedWithTheMissingMember(String setting, @TempDir Path dir) {
+        RepositoryResult result = new Repos.Temp(dir).file("apis/A/ORDSTATUS.pcml", Repos.ORDSTATUS_PCML)
+                .file("apis/A/api.yaml", overlay("parameters:\n  P0ORDN:\n    fields:\n      M: { " + setting + " }\n")).load();
+        assertThat(result.diagnostics()).extracting(Diagnostic::code, d -> d.location().line())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("OVL002", 9), org.assertj.core.groups.Tuple.tuple("OVL011", 9));
+        assertThat(result.diagnostics().get(0).location().column()).isLessThan(result.diagnostics().get(1).location().column());
+        assertThat(result.model().orElseThrow().operations()).isEmpty();
     }
 
     @ParameterizedTest(name = "{0}")
@@ -235,7 +244,7 @@ class OverlayParsingTest {
                 tags: [a, 2, true]
                 parameters:
                   P0ORDN: { name: orderNumber, example: true, padChar: " ", nullAs: "N/A" }
-                  P0STAT: { name: other, in: path, direction: internal }
+                  P0STAT: { name: other, direction: internal }
                 """;
         RepositoryResult result = new Repos.Temp(dir).file("apis/A/ORDSTATUS.pcml", Repos.ORDSTATUS_PCML)
                 .file("apis/A/api.yaml", yaml).load();
