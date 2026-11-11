@@ -24,6 +24,7 @@
   <modules>
     <module>pcml-model</module>
     <module>pcml-parser</module>
+    <module>pcml-overlay</module>
   </modules>
 
   <properties>
@@ -33,10 +34,14 @@
 
     <junit.version>5.11.4</junit.version>
     <assertj.version>3.27.3</assertj.version>
+    <snakeyaml-engine.version>3.2</snakeyaml-engine.version>
+    <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <pitest.version>1.30.2</pitest.version>
     <pitest-junit5.version>1.2.3</pitest-junit5.version>
     <!-- Minimum share of mutants the tests must kill, in percent. Raise it as the test suite grows. -->
     <mutation.threshold>85</mutation.threshold>
+    <!-- PIT runs this many mutation analyses in parallel. -->
+    <pitest.threads>4</pitest.threads>
   </properties>
 
   <dependencyManagement>
@@ -45,6 +50,21 @@
         <groupId>ai.generativearchitects.glow400</groupId>
         <artifactId>pcml-model</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.glow400</groupId>
+        <artifactId>pcml-parser</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.snakeyaml</groupId>
+        <artifactId>snakeyaml-engine</artifactId>
+        <version>${snakeyaml-engine.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.networknt</groupId>
+        <artifactId>json-schema-validator</artifactId>
+        <version>${json-schema-validator.version}</version>
       </dependency>
       <dependency>
         <groupId>org.junit</groupId>
@@ -139,6 +159,7 @@
                 <param>ai.generativearchitects.glow400.*</param>
               </targetClasses>
               <mutationThreshold>${mutation.threshold}</mutationThreshold>
+              <threads>${pitest.threads}</threads>
               <outputFormats>
                 <outputFormat>HTML</outputFormat>
                 <outputFormat>XML</outputFormat>

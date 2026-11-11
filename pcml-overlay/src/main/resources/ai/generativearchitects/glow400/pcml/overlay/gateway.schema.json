@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "glow400 repository defaults (gateway.yaml)",
+  "description": "Repository-wide defaults only. Every key is optional.",
+  "type": [
+    "object",
+    "null"
+  ],
+  "properties": {
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "char": {
+          "type": "object",
+          "properties": {
+            "pad": {
+              "enum": [
+                "left",
+                "right"
+              ]
+            },
+            "padChar": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1
+            },
+            "nullAs": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "inputoutput": {
+          "enum": [
+            "both",
+            "fail"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "emitters": {
+      "type": "array",
+      "items": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

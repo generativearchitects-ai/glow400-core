@@ -1,0 +1,26 @@
+program: ORDSTATUS
+pcml: ORDSTATUS.pcml
+route: /orders/{orderNumber}/status
+method: GET
+version: 1.0.0
+
+inject:
+  P0ENV: ${environment.code}
+  P0TEN: ${tenant.id}
+
+parameters:
+  P0ORDN: { name: orderNumber }
+  P0STAT: { name: status }
+  P0ERR:  { direction: internal }
+  P0ERRC: { direction: internal }
+  P0XERR: { direction: internal }
+
+error:
+  when: { field: P0ERR, equals: "KO" }
+  code: P0ERRC
+  message: P0XERR
+  httpStatus: 422
+  statusByCode: { NOTFOUND: 404 }
+
+cache:
+  ttlSeconds: 0

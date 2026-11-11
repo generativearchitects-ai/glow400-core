@@ -1,5 +1,7 @@
 package ai.generativearchitects.glow400.pcml.parser;
 
+import ai.generativearchitects.glow400.pcml.diagnostics.Diagnostic;
+import ai.generativearchitects.glow400.pcml.diagnostics.Severity;
 import ai.generativearchitects.glow400.pcml.model.PcmlDocument;
 import ai.generativearchitects.glow400.pcml.model.SourceLocation;
 import java.io.IOException;

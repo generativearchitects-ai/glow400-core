@@ -3,6 +3,7 @@ package ai.generativearchitects.glow400.pcml.parser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import ai.generativearchitects.glow400.pcml.diagnostics.Diagnostic;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

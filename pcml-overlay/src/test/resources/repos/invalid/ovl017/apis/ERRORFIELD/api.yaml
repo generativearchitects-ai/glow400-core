@@ -1,0 +1,12 @@
+program: LISTER
+pcml: LISTER.pcml
+route: /rows
+method: GET
+version: 1.0.0
+
+parameters:
+  P0ROWS: { direction: response }
+
+error:
+  when: { field: P0ROWS, equals: "x" }
+  code: P0NOPE

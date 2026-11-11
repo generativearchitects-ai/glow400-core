@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>ai.generativearchitects.glow400</groupId>
+    <artifactId>glow400-core</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>pcml-overlay</artifactId>
+  <name>pcml-overlay</name>
+  <description>Overlay files and gateway.yaml: loading, defaults and merge into the API model.</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-parser</artifactId>
+    </dependency>
+    <!-- The only runtime dependency of this module (Apache-2.0, no transitive dependencies). -->
+    <dependency>
+      <groupId>org.snakeyaml</groupId>
+      <artifactId>snakeyaml-engine</artifactId>
+    </dependency>
+
+    <!-- Test scope only: validates the fixtures against the published JSON Schemas. -->
+    <dependency>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

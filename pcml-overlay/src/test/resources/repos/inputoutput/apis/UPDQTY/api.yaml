@@ -1,0 +1,10 @@
+program: UPDQTY
+pcml: UPDQTY.pcml
+route: /items/{itemId}/quantity
+method: POST
+version: 1.0.0
+
+parameters:
+  ITEMID: { direction: request, name: itemId, in: path }
+  QTY:    { direction: both, name: quantity, type: integer }
+  STATUS: { direction: response, name: status }

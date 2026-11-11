@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="GETBAL" path="/QSYS.LIB/DEMOLIB.LIB/GETBAL.PGM">
+    <data name="ACCT" type="char" length="10" usage="inputoutput"/>
+    <data name="BAL" type="packed" length="11" precision="2" usage="inputoutput"/>
+  </program>
+</pcml>

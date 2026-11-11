@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="GETSTATUS" path="/QSYS.LIB/DEMOLIB.LIB/ORDERSRV.SRVPGM" entrypoint="GETSTATUS">
+    <data name="P0ENV" type="char" length="4" usage="input"/>
+    <data name="P0ORDN" type="char" length="10" usage="input"/>
+    <data name="P0STAT" type="char" length="1" usage="output"/>
+  </program>
+  <program name="CANCELORD" path="/QSYS.LIB/DEMOLIB.LIB/ORDERSRV.SRVPGM" entrypoint="CANCELORD">
+    <data name="P0ENV" type="char" length="4" usage="input"/>
+    <data name="P0ORDN" type="char" length="10" usage="input"/>
+    <data name="P0RSN" type="char" length="20" usage="input"/>
+  </program>
+</pcml>

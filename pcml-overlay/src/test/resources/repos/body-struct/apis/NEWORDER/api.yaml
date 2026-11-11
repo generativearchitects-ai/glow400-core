@@ -1,0 +1,10 @@
+program: NEWORDER
+pcml: NEWORDER.pcml
+route: /orders
+method: POST
+version: 1.0.0
+
+parameters:
+  P0HDR:  { name: header, fields: { CUSTID: { name: customerId, required: true } } }
+  P0TAGS: { name: tags }
+  P0ORDN: { name: orderNumber }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="DCLCASE" path="/QSYS.LIB/DEMOLIB.LIB/DCLCASE.PGM">
+    <data name="OrderNumber" type="char" length="10" usage="input"/>
+    <data name="ORDER_DATE" type="char" length="8" usage="output"/>
+    <data name="Cust_Name" type="char" length="30" usage="output"/>
+    <data name="_LEAD__TRAIL_" type="char" length="2" usage="output"/>
+  </program>
+</pcml>

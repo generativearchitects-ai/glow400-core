@@ -1,0 +1,9 @@
+id: route-two
+program: ORDSTATUS
+pcml: ORDSTATUS.pcml
+route: /same/{id}
+method: GET
+version: 1.0.0
+
+parameters:
+  P0ORDN: { name: id }

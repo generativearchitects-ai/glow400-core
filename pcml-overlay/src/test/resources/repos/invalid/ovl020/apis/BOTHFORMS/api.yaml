@@ -1,0 +1,9 @@
+pcml: ORDSTATUS.pcml
+version: 1.0.0
+program: ORDSTATUS
+route: /orders
+method: GET
+operations:
+  - id: one
+    route: /one
+    method: GET

@@ -1,5 +1,7 @@
 package ai.generativearchitects.glow400.pcml.parser;
 
+import ai.generativearchitects.glow400.pcml.diagnostics.Diagnostic;
+import ai.generativearchitects.glow400.pcml.diagnostics.Severity;
 import ai.generativearchitects.glow400.pcml.model.Count;
 import ai.generativearchitects.glow400.pcml.model.FieldDef;
 import ai.generativearchitects.glow400.pcml.model.Length;

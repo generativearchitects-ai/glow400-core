@@ -1,0 +1,28 @@
+pcml: ORDERSRV.pcml
+version: 1.2.0
+call: auto
+tags: [orders]
+
+inject:
+  P0ENV: ${environment.code}
+
+parameters:
+  P0ORDN: { name: orderNumber, type: integer, pad: left, padChar: "0" }
+
+operations:
+  - id: get-order-status
+    program: GETSTATUS
+    route: /orders/{orderNumber}/status
+    method: GET
+    summary: Returns the status of a purchase order
+    parameters:
+      P0ORDN: { direction: request, in: path }
+      P0STAT: { direction: response, name: status }
+  - id: cancel-order
+    program: CANCELORD
+    route: /orders/{orderNumber}/cancel
+    method: POST
+    tags: [orders, changes]
+    parameters:
+      P0ORDN: { direction: request, in: path }
+      P0RSN:  { direction: request, name: reason }

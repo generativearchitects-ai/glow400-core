@@ -1,4 +1,4 @@
-package ai.generativearchitects.glow400.pcml.parser;
+package ai.generativearchitects.glow400.pcml.diagnostics;
 
 /** How serious a {@link Diagnostic} is. */
 public enum Severity {

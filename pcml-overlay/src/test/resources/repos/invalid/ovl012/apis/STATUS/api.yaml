@@ -1,0 +1,12 @@
+program: ORDSTATUS
+pcml: ORDSTATUS.pcml
+route: /orders/{orderNumber}/status
+method: GET
+version: 1.0.0
+
+parameters:
+  P0ORDN: { name: orderNumber }
+
+error:
+  when: { field: P0STAT, equals: "K" }
+  httpStatus: 200

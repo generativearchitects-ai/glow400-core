@@ -2,6 +2,7 @@ package ai.generativearchitects.glow400.pcml.parser;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.generativearchitects.glow400.pcml.diagnostics.Severity;
 import ai.generativearchitects.glow400.pcml.model.FieldDef;
 import ai.generativearchitects.glow400.pcml.model.ProgramDef;
 import java.util.List;
