@@ -39,15 +39,20 @@ final class GatewayParser {
         CodecSettings charCodec = standard.charCodec();
         InputOutputPolicy policy = standard.inputOutput();
         List<String> emitters = standard.emitters();
+        int largeArrayThreshold = standard.largeArrayThreshold();
 
         Optional<YamlReader.Entry> defaults = yaml.find(top.get(), "defaults");
         if (defaults.isPresent()) {
             Optional<List<YamlReader.Entry>> entries = yaml.mapping(defaults.get().value(), "'defaults'");
             if (entries.isPresent()) {
-                yaml.knownKeys(entries.get(), Set.of("char", "inputoutput"), "'defaults'");
+                yaml.knownKeys(entries.get(), Set.of("char", "inputoutput", "largeArrayThreshold"), "'defaults'");
                 Optional<YamlReader.Entry> charEntry = yaml.find(entries.get(), "char");
                 if (charEntry.isPresent()) {
                     charCodec = charDefaults(charEntry.get(), charCodec);
+                }
+                Optional<YamlReader.Entry> threshold = yaml.find(entries.get(), "largeArrayThreshold");
+                if (threshold.isPresent()) {
+                    largeArrayThreshold = largeArrayThreshold(threshold.get().value()).orElse(largeArrayThreshold);
                 }
                 Optional<YamlReader.Entry> io = yaml.find(entries.get(), "inputoutput");
                 if (io.isPresent()) {
@@ -70,7 +75,17 @@ final class GatewayParser {
         if (yaml.errorCount() > errorsBefore) {
             return Optional.empty();
         }
-        return Optional.of(new GatewayDefaults(charCodec, policy, emitters));
+        return Optional.of(new GatewayDefaults(charCodec, policy, emitters, largeArrayThreshold));
+    }
+
+    /** A whole number of at least 1. */
+    private Optional<Integer> largeArrayThreshold(org.snakeyaml.engine.v2.nodes.Node node) {
+        Optional<Located<Integer>> number = yaml.integer(node, "'largeArrayThreshold'");
+        if (number.isPresent() && number.get().value() < 1) {
+            yaml.error("OVL012", "'largeArrayThreshold' must be at least 1, not " + number.get().value(), number.get().at());
+            return Optional.empty();
+        }
+        return number.map(Located::value);
     }
 
     private CodecSettings charDefaults(YamlReader.Entry entry, CodecSettings base) {

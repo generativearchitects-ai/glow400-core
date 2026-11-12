@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "glow400 overlay file (api.yaml), format v0.4",
+  "title": "glow400 overlay file (api.yaml), format v0.5",
   "description": "One overlay file per folder under apis/. Common form: route and method at the top level. Several operations: an operations list. The loader applies further rules that a schema cannot express (for example that a parameter exists in the PCML).",
   "type": "object",
   "required": [
@@ -181,6 +181,16 @@
             "boolean"
           ]
         },
+        "trueValue": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Text that stands for true (type: boolean). Default \"1\"."
+        },
+        "falseValue": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Text that stands for false (type: boolean). Default \"0\"."
+        },
         "fields": {
           "$ref": "#/$defs/members"
         },
@@ -249,6 +259,16 @@
             "number",
             "boolean"
           ]
+        },
+        "trueValue": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Text that stands for true (type: boolean). Default \"1\"."
+        },
+        "falseValue": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Text that stands for false (type: boolean). Default \"0\"."
         },
         "fields": {
           "$ref": "#/$defs/members"

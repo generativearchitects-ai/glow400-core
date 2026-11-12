@@ -166,4 +166,32 @@ class ApiModelTest {
         assertThatThrownBy(() -> new ApiRepositoryModel(null, List.of())).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> model.operations().clear()).isInstanceOf(UnsupportedOperationException.class);
     }
+
+    @Test
+    void codecSettingsCarryTheBooleanTexts() {
+        CodecSettings withTexts = new CodecSettings(Pad.NONE, ' ', "", Optional.empty(), Optional.of("Y"), Optional.of("N"));
+        assertThat(withTexts.trueValue()).contains("Y");
+        assertThat(withTexts.falseValue()).contains("N");
+        assertThat(CodecSettings.none().trueValue()).isEmpty();
+        assertThat(CodecSettings.none().falseValue()).isEmpty();
+        assertThat(new CodecSettings(Pad.LEFT, '0', "x", Optional.empty())).isEqualTo(
+                new CodecSettings(Pad.LEFT, '0', "x", Optional.empty(), Optional.empty(), Optional.empty()));
+        assertThat(CodecSettings.DEFAULT_TRUE_VALUE).isEqualTo("1");
+        assertThat(CodecSettings.DEFAULT_FALSE_VALUE).isEqualTo("0");
+        assertThatThrownBy(() -> new CodecSettings(Pad.NONE, ' ', "", Optional.empty(), null, Optional.empty()))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CodecSettings(Pad.NONE, ' ', "", Optional.empty(), Optional.empty(), null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void gatewayDefaultsCarryTheLargeArrayThreshold() {
+        assertThat(GatewayDefaults.DEFAULT_LARGE_ARRAY_THRESHOLD).isEqualTo(100);
+        assertThat(new GatewayDefaults(CodecSettings.none(), InputOutputPolicy.BOTH, List.of()).largeArrayThreshold()).isEqualTo(100);
+        assertThat(new GatewayDefaults(CodecSettings.none(), InputOutputPolicy.BOTH, List.of(), 1).largeArrayThreshold()).isEqualTo(1);
+        for (int bad : new int[] {0, -1, Integer.MIN_VALUE}) {
+            assertThatThrownBy(() -> new GatewayDefaults(CodecSettings.none(), InputOutputPolicy.BOTH, List.of(), bad))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
 }
