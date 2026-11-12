@@ -1,11 +1,13 @@
 package ai.generativearchitects.glow400.pcml.parser;
 
 import ai.generativearchitects.glow400.pcml.model.SourceLocation;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Optional;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -51,12 +53,13 @@ final class XmlReader {
     }
 
     static Element read(String sourceName, InputStream in) throws MalformedXmlException, IOException {
-        TreeHandler handler = new TreeHandler(sourceName);
+        byte[] bytes = in.readAllBytes();
+        TreeHandler handler = new TreeHandler(sourceName, RootLocator.find(bytes));
         try {
             SAXParser parser = newParser();
             XMLReader reader = parser.getXMLReader();
             connect(reader, handler);
-            reader.parse(new InputSource(in));
+            reader.parse(new InputSource(new ByteArrayInputStream(bytes)));
         } catch (SAXParseException e) {
             throw new MalformedXmlException(e.getMessage(), e.getLineNumber(), e.getColumnNumber());
         } catch (SAXException e) {
@@ -117,8 +120,16 @@ final class XmlReader {
         private int previousLine;
         private int previousColumn;
 
+        private final Optional<RootLocator.Position> rootStart;
+
         TreeHandler(String sourceName) {
+            this(sourceName, Optional.empty());
+        }
+
+        /** @param rootStart where the root element starts, if known: the parser itself cannot tell after a prolog */
+        TreeHandler(String sourceName, Optional<RootLocator.Position> rootStart) {
             this.sourceName = sourceName;
+            this.rootStart = rootStart;
         }
 
         @Override
@@ -138,6 +149,10 @@ final class XmlReader {
         public void startElement(String uri, String localName, String qName, Attributes attributes) {
             int line = eventSeen ? previousLine : locator.getLineNumber();
             int column = eventSeen ? previousColumn : locator.getColumnNumber();
+            if (stack.isEmpty() && rootStart.isPresent()) {
+                line = rootStart.get().line();
+                column = rootStart.get().column();
+            }
             Element element = new Element(qName, new SourceLocation(sourceName, Math.max(line, 0), Math.max(column, 0)));
             for (int i = 0; i < attributes.getLength(); i++) {
                 element.attributes().put(attributes.getQName(i), attributes.getValue(i));
