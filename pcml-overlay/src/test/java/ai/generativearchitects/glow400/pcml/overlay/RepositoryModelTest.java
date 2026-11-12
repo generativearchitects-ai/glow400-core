@@ -36,6 +36,11 @@ class RepositoryModelTest {
     private static final SourceLocation ANY = new SourceLocation("-", 0, 0);
     private static final CodecSettings TEXT = new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty());
     private static final CodecSettings NONE = CodecSettings.none();
+    /** Stands in for the call-model field of an expected binding; {@code field} is compared by its own test. */
+    private static final ai.generativearchitects.glow400.pcml.model.FieldDef PLACEHOLDER =
+            new ai.generativearchitects.glow400.pcml.model.FieldDef("-", new ai.generativearchitects.glow400.pcml.model.WireType.Date(),
+                    ai.generativearchitects.glow400.pcml.model.Usage.INHERIT, new ai.generativearchitects.glow400.pcml.model.Count.None(),
+                    Map.of(), ANY);
 
     // ---- builder for expected bindings
 
@@ -72,7 +77,7 @@ class RepositoryModelTest {
         B children(FieldBinding... c) { children = List.of(c); return this; }
 
         FieldBinding build() {
-            return new FieldBinding(path, direction, Optional.ofNullable(injection), name, Optional.ofNullable(location),
+            return new FieldBinding(path, PLACEHOLDER, direction, Optional.ofNullable(injection), name, Optional.ofNullable(location),
                     Optional.ofNullable(type), codec, required, Optional.ofNullable(description),
                     Optional.ofNullable(example), hidden, Optional.ofNullable(trim), children, ANY);
         }
@@ -105,6 +110,7 @@ class RepositoryModelTest {
         assertThat(actual).usingRecursiveComparison()
                 .withStrictTypeChecking()
                 .ignoringFieldsOfTypes(SourceLocation.class)
+                .ignoringFieldsMatchingRegexes(".*\\.field")
                 .isEqualTo(expected);
     }
 
@@ -310,5 +316,32 @@ class RepositoryModelTest {
         assertThat(bindings.get(0).source()).isEqualTo(new SourceLocation("apis/ORDSTATUS/api.yaml", 11, 3));
         List<FieldBinding> dcl = Repos.load("dclcase").model().orElseThrow().operations().get(0).bindings();
         assertThat(dcl.get(0).source()).isEqualTo(new SourceLocation("apis/DCLCASE/DCLCASE.pcml", 4, 5));
+    }
+
+    @Test
+    void everyBindingCarriesTheCallModelFieldItWasDerivedFrom() {
+        for (String repository : List.of("minimal", "structs", "body-struct", "operations-list", "injected")) {
+            RepositoryResult result = Repos.load(repository);
+            for (ApiOperation operation : result.model().orElseThrow().operations()) {
+                PcmlDocument document = PcmlParser.parse(Repos.fixture(repository).resolve(operation.pcmlPath())).document().orElseThrow();
+                assertThat(operation.bindings()).hasSameSizeAs(operation.program().parameters());
+                for (int i = 0; i < operation.bindings().size(); i++) {
+                    assertFieldMatches(operation.bindings().get(i), operation.program().parameters().get(i), document);
+                }
+            }
+        }
+    }
+
+    private static void assertFieldMatches(FieldBinding binding, ai.generativearchitects.glow400.pcml.model.FieldDef expected, PcmlDocument document) {
+        assertThat(binding.field()).as(binding.fieldPath()).usingRecursiveComparison().ignoringFieldsOfTypes(SourceLocation.class).isEqualTo(expected);
+        if (expected.wire() instanceof ai.generativearchitects.glow400.pcml.model.WireType.Struct struct) {
+            var members = document.structs().get(struct.structName()).fields();
+            assertThat(binding.children()).as(binding.fieldPath()).hasSameSizeAs(members);
+            for (int i = 0; i < members.size(); i++) {
+                assertFieldMatches(binding.children().get(i), members.get(i), document);
+            }
+        } else {
+            assertThat(binding.children()).isEmpty();
+        }
     }
 }

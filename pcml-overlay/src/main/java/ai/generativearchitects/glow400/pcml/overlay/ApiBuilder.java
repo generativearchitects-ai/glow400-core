@@ -317,7 +317,7 @@ final class ApiBuilder {
             children = built.get();
         }
 
-        return Optional.of(new FieldBinding(path, direction, injection, exposedName, location, semantic, codec, required,
+        return Optional.of(new FieldBinding(path, field, direction, injection, exposedName, location, semantic, codec, required,
                 last(layers, FieldSettings::description).map(Located::value),
                 last(layers, FieldSettings::example).map(Located::value),
                 hidden, trim, children, source));
