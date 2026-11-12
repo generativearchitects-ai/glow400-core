@@ -27,8 +27,8 @@ final class OverlayParser {
      * @param operationValid for each operation of {@code file}, whether it is free of errors
      * @param fileValid      {@code false} if the header, the shared settings or the list itself has an error; no operation
      *                       of such a file is used
-     * @param complete       {@code true} if every operation in the file was read and is free of errors; only then can a
-     *                       shared entry that no operation uses be reported
+     * @param complete       {@code true} if every entry of the operations list could be read, with or without errors; if
+     *                       one could not, its program is unknown and a shared entry that no operation uses cannot be reported
      */
     record Parsed(OverlayFile file, List<Boolean> operationValid, boolean fileValid, boolean complete) {
     }
@@ -128,7 +128,7 @@ final class OverlayParser {
                     operations.add(o);
                     operationValid.add(valid);
                 });
-                complete &= valid;
+                complete &= operation.isPresent();
             }
         } else {
             shared = emptySettings(yaml.at(root));
@@ -179,9 +179,8 @@ final class OverlayParser {
         if (entries.isEmpty()) {
             return Optional.empty();
         }
-        if (!yaml.knownKeys(entries.get(), OPERATION_KEYS, "an operation")) {
-            return Optional.empty();
-        }
+        // An unknown key is reported, and the rest of the operation is still read so that its names can be checked.
+        yaml.knownKeys(entries.get(), OPERATION_KEYS, "an operation");
         OperationSettings operation = settings(entries.get(), Level.OPERATION, yaml.at(item));
         requireProgram(entries.get(), operation, shared, sharedProgramKey);
         return Optional.of(operation);

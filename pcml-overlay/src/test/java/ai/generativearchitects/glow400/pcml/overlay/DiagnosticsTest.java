@@ -186,8 +186,8 @@ class DiagnosticsTest {
                 error("OVL013", "apis/NOPROGRAM/api.yaml", 1),
                 error("OVL012", "apis/ROUTEANDNAME/api.yaml", 3),
                 error("OVL002", "apis/ROUTEANDNAME/api.yaml", 9),
-                // A shared entry that no program has is not reported while an operation of the file is not loaded.
                 error("OVL012", "apis/SHAREDANDVERSION/api.yaml", 2),
+                error("OVL002", "apis/SHAREDANDVERSION/api.yaml", 6),
                 error("OVL012", "apis/TYPEONSTRUCT/api.yaml", 9),
                 error("OVL002", "apis/TYPEONSTRUCT/api.yaml", 11),
                 error("OVL012", "apis/VERSIONANDNAME/api.yaml", 5),

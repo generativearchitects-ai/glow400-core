@@ -176,21 +176,22 @@ class OperationsListTest {
     }
 
     @Test
-    void aSharedEntryThatNoProgramHasIsNotReportedWhileAnOperationOfTheFileHasAnError(@TempDir Path dir) {
-        // P0GONE would be OVL002, but the second operation cannot be built (P0RSN gets a contradicting direction).
+    void aSharedEntryThatNoProgramHasIsReportedEvenWhenAnOperationOfTheFileHasAnError(@TempDir Path dir) {
+        // The second operation cannot be built (P0RSN gets a contradicting direction), yet every program is known.
         String overlay = HEADER + "parameters:\n  P0ORDN: { in: path, name: orderNumber }\n  P0GONE: { name: gone }\n  P0STAT: { name: status }\n  P0DATA: { direction: response }\n  P0ERR: { direction: internal }\noperations:\n"
                 + OP_ONE + OP_TWO + "    parameters:\n      P0RSN: { direction: response }\n";
         RepositoryResult result = load(dir, overlay);
-        assertThat(result.diagnostics()).extracting(Diagnostic::code).containsExactly("OVL016");
+        assertThat(codesAndLines(result)).containsExactlyInAnyOrder(Tuple.tuple("OVL016", 19), Tuple.tuple("OVL002", 5));
         assertThat(result.model().orElseThrow().operations()).extracting(ApiOperation::id).containsExactly("one");
     }
 
     @Test
-    void aSharedEntryThatNoProgramHasIsNotReportedWhileTheHeaderHasAnError(@TempDir Path dir) {
+    void aSharedEntryThatNoProgramHasIsReportedEvenWhenTheHeaderHasAnError(@TempDir Path dir) {
         String overlay = "pcml: SRV.pcml\nversion: \"1\"\nprogram: ONE\nparameters:\n  P0ORDN: { in: path, name: orderNumber }\n  P0GONE: { name: gone }\n  P0STAT: { name: status }\n  P0DATA: { direction: response }\n  P0ERR: { direction: internal }\noperations:\n"
                 + OP_ONE.replace("    program: ONE\n", "");
         RepositoryResult result = load(dir, overlay);
-        assertThat(codesAndLines(result)).containsExactly(Tuple.tuple("OVL012", 2));
+        assertThat(codesAndLines(result)).containsExactly(Tuple.tuple("OVL012", 2), Tuple.tuple("OVL002", 6));
+        assertThat(result.model().orElseThrow().operations()).isEmpty();
     }
 
     @Test
@@ -213,12 +214,27 @@ class OperationsListTest {
     }
 
     @Test
-    void sharedEntriesAreNotCheckedWhenAnOperationCouldNotBeLoaded(@TempDir Path dir) {
-        // P0GONE would be OVL002, but the second operation has an invalid route, so the file is incomplete.
+    void aSharedEntryThatNoProgramHasIsReportedEvenWhenAnOperationHasAnInvalidValue(@TempDir Path dir) {
+        // The second operation has an invalid route, but its program is known.
         String overlay = HEADER + "parameters:\n  P0ORDN: { in: path, name: orderNumber }\n  P0GONE: { name: gone }\n  P0STAT: { name: status }\n  P0DATA: { direction: response }\n  P0ERR: { direction: internal }\noperations:\n"
                 + OP_ONE + "  - id: broken\n    program: TWO\n    route: broken\n    method: GET\n";
         RepositoryResult result = load(dir, overlay);
-        assertThat(result.diagnostics()).extracting(Diagnostic::code).containsExactly("OVL012");
+        assertThat(codesAndLines(result)).containsExactly(Tuple.tuple("OVL002", 5), Tuple.tuple("OVL012", 16));
+    }
+
+    @Test
+    void anUnknownKeyInAnOperationStillLetsItsNamesBeChecked(@TempDir Path dir) {
+        String overlay = HEADER + "program: ONE\noperations:\n  - id: one\n    route: /one\n    method: GET\n    colour: red\n"
+                + "    parameters:\n      P0GONE: { name: gone }\n";
+        RepositoryResult result = load(dir, overlay);
+        assertThat(codesAndLines(result)).containsExactly(Tuple.tuple("OVL011", 8), Tuple.tuple("OVL002", 10));
+    }
+
+    @Test
+    void aSharedEntryIsNotCheckedWhenAnEntryOfTheListCannotBeRead(@TempDir Path dir) {
+        // The second entry is not a mapping, so its program is unknown: P0GONE might be meant for it.
+        String overlay = HEADER + "program: ONE\nparameters:\n  P0GONE: { name: gone }\noperations:\n  - id: one\n    route: /one\n    method: GET\n  - just text\n";
+        assertThat(codesAndLines(load(dir, overlay))).containsExactly(Tuple.tuple("OVL012", 10));
     }
 
     @Test

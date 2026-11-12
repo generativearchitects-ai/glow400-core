@@ -180,10 +180,10 @@ public final class OverlayLoader {
                 builder.checkNames(file, operation, program.get());
             }
         }
-        // A shared entry that no program has is reported only when every operation of the file was loaded: read without
-        // errors, its program found, and built without errors. Until then the entry may be meant for an operation that
-        // is not loaded.
-        if (allResolved && parsed.complete() && parsed.fileValid() && builder.errorCount() == 0) {
+        // A shared entry that no program has is reported whenever the program of every operation is known, whatever other
+        // errors the file or its operations have. It is skipped only when a program is unresolved (OVL013) or an entry of
+        // the list could not be read at all, because only then is the answer unknown.
+        if (allResolved && parsed.complete()) {
             builder.reportUnmatchedShared(file.shared(), programNames);
         }
         return parsed.fileValid() ? operations : List.of();
