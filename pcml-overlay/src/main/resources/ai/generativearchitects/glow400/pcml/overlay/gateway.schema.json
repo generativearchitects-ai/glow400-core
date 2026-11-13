@@ -35,6 +35,11 @@
             "both",
             "fail"
           ]
+        },
+        "largeArrayThreshold": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "A fixed output array of at least this many elements without trim is reported (OVL005). Default 100."
         }
       },
       "additionalProperties": false

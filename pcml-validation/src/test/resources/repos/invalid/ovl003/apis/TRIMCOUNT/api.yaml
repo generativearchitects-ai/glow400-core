@@ -1,0 +1,9 @@
+program: P14
+pcml: P14.pcml
+route: /trimcount
+method: POST
+version: 1.0.0
+
+parameters:
+  N: { direction: internal }
+  R: { direction: response, trim: { countField: N } }

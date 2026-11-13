@@ -217,10 +217,7 @@ class XmlReaderTest {
     }
 
     @Test
-    void anElementThatIsTheFirstEventOfTheDocumentIsPlacedByTheParserItself() {
-        // No prolog event precedes the root (an XML declaration is not reported), so the position is where its tag ends.
-        SourceLocation at = parse("<pcml/>").diagnostics().get(0).location();
-        assertThat(at.line()).isEqualTo(1);
-        assertThat(at.column()).isEqualTo(8);
+    void theRootElementIsPlacedAtItsOpeningAngleBracketEvenWithNothingBeforeIt() {
+        assertThat(parse("<pcml/>").diagnostics().get(0).location()).isEqualTo(new SourceLocation("x.pcml", 1, 1));
     }
 }

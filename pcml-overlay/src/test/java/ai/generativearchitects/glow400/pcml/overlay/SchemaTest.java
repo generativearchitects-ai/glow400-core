@@ -139,6 +139,10 @@ class SchemaTest {
                 HEAD + "parameters:\n  P: { fields: { M: { direction: request } } }\n",
                 HEAD + "parameters:\n  P: { fields: { M: { in: body } } }\n",
                 HEAD + "parameters:\n  P: { hidden: true }\n",
+                HEAD + "parameters:\n  P: { trueValue: \"\" }\n",
+                HEAD + "parameters:\n  P: { falseValue: \" \" }\n",
+                HEAD + "parameters:\n  P: { trueValue: 1 }\n",
+                HEAD + "parameters:\n  P: { fields: { M: { trueValue: true } } }\n",
                 HEAD + "inject:\n  P: ${user.name}\n",
                 HEAD + "inject:\n  P: x${tenant.id}\n",
                 HEAD + "error:\n  when: { field: E }\n",
@@ -186,6 +190,7 @@ class SchemaTest {
                         + "    fields:\n      M: { hidden: true, fields: { N: { name: n } } }\n",
                 HEAD + "error:\n  when: { field: E, in: [a, 2, true] }\n  code: C\n  message: M\n  httpStatus: 599\n  statusByCode: { X: 400 }\n",
                 HEAD + "error:\n  when: { field: E, notEquals: OK }\n",
+                HEAD + "parameters:\n  P: { type: boolean, trueValue: \"Y\", falseValue: \"N\", fields: { M: { trueValue: \"+\", falseValue: \"-\" } } }\n",
                 HEAD + "cache: { ttlSeconds: 60 }\n",
                 HEAD.replace("1.0.0", "1.2.3-rc.1+build.5"),
                 HEAD.replace("/a", "/a/{b}/c/{d}"),
@@ -202,11 +207,12 @@ class SchemaTest {
     @Test
     void gatewaySchemaRejectsWhatTheLoaderRejects() {
         for (String text : List.of("extra: 1\n", "defaults: { char: { pad: middle } }\n", "defaults: { inputoutput: maybe }\n",
-                "defaults: { char: { padChar: \"ab\" } }\n", "defaults: { other: 1 }\n", "emitters: openapi\n")) {
+                "defaults: { char: { padChar: \"ab\" } }\n", "defaults: { other: 1 }\n", "emitters: openapi\n",
+                "defaults: { largeArrayThreshold: 0 }\n", "defaults: { largeArrayThreshold: x }\n", "defaults: { largeArrayThreshold: 1.5 }\n")) {
             assertThat(GATEWAY.validate(yaml(text))).as(text).isNotEmpty();
         }
         for (String text : List.of("{}\n", "defaults: { char: { pad: left, padChar: \"0\", nullAs: \"\" }, inputoutput: fail }\n",
-                "emitters: [descriptor, openapi, mock, java]\n")) {
+                "emitters: [descriptor, openapi, mock, java]\n", "defaults: { largeArrayThreshold: 1 }\n")) {
             assertThat(GATEWAY.validate(yaml(text))).as(text).isEmpty();
         }
     }

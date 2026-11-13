@@ -1,5 +1,6 @@
 package ai.generativearchitects.glow400.pcml.api;
 
+import ai.generativearchitects.glow400.pcml.model.FieldDef;
 import ai.generativearchitects.glow400.pcml.model.SourceLocation;
 import java.util.List;
 import java.util.Objects;
@@ -10,6 +11,9 @@ import java.util.Optional;
  * settings and the defaults.
  *
  * @param fieldPath    path in the PCML: {@code P0ORDN}, {@code P0ROWS}, {@code P0ROWS.QTY}
+ * @param field        the call-model field this binding is derived from, unchanged: wire type, {@code count} and the
+ *                     attributes that are not modelled (such as {@code chartype}). For a struct member it is the member
+ *                     of the struct definition.
  * @param direction    how the field takes part in the API
  * @param injection    for {@link Direction#INJECTED}: the literal or {@code ${...}} expression, verbatim
  * @param exposedName  name in the API
@@ -26,6 +30,7 @@ import java.util.Optional;
  */
 public record FieldBinding(
         String fieldPath,
+        FieldDef field,
         Direction direction,
         Optional<String> injection,
         String exposedName,
@@ -49,6 +54,7 @@ public record FieldBinding(
         if (fieldPath.isBlank()) {
             throw new IllegalArgumentException("fieldPath must not be blank");
         }
+        Objects.requireNonNull(field, "field");
         Objects.requireNonNull(direction, "direction");
         Objects.requireNonNull(injection, "injection");
         Objects.requireNonNull(exposedName, "exposedName");

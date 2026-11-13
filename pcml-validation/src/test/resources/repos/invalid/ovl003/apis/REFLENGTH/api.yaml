@@ -1,0 +1,8 @@
+program: P15
+pcml: P15.pcml
+route: /reflength
+method: POST
+version: 1.0.0
+
+parameters:
+  N: { direction: internal }

@@ -1,0 +1,8 @@
+program: P11
+pcml: P11.pcml
+route: /example
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { example: TOOLONGFORTHIS }

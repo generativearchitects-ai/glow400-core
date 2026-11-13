@@ -1,0 +1,8 @@
+program: P1
+pcml: P1.pcml
+route: /semantic
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { type: boolean }

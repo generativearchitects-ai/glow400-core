@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="P17" path="/QSYS.LIB/DEMOLIB.LIB/P17.PGM">
+    <data name="A" type="int" length="4" usage="input"/>
+    <data name="B" type="char" length="2" usage="input"/>
+    <data name="C" type="packed" length="5" precision="2" usage="input"/>
+  </program>
+</pcml>

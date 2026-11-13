@@ -288,11 +288,21 @@ final class ApiBuilder {
 
         boolean text = wire instanceof WireType.Char || wire instanceof WireType.VarChar;
         CodecSettings base = text ? defaults.charCodec() : CodecSettings.none();
-        CodecSettings codec = wire instanceof WireType.Struct ? CodecSettings.none() : new CodecSettings(
+        boolean isBoolean = semantic.isPresent() && semantic.get() == SemanticType.BOOLEAN;
+        Optional<String> trueValue = last(layers, FieldSettings::trueValue).map(Located::value);
+        Optional<String> falseValue = last(layers, FieldSettings::falseValue).map(Located::value);
+        if (isBoolean) {
+            trueValue = Optional.of(trueValue.orElse(CodecSettings.DEFAULT_TRUE_VALUE));
+            falseValue = Optional.of(falseValue.orElse(CodecSettings.DEFAULT_FALSE_VALUE));
+        }
+        CodecSettings codec = wire instanceof WireType.Struct
+                ? new CodecSettings(Pad.NONE, ' ', "", Optional.empty(), trueValue, falseValue)
+                : new CodecSettings(
                 last(layers, FieldSettings::pad).map(Located::value).orElse(base.pad()),
                 last(layers, FieldSettings::padChar).map(Located::value).orElse(base.padChar()),
                 last(layers, FieldSettings::nullAs).map(Located::value).orElse(base.nullAs()),
-                last(layers, FieldSettings::format).map(Located::value));
+                last(layers, FieldSettings::format).map(Located::value),
+                trueValue, falseValue);
 
         boolean required = last(layers, FieldSettings::required).map(Located::value)
                 .orElse(location.isPresent() && location.get() == Location.PATH);
@@ -307,7 +317,7 @@ final class ApiBuilder {
             children = built.get();
         }
 
-        return Optional.of(new FieldBinding(path, direction, injection, exposedName, location, semantic, codec, required,
+        return Optional.of(new FieldBinding(path, field, direction, injection, exposedName, location, semantic, codec, required,
                 last(layers, FieldSettings::description).map(Located::value),
                 last(layers, FieldSettings::example).map(Located::value),
                 hidden, trim, children, source));

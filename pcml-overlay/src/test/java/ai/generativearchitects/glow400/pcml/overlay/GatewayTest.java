@@ -74,8 +74,24 @@ class GatewayTest {
         assertThat(defaults(dir.resolve("f"), "emitters: [mock]\n").inputOutput()).isEqualTo(InputOutputPolicy.BOTH);
     }
 
+    @Test
+    void theLargeArrayThresholdDefaultsTo100AndCanBeSet(@TempDir Path dir) {
+        assertThat(GatewayDefaults.standard().largeArrayThreshold()).isEqualTo(100);
+        assertThat(defaults(dir.resolve("a"), "").largeArrayThreshold()).isEqualTo(100);
+        assertThat(defaults(dir.resolve("b"), "defaults:\n  largeArrayThreshold: 1\n").largeArrayThreshold()).isEqualTo(1);
+        GatewayDefaults set = defaults(dir.resolve("c"), "defaults:\n  largeArrayThreshold: 2500\n  inputoutput: fail\n");
+        assertThat(set.largeArrayThreshold()).isEqualTo(2500);
+        assertThat(set.inputOutput()).isEqualTo(InputOutputPolicy.FAIL);
+        assertThat(set.charCodec()).isEqualTo(GatewayDefaults.standard().charCodec());
+    }
+
     static Stream<Arguments> invalid() {
         return Stream.of(
+                Arguments.of("a zero threshold", "defaults:\n  largeArrayThreshold: 0\n", "OVL012", 2),
+                Arguments.of("a negative threshold", "defaults:\n  largeArrayThreshold: -5\n", "OVL012", 2),
+                Arguments.of("a threshold that is text", "defaults:\n  largeArrayThreshold: many\n", "OVL012", 2),
+                Arguments.of("a threshold with decimals", "defaults:\n  largeArrayThreshold: 1.5\n", "OVL012", 2),
+                Arguments.of("a threshold out of range", "defaults:\n  largeArrayThreshold: 99999999999\n", "OVL012", 2),
                 Arguments.of("an unknown key", "extra: 1\n", "OVL011", 1),
                 Arguments.of("an unknown key in defaults", "defaults:\n  other: 1\n", "OVL011", 2),
                 Arguments.of("an unknown key in char", "defaults:\n  char:\n    align: left\n", "OVL011", 3),

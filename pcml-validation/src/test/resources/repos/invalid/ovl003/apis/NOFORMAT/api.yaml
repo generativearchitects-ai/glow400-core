@@ -1,0 +1,8 @@
+program: P4
+pcml: P4.pcml
+route: /noformat
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { type: date }

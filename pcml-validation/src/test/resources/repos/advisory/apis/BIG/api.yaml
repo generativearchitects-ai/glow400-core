@@ -1,0 +1,13 @@
+program: BIG
+pcml: BIG.pcml
+route: /big
+method: POST
+version: 1.0.0
+
+parameters:
+  IDS: { direction: response }
+  SMALL: { direction: response }
+  ECHO: { direction: both }
+  TRIMMED: { direction: response, trim: { dropBlank: true } }
+  INPUT: { direction: request }
+  N: { direction: internal }

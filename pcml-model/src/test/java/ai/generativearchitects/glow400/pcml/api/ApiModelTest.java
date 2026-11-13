@@ -3,8 +3,13 @@ package ai.generativearchitects.glow400.pcml.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ai.generativearchitects.glow400.pcml.model.Count;
+import ai.generativearchitects.glow400.pcml.model.FieldDef;
+import ai.generativearchitects.glow400.pcml.model.Length;
 import ai.generativearchitects.glow400.pcml.model.ProgramDef;
 import ai.generativearchitects.glow400.pcml.model.SourceLocation;
+import ai.generativearchitects.glow400.pcml.model.Usage;
+import ai.generativearchitects.glow400.pcml.model.WireType;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,11 +20,13 @@ import org.junit.jupiter.api.Test;
 class ApiModelTest {
 
     private static final SourceLocation AT = new SourceLocation("api.yaml", 1, 1);
+    private static final FieldDef FIELD = new FieldDef("P", new WireType.Char(new Length.Fixed(1), Optional.empty()), Usage.INPUT,
+            new Count.None(), Map.of(), AT);
     private static final ProgramDef PROGRAM = new ProgramDef("P", Optional.empty(), Optional.empty(), Optional.empty(),
             List.of(), Map.of(), AT);
 
     private static FieldBinding binding(String path, String name, List<FieldBinding> children) {
-        return new FieldBinding(path, Direction.REQUEST, Optional.empty(), name, Optional.empty(), Optional.empty(),
+        return new FieldBinding(path, FIELD, Direction.REQUEST, Optional.empty(), name, Optional.empty(), Optional.empty(),
                 CodecSettings.none(), false, Optional.empty(), Optional.empty(), false, Optional.empty(), children, AT);
     }
 
@@ -122,15 +129,23 @@ class ApiModelTest {
         assertThatThrownBy(() -> binding("P", " ", List.of())).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> binding(null, "p", List.of())).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> binding("P", null, List.of())).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new FieldBinding("P", null, Optional.empty(), "p", Optional.empty(), Optional.empty(),
+        assertThatThrownBy(() -> new FieldBinding("P", FIELD, null, Optional.empty(), "p", Optional.empty(), Optional.empty(),
                 CodecSettings.none(), false, Optional.empty(), Optional.empty(), false, Optional.empty(), List.of(), AT))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new FieldBinding("P", Direction.BOTH, Optional.empty(), "p", Optional.empty(), Optional.empty(),
+        assertThatThrownBy(() -> new FieldBinding("P", FIELD, Direction.BOTH, Optional.empty(), "p", Optional.empty(), Optional.empty(),
                 null, false, Optional.empty(), Optional.empty(), false, Optional.empty(), List.of(), AT))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new FieldBinding("P", Direction.BOTH, Optional.empty(), "p", Optional.empty(), Optional.empty(),
+        assertThatThrownBy(() -> new FieldBinding("P", FIELD, Direction.BOTH, Optional.empty(), "p", Optional.empty(), Optional.empty(),
                 CodecSettings.none(), false, Optional.empty(), Optional.empty(), false, Optional.empty(), List.of(), null))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void aBindingKeepsItsCallModelFieldAndRejectsNone() {
+        assertThat(binding("P", "p", List.of()).field()).isSameAs(FIELD);
+        assertThatThrownBy(() -> new FieldBinding("P", null, Direction.BOTH, Optional.empty(), "p", Optional.empty(), Optional.empty(),
+                CodecSettings.none(), false, Optional.empty(), Optional.empty(), false, Optional.empty(), List.of(), AT))
+                .isInstanceOf(NullPointerException.class).hasMessageContaining("field");
     }
 
     @Test
@@ -165,5 +180,33 @@ class ApiModelTest {
         assertThat(model.defaults()).isEqualTo(GatewayDefaults.standard());
         assertThatThrownBy(() -> new ApiRepositoryModel(null, List.of())).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> model.operations().clear()).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void codecSettingsCarryTheBooleanTexts() {
+        CodecSettings withTexts = new CodecSettings(Pad.NONE, ' ', "", Optional.empty(), Optional.of("Y"), Optional.of("N"));
+        assertThat(withTexts.trueValue()).contains("Y");
+        assertThat(withTexts.falseValue()).contains("N");
+        assertThat(CodecSettings.none().trueValue()).isEmpty();
+        assertThat(CodecSettings.none().falseValue()).isEmpty();
+        assertThat(new CodecSettings(Pad.LEFT, '0', "x", Optional.empty())).isEqualTo(
+                new CodecSettings(Pad.LEFT, '0', "x", Optional.empty(), Optional.empty(), Optional.empty()));
+        assertThat(CodecSettings.DEFAULT_TRUE_VALUE).isEqualTo("1");
+        assertThat(CodecSettings.DEFAULT_FALSE_VALUE).isEqualTo("0");
+        assertThatThrownBy(() -> new CodecSettings(Pad.NONE, ' ', "", Optional.empty(), null, Optional.empty()))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new CodecSettings(Pad.NONE, ' ', "", Optional.empty(), Optional.empty(), null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void gatewayDefaultsCarryTheLargeArrayThreshold() {
+        assertThat(GatewayDefaults.DEFAULT_LARGE_ARRAY_THRESHOLD).isEqualTo(100);
+        assertThat(new GatewayDefaults(CodecSettings.none(), InputOutputPolicy.BOTH, List.of()).largeArrayThreshold()).isEqualTo(100);
+        assertThat(new GatewayDefaults(CodecSettings.none(), InputOutputPolicy.BOTH, List.of(), 1).largeArrayThreshold()).isEqualTo(1);
+        for (int bad : new int[] {0, -1, Integer.MIN_VALUE}) {
+            assertThatThrownBy(() -> new GatewayDefaults(CodecSettings.none(), InputOutputPolicy.BOTH, List.of(), bad))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
     }
 }

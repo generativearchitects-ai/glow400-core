@@ -1,0 +1,8 @@
+program: P12
+pcml: P12.pcml
+route: /inject
+method: POST
+version: 1.0.0
+
+inject:
+  A: notanumber

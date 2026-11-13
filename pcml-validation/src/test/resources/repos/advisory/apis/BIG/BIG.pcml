@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="BIG" path="/QSYS.LIB/DEMOLIB.LIB/BIG.PGM">
+    <data name="IDS" type="char" length="2" count="50" usage="output"/>
+    <data name="SMALL" type="char" length="2" count="49" usage="output"/>
+    <data name="ECHO" type="char" length="2" count="500" usage="inputoutput"/>
+    <data name="TRIMMED" type="char" length="2" count="500" usage="output"/>
+    <data name="INPUT" type="char" length="2" count="500" usage="input"/>
+    <data name="N" type="int" length="4" usage="output"/>
+  </program>
+</pcml>

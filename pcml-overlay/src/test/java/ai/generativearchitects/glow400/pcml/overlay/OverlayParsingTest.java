@@ -94,6 +94,11 @@ class OverlayParsingTest {
                 rejects("example is a list", overlay("parameters:\n  P0ORDN: { example: [1] }\n"), "OVL012", 7),
                 rejects("example is null", overlay("parameters:\n  P0ORDN: { example: ~ }\n"), "OVL012", 7),
                 rejects("fields is a list", overlay("parameters:\n  P0ORDN: { fields: [a] }\n"), "OVL012", 7),
+                rejects("empty trueValue", overlay("parameters:\n  P0ORDN: { trueValue: \"\" }\n"), "OVL012", 7),
+                rejects("blank falseValue", overlay("parameters:\n  P0ORDN: { falseValue: \" \" }\n"), "OVL012", 7),
+                rejects("trueValue is a number", overlay("parameters:\n  P0ORDN: { trueValue: 1 }\n"), "OVL012", 7),
+                rejects("falseValue is a boolean", overlay("parameters:\n  P0ORDN: { falseValue: false }\n"), "OVL012", 7),
+                rejects("trueValue is a list", overlay("parameters:\n  P0ORDN: { trueValue: [Y] }\n"), "OVL012", 7),
                 rejects("hidden on a parameter", overlay("parameters:\n  P0ORDN: { hidden: true }\n"), "OVL011", 7),
                 // ---- trim
                 rejects("trim is a scalar", overlay("parameters:\n  P0ORDN: { trim: yes }\n"), "OVL012", 7),

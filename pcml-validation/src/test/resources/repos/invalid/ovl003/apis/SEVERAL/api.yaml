@@ -1,0 +1,10 @@
+program: P17
+pcml: P17.pcml
+route: /several
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { type: boolean }
+  B: { example: toolong }
+  C: { type: integer }

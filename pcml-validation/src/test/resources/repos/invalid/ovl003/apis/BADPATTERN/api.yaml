@@ -1,0 +1,8 @@
+program: P5
+pcml: P5.pcml
+route: /badpattern
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { type: date, format: yy-MM-dd }

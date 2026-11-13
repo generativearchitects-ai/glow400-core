@@ -1,0 +1,8 @@
+program: P6
+pcml: P6.pcml
+route: /patternlength
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { type: date, format: yyyy-MM-dd }

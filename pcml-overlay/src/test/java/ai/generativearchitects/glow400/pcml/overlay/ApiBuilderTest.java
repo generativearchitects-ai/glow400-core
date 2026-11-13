@@ -534,4 +534,38 @@ class ApiBuilderTest {
         assertThat(op.overlayPath()).isEqualTo("apis/A/api.yaml");
         assertThat(op.source().file()).isEqualTo("apis/A/api.yaml");
     }
+
+    // ---- overlay format v0.5: boolean texts
+
+    @Test
+    void aBooleanFieldHasTheDefaultTextsUnlessTheOverlaySetsThem(@TempDir Path dir) {
+        ApiOperation op = single(load(dir, yaml("/m", "POST", DIRECTIONS + "  A: { type: boolean }\n  B: { type: boolean, trueValue: \"Y\", falseValue: \"N\" }\n"
+                + "  ID: { type: boolean, trueValue: \"T\" }\n")));
+        assertThat(binding(op, "A").codec().trueValue()).contains("1");
+        assertThat(binding(op, "A").codec().falseValue()).contains("0");
+        assertThat(binding(op, "B").codec().trueValue()).contains("Y");
+        assertThat(binding(op, "B").codec().falseValue()).contains("N");
+        assertThat(binding(op, "ID").codec().trueValue()).contains("T");
+        assertThat(binding(op, "ID").codec().falseValue()).contains("0");
+    }
+
+    @Test
+    void theBooleanTextsAreKeptOnOtherTypesOnlyWhenTheOverlaySetThem(@TempDir Path dir) {
+        ApiOperation op = single(load(dir, yaml("/m", "POST", DIRECTIONS + "  A: { trueValue: \"Y\" }\n  HDR: { falseValue: \"N\" }\n")));
+        assertThat(binding(op, "A").codec().trueValue()).contains("Y");
+        assertThat(binding(op, "A").codec().falseValue()).isEmpty();
+        assertThat(binding(op, "B").codec().trueValue()).isEmpty();
+        assertThat(binding(op, "B").codec().falseValue()).isEmpty();
+        assertThat(binding(op, "HDR").codec().falseValue()).contains("N");
+        assertThat(binding(op, "HDR").codec().trueValue()).isEmpty();
+    }
+
+    @Test
+    void membersCanHaveBooleanTexts(@TempDir Path dir) {
+        ApiOperation op = single(load(dir, yaml("/m", "POST", DIRECTIONS
+                + "  ROWS:\n    fields:\n      X: { type: boolean, trueValue: \"+\", falseValue: \"-\" }\n      Y: { type: boolean }\n")));
+        assertThat(binding(op, "ROWS").children().get(0).codec().trueValue()).contains("+");
+        assertThat(binding(op, "ROWS").children().get(0).codec().falseValue()).contains("-");
+        assertThat(binding(op, "ROWS").children().get(1).codec().trueValue()).contains("1");
+    }
 }

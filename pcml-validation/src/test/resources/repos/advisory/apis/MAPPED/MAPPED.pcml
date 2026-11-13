@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="MAPPED" path="/QSYS.LIB/DEMOLIB.LIB/MAPPED.PGM">
+    <data name="A" type="char" length="2" usage="output"/>
+    <data name="ERR" type="char" length="2" usage="output"/>
+  </program>
+</pcml>

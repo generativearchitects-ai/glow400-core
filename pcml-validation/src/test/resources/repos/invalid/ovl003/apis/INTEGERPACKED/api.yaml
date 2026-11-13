@@ -1,0 +1,8 @@
+program: P2
+pcml: P2.pcml
+route: /integerpacked
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { type: integer }

@@ -1,0 +1,8 @@
+program: P8
+pcml: P8.pcml
+route: /booleanequal
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { type: boolean, trueValue: "Y", falseValue: "Y" }

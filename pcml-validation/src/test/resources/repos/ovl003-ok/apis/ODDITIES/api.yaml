@@ -1,0 +1,11 @@
+program: ODDITIES
+pcml: ODDITIES.pcml
+route: /odd
+method: POST
+version: 1.0.0
+
+parameters:
+  F: { type: boolean, trueValue: "Y", falseValue: "N", example: "true" }
+  W: { type: datetime, format: yyyyMMddHHmmss, example: "2026-11-05T09:05:07" }
+  R: { direction: response, trim: { countField: N } }
+  N: { direction: internal }

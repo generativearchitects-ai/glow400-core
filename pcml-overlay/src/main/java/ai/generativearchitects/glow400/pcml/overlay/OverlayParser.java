@@ -27,8 +27,8 @@ final class OverlayParser {
      * @param operationValid for each operation of {@code file}, whether it is free of errors
      * @param fileValid      {@code false} if the header, the shared settings or the list itself has an error; no operation
      *                       of such a file is used
-     * @param complete       {@code true} if every operation in the file was read and is free of errors; only then can a
-     *                       shared entry that no operation uses be reported
+     * @param complete       {@code true} if every entry of the operations list could be read, with or without errors; if
+     *                       one could not, its program is unknown and a shared entry that no operation uses cannot be reported
      */
     record Parsed(OverlayFile file, List<Boolean> operationValid, boolean fileValid, boolean complete) {
     }
@@ -43,9 +43,9 @@ final class OverlayParser {
     private static final Set<String> OPERATION_KEYS = union(SETTING_KEYS,
             Set.of("id", "route", "method", "summary", "description"));
     private static final Set<String> PARAMETER_KEYS = Set.of("direction", "name", "in", "type", "format", "pad", "padChar",
-            "nullAs", "required", "description", "example", "trim", "fields");
+            "nullAs", "required", "description", "example", "trim", "trueValue", "falseValue", "fields");
     private static final Set<String> MEMBER_KEYS = Set.of("name", "type", "format", "pad", "padChar", "nullAs",
-            "required", "description", "example", "hidden", "fields");
+            "required", "description", "example", "hidden", "trueValue", "falseValue", "fields");
 
     private final YamlReader yaml;
     private final GatewayParser scalars;
@@ -128,7 +128,7 @@ final class OverlayParser {
                     operations.add(o);
                     operationValid.add(valid);
                 });
-                complete &= valid;
+                complete &= operation.isPresent();
             }
         } else {
             shared = emptySettings(yaml.at(root));
@@ -179,9 +179,8 @@ final class OverlayParser {
         if (entries.isEmpty()) {
             return Optional.empty();
         }
-        if (!yaml.knownKeys(entries.get(), OPERATION_KEYS, "an operation")) {
-            return Optional.empty();
-        }
+        // An unknown key is reported, and the rest of the operation is still read so that its names can be checked.
+        yaml.knownKeys(entries.get(), OPERATION_KEYS, "an operation");
         OperationSettings operation = settings(entries.get(), Level.OPERATION, yaml.at(item));
         requireProgram(entries.get(), operation, shared, sharedProgramKey);
         return Optional.of(operation);
@@ -326,6 +325,8 @@ final class OverlayParser {
         Optional<Located<String>> description = Optional.empty();
         Optional<Located<String>> example = Optional.empty();
         Optional<Located<Boolean>> hidden = Optional.empty();
+        Optional<Located<String>> trueValue = Optional.empty();
+        Optional<Located<String>> falseValue = Optional.empty();
         Map<String, FieldSettings> fields = new LinkedHashMap<>();
         if (body.isPresent()) {
             yaml.knownKeys(body.get(), parameter ? PARAMETER_KEYS : MEMBER_KEYS, "the settings of '" + entry.key() + "'");
@@ -344,13 +345,15 @@ final class OverlayParser {
                     case "description" -> description = yaml.string(e);
                     case "example" -> example = yaml.scalarText(e.value(), "'example'");
                     case "hidden" -> { if (!parameter) { hidden = yaml.bool(e); } }
+                    case "trueValue" -> trueValue = yaml.nonBlankString(e);
+                    case "falseValue" -> falseValue = yaml.nonBlankString(e);
                     case "fields" -> fields = fieldMap(e.value(), "'fields'", false);
                     default -> { }
                 }
             }
         }
         return new FieldSettings(direction, in, trim, name, type, format, pad, padChar, nullAs, required, description,
-                example, hidden, fields, entry.keyAt());
+                example, hidden, trueValue, falseValue, fields, entry.keyAt());
     }
 
     private Optional<Located<Trim>> trim(YamlReader.Entry entry) {

@@ -1,0 +1,8 @@
+program: P13
+pcml: P13.pcml
+route: /arraycount
+method: POST
+version: 1.0.0
+
+parameters:
+  N: { direction: internal }

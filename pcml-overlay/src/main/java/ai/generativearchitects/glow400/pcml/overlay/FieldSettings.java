@@ -33,6 +33,8 @@ import java.util.Optional;
  * @param description {@code description}
  * @param example     {@code example}, as text
  * @param hidden      {@code hidden}
+ * @param trueValue   {@code trueValue}: the text that stands for true
+ * @param falseValue  {@code falseValue}: the text that stands for false
  * @param fields      settings per struct member, by PCML name, in file order
  * @param source      position of the entry's key; also what identifies the entry in diagnostics
  * @see CodecSettings
@@ -51,6 +53,8 @@ public record FieldSettings(
         Optional<Located<String>> description,
         Optional<Located<String>> example,
         Optional<Located<Boolean>> hidden,
+        Optional<Located<String>> trueValue,
+        Optional<Located<String>> falseValue,
         Map<String, FieldSettings> fields,
         SourceLocation source) {
 
@@ -69,6 +73,8 @@ public record FieldSettings(
         Objects.requireNonNull(description, "description");
         Objects.requireNonNull(example, "example");
         Objects.requireNonNull(hidden, "hidden");
+        Objects.requireNonNull(trueValue, "trueValue");
+        Objects.requireNonNull(falseValue, "falseValue");
         fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
         Objects.requireNonNull(source, "source");
     }

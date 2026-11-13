@@ -1,0 +1,8 @@
+program: P7
+pcml: P7.pcml
+route: /booleanlong
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { type: boolean, trueValue: "YES", falseValue: "N" }

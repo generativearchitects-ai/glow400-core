@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="P3" path="/QSYS.LIB/DEMOLIB.LIB/P3.PGM">
+    <data name="A" type="packed" length="5" precision="0" usage="input"/>
+  </program>
+</pcml>
