@@ -75,7 +75,8 @@ paths:
                     wire: "char(8)"
                 at:
                   type: string
-                  format: time
+                  format: local-time
+                  pattern: "^\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$"
                   x-glow400-field:
                     name: P0TIME
                     wire: "char(6)"
@@ -201,7 +202,8 @@ paths:
                       wire: date
                   time:
                     type: string
-                    format: time
+                    format: local-time
+                    pattern: "^\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$"
                     x-glow400-field:
                       name: P0AT
                       wire: time

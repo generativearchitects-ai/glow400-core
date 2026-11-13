@@ -299,7 +299,16 @@ class OpenApiMappingTest {
         JsonNode date = field(dir.resolve("b"), "type=\"date\"", "");
         assertThat(date.get("type").asText()).isEqualTo("string");
         assertThat(date.get("format").asText()).isEqualTo("date");
-        assertThat(field(dir.resolve("c"), "type=\"time\"", "").get("format").asText()).isEqualTo("time");
+        JsonNode time = field(dir.resolve("c"), "type=\"time\"", "");
+        assertThat(time.get("type").asText()).isEqualTo("string");
+        assertThat(time.get("format").asText()).isEqualTo("local-time");
+        assertThat(time.get("pattern").asText()).isEqualTo("^\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$");
+        for (String ok : List.of("10:20:30", "00:00:00", "23:59:59.1", "10:20:30.123456789")) {
+            assertThat(java.util.regex.Pattern.matches(time.get("pattern").asText(), ok)).as(ok).isTrue();
+        }
+        for (String bad : List.of("10:20", "10:20:30Z", "10:20:30+01:00", "102030", "10:20:30.", "10:20:30.1234567890", "1:20:30")) {
+            assertThat(java.util.regex.Pattern.matches(time.get("pattern").asText(), bad)).as(bad).isFalse();
+        }
         JsonNode stamp = field(dir.resolve("d"), "type=\"timestamp\"", "");
         assertThat(stamp.get("format").asText()).isEqualTo("local-date-time");
         assertThat(stamp.get("pattern").asText()).isEqualTo("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$");

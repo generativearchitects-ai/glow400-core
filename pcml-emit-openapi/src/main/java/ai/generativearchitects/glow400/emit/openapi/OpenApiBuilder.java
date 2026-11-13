@@ -299,7 +299,8 @@ final class OpenApiBuilder {
             }
             case TIME -> {
                 out.put("type", "string");
-                out.put("format", "time");
+                out.put("format", "local-time");
+                out.put("pattern", "^\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$");
             }
             case DATETIME -> {
                 out.put("type", "string");
