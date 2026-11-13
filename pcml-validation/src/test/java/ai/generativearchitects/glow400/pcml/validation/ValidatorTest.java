@@ -41,6 +41,7 @@ class ValidatorTest {
                 error("apis/CCSID/api.yaml", 1),             // multi-byte CCSID
                 error("apis/EXAMPLE/api.yaml", 8),           // example that cannot be encoded
                 error("apis/INJECT/api.yaml", 8),            // injected literal that cannot be encoded
+                error("apis/INJECTREF/api.yaml", 11),        // injection into a field whose length names another field (C67)
                 error("apis/INTEGERPACKED/api.yaml", 8),     // INTEGER on packed with decimals
                 error("apis/NOFORMAT/api.yaml", 8),          // date on char without a usable format
                 error("apis/NULLAS/api.yaml", 8),            // nullAs longer than the field
@@ -51,7 +52,8 @@ class ValidatorTest {
                 error("apis/SEVERAL/api.yaml", 8),
                 error("apis/SEVERAL/api.yaml", 9),
                 error("apis/SEVERAL/api.yaml", 10),
-                error("apis/TRIMCOUNT/api.yaml", 9));        // trim.countField is not a whole number
+                error("apis/TRIMCOUNT/api.yaml", 9),         // trim.countField is not a whole number
+                error("apis/VARCHARPAD/api.yaml", 8));       // pad on a varchar (C89)
     }
 
     @Test

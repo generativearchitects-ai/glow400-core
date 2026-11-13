@@ -288,6 +288,8 @@ final class ApiBuilder {
 
         boolean text = wire instanceof WireType.Char || wire instanceof WireType.VarChar;
         CodecSettings base = text ? defaults.charCodec() : CodecSettings.none();
+        // defaults.char gives padding to char fields only; a varchar field is never padded unless 'pad' is set on it (which is OVL003).
+        Pad basePad = wire instanceof WireType.Char ? base.pad() : Pad.NONE;
         boolean isBoolean = semantic.isPresent() && semantic.get() == SemanticType.BOOLEAN;
         Optional<String> trueValue = last(layers, FieldSettings::trueValue).map(Located::value);
         Optional<String> falseValue = last(layers, FieldSettings::falseValue).map(Located::value);
@@ -298,7 +300,7 @@ final class ApiBuilder {
         CodecSettings codec = wire instanceof WireType.Struct
                 ? new CodecSettings(Pad.NONE, ' ', "", Optional.empty(), trueValue, falseValue)
                 : new CodecSettings(
-                last(layers, FieldSettings::pad).map(Located::value).orElse(base.pad()),
+                last(layers, FieldSettings::pad).map(Located::value).orElse(basePad),
                 last(layers, FieldSettings::padChar).map(Located::value).orElse(base.padChar()),
                 last(layers, FieldSettings::nullAs).map(Located::value).orElse(base.nullAs()),
                 last(layers, FieldSettings::format).map(Located::value),

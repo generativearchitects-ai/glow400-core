@@ -18,7 +18,6 @@ final class TextCodec implements ScalarCodec {
 
     /** The field length in characters, or -1 if it is given by another field. */
     private final int length;
-    private final boolean varchar;
     private final SemanticType semantic;
     private final Pad pad;
     private final char padChar;
@@ -27,10 +26,9 @@ final class TextCodec implements ScalarCodec {
     private final String trueValue;
     private final String falseValue;
 
-    TextCodec(int length, boolean varchar, SemanticType semantic, Pad pad, char padChar, String nullAs, DatePattern pattern,
+    TextCodec(int length, SemanticType semantic, Pad pad, char padChar, String nullAs, DatePattern pattern,
               String trueValue, String falseValue) {
         this.length = length;
-        this.varchar = varchar;
         this.semantic = semantic;
         this.pad = pad;
         this.padChar = padChar;
@@ -160,7 +158,7 @@ final class TextCodec implements ScalarCodec {
     }
 
     private String padded(String text) {
-        if (varchar || pad == Pad.NONE || length < 0) {
+        if (pad == Pad.NONE || length < 0) {
             return text;
         }
         int missing = length - text.codePointCount(0, text.length());
@@ -215,7 +213,7 @@ final class TextCodec implements ScalarCodec {
                 return unreadable(where, problems);
             }
             case DATE, TIME, DATETIME -> {
-                if (isBlankOrZeros(raw)) {
+                if (noValue(raw)) {
                     return Optional.of(new ApiValue.Absent());
                 }
                 Optional<ApiValue> parsed = switch (semantic) {
@@ -241,9 +239,9 @@ final class TextCodec implements ScalarCodec {
         return text.isBlank() || (!nullAs.isBlank() && text.equals(nullAs));
     }
 
-    /** Removes the padding: trailing for {@code pad: right}, leading for {@code pad: left}, none for varchar. */
+    /** Removes the padding: trailing for {@code pad: right}, leading for {@code pad: left}, none when not padded. */
     private String unpadded(String raw) {
-        if (varchar || pad == Pad.NONE) {
+        if (pad == Pad.NONE) {
             return raw;
         }
         if (pad == Pad.RIGHT) {
@@ -264,14 +262,21 @@ final class TextCodec implements ScalarCodec {
         return raw.substring(start);
     }
 
-    /** Entirely blank or entirely zeros: how RPG programs write "no date". An empty field is blank. */
-    private static boolean isBlankOrZeros(String raw) {
-        return raw.isBlank() || raw.chars().allMatch(c -> c == '0');
+    /**
+     * Whether a raw date-like field means "no value". Entirely blank does for all three types; entirely zeros, which is how
+     * RPG programs write "no date", does for DATE and DATETIME, where it is not a valid value. For TIME all zeros is midnight.
+     * The text is the raw field, before padding is removed; an empty field is blank.
+     */
+    private boolean noValue(String raw) {
+        if (raw.isBlank()) {
+            return true;
+        }
+        return semantic != SemanticType.TIME && raw.chars().allMatch(c -> c == '0');
     }
 
     @Override
     public boolean isBlank(WireValue value) {
         return value instanceof WireValue.Blank
-                || value instanceof WireValue.Text t && (t.value().isBlank() || t.value().equals(padded("")) && !varchar);
+                || value instanceof WireValue.Text t && (t.value().isBlank() || t.value().equals(padded("")));
     }
 }

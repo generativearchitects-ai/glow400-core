@@ -27,14 +27,14 @@ final class ScalarCodecs {
         CodecSettings settings = binding.codec();
         SemanticType semantic = binding.semanticType().orElse(null);
         boolean requestSide = binding.direction() == Direction.REQUEST || binding.direction() == Direction.BOTH;
+        boolean injected = binding.direction() == Direction.INJECTED;
         String type = wireName(wire);
 
         if (semantic != SemanticType.BOOLEAN && (settings.trueValue().isPresent() || settings.falseValue().isPresent())) {
             issues.add("trueValue and falseValue apply only to boolean fields");
         }
-        boolean text = wire instanceof WireType.Char || wire instanceof WireType.VarChar;
-        if (!text && settings.pad() != Pad.NONE) {
-            issues.add("pad applies only to char and varchar fields, not to " + type);
+        if (!(wire instanceof WireType.Char) && settings.pad() != Pad.NONE) {
+            issues.add("pad applies only to char fields, not to " + type);
         }
         if (semantic == null) {
             issues.add("the field has no semantic type");
@@ -42,13 +42,13 @@ final class ScalarCodecs {
         }
 
         return switch (wire) {
-            case WireType.Char c -> text(binding, c.length(), false, c.ccsid(), requestSide, issues);
-            case WireType.VarChar v -> text(binding, v.length(), true, v.ccsid(), requestSide, issues);
+            case WireType.Char c -> text(binding, c.length(), false, c.ccsid(), requestSide, injected, issues);
+            case WireType.VarChar v -> text(binding, v.length(), true, v.ccsid(), requestSide, injected, issues);
             case WireType.Int i -> integer(i, semantic, issues);
             case WireType.Packed p -> decimal(p.length(), p.precision(), semantic, type, issues);
             case WireType.Zoned z -> decimal(z.length(), z.precision(), semantic, type, issues);
             case WireType.Float f -> floating(f, semantic, issues);
-            case WireType.Byte b -> bytes(b, semantic, requestSide, issues);
+            case WireType.Byte b -> bytes(b, semantic, requestSide, injected, issues);
             case WireType.Date d -> temporal(TemporalCodec.Kind.DATE, SemanticType.DATE, semantic, type, issues);
             case WireType.Time t -> temporal(TemporalCodec.Kind.TIME, SemanticType.TIME, semantic, type, issues);
             case WireType.Timestamp t -> temporal(TemporalCodec.Kind.TIMESTAMP, SemanticType.DATETIME, semantic, type, issues);
@@ -83,7 +83,7 @@ final class ScalarCodecs {
     // ------------------------------------------------------------------ char and varchar
 
     private static ScalarCodec text(FieldBinding binding, Length lengthOf, boolean varchar, Optional<Integer> ccsid,
-                                    boolean requestSide, List<String> issues) {
+                                    boolean requestSide, boolean injected, List<String> issues) {
         String type = varchar ? "varchar" : "char";
         SemanticType semantic = binding.semanticType().orElseThrow();
         if (semantic == SemanticType.BINARY) {
@@ -93,6 +93,9 @@ final class ScalarCodecs {
         int length = lengthOf instanceof Length.Fixed fixed ? fixed.value() : -1;
         if (length < 0 && requestSide) {
             issues.add("a " + type + " field whose length is given by another field is not supported yet on the request side");
+        }
+        if (length < 0 && injected) {
+            issues.add("a " + type + " field whose length is given by another field is not supported yet when the value is injected");
         }
         if (ccsid.isPresent() && !ByteWidth.isSingleByte(ccsid.get())) {
             issues.add("CCSID " + ccsid.get() + " uses more than one byte per character, which is not supported yet");
@@ -120,7 +123,7 @@ final class ScalarCodecs {
         if (semantic == SemanticType.DATE || semantic == SemanticType.TIME || semantic == SemanticType.DATETIME) {
             pattern = pattern(settings.format(), semantic, length, varchar, issues);
         }
-        return new TextCodec(length, varchar, semantic, settings.pad(), settings.padChar(), settings.nullAs(), pattern, trueValue, falseValue);
+        return new TextCodec(length, semantic, settings.pad(), settings.padChar(), settings.nullAs(), pattern, trueValue, falseValue);
     }
 
     /** The pattern of a date-like field on char: the given one, or the default for the field's length; null if unusable. */
@@ -212,13 +215,16 @@ final class ScalarCodecs {
         return new NumberCodecs.FloatCodec(wire.lengthBytes());
     }
 
-    private static ScalarCodec bytes(WireType.Byte wire, SemanticType semantic, boolean requestSide, List<String> issues) {
+    private static ScalarCodec bytes(WireType.Byte wire, SemanticType semantic, boolean requestSide, boolean injected, List<String> issues) {
         if (semantic != SemanticType.BINARY) {
             return notAllowed(semantic, "byte", issues);
         }
         int length = wire.length() instanceof Length.Fixed fixed ? fixed.value() : -1;
         if (length < 0 && requestSide) {
             issues.add("a byte field whose length is given by another field is not supported yet on the request side");
+        }
+        if (length < 0 && injected) {
+            issues.add("a byte field whose length is given by another field is not supported yet when the value is injected");
         }
         return new BytesCodec(length);
     }

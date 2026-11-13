@@ -91,10 +91,12 @@ class ConfigurationCheckTest {
 
     @Test
     void padOtherThanNoneNeedsAChar() {
-        assertIssue("pad applies only to char and varchar", field("A", new WireType.Packed(5, 0)).pad(Pad.LEFT, '0'));
-        assertIssue("pad applies only to char and varchar", field("A", int4()).pad(Pad.RIGHT));
-        assertIssue("pad applies only to char and varchar", field("A", new WireType.Date()).pad(Pad.LEFT));
-        assertOk(field("A", int4()).pad(Pad.NONE), field("B", chr(3)).pad(Pad.LEFT, '0'), field("C", varchar(3)).pad(Pad.LEFT, '0'));
+        assertIssue("pad applies only to char fields", field("A", new WireType.Packed(5, 0)).pad(Pad.LEFT, '0'));
+        assertIssue("pad applies only to char fields", field("A", int4()).pad(Pad.RIGHT));
+        assertIssue("pad applies only to char fields", field("A", new WireType.Date()).pad(Pad.LEFT));
+        assertIssue("pad applies only to char fields, not to varchar", field("A", varchar(3)).pad(Pad.LEFT, '0'));
+        assertIssue("pad applies only to char fields, not to varchar", field("A", varchar(3)).pad(Pad.RIGHT));
+        assertOk(field("A", int4()).pad(Pad.NONE), field("B", chr(3)).pad(Pad.LEFT, '0'), field("C", varchar(3)).pad(Pad.NONE, '0'));
     }
 
     // ---- date, time and their formats on char
@@ -248,8 +250,23 @@ class ConfigurationCheckTest {
         assertIssue("a char field whose length is given by another field is not supported yet on the request side", field("N", int4()).internal(), field("A", refChar));
         assertIssue("a varchar field whose length is given by another field is not supported yet on the request side", field("N", int4()).internal(), field("A", refVar).both());
         assertIssue("a byte field whose length is given by another field is not supported yet on the request side", field("N", int4()).internal(), field("A", refByte));
-        assertOk(field("N", int4()).internal(), field("A", refChar).response(), field("B", refVar).internal(), field("C", refByte).response(),
-                field("D", refChar).inject("${environment.x}"));
+        assertOk(field("N", int4()).internal(), field("A", refChar).response(), field("B", refVar).internal(), field("C", refByte).response());
+    }
+
+    @Test
+    void aValueCannotBeInjectedIntoAFieldWhoseLengthIsGivenByAnotherField() {
+        WireType.Char refChar = new WireType.Char(new Length.Ref("N"), Optional.empty());
+        WireType.VarChar refVar = new WireType.VarChar(new Length.Ref("N"), Optional.empty(), Optional.empty());
+        WireType.Byte refByte = new WireType.Byte(new Length.Ref("N"));
+        for (String value : List.of("abc", "${environment.x}")) {
+            assertIssue("a char field whose length is given by another field is not supported yet when the value is injected",
+                    field("N", int4()).internal(), field("A", refChar).inject(value));
+            assertIssue("a varchar field whose length is given by another field is not supported yet when the value is injected",
+                    field("N", int4()).internal(), field("A", refVar).inject(value));
+            assertIssue("a byte field whose length is given by another field is not supported yet when the value is injected",
+                    field("N", int4()).internal(), field("A", refByte).inject(value));
+        }
+        assertOk(field("N", int4()).internal(), field("A", chr(4)).inject("abc"), field("B", varchar(4)).inject("x"));
     }
 
     @Test

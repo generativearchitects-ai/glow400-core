@@ -83,7 +83,7 @@ final class Ops {
             this.wire = wire;
             this.exposed = name.toLowerCase(java.util.Locale.ROOT);
             this.semantic = defaultSemantic(wire);
-            this.pad = wire instanceof WireType.Char || wire instanceof WireType.VarChar ? Pad.RIGHT : Pad.NONE;
+            this.pad = wire instanceof WireType.Char ? Pad.RIGHT : Pad.NONE;
         }
 
         F type(SemanticType t) { semantic = t; return this; }

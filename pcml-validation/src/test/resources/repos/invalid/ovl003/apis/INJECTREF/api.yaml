@@ -1,0 +1,11 @@
+program: P19
+pcml: P19.pcml
+route: /injectref
+method: POST
+version: 1.0.0
+
+parameters:
+  N: { direction: internal }
+
+inject:
+  A: abc

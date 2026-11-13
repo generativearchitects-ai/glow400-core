@@ -36,7 +36,6 @@
 
     <junit.version>5.11.4</junit.version>
     <assertj.version>3.27.3</assertj.version>
-    <jqwik.version>1.10.2</jqwik.version>
     <snakeyaml-engine.version>3.2</snakeyaml-engine.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <pitest.version>1.30.2</pitest.version>
@@ -85,12 +84,6 @@
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>${assertj.version}</version>
-      </dependency>
-      <dependency>
-        <!-- Eclipse Public License 2.0; test scope only, never distributed. -->
-        <groupId>net.jqwik</groupId>
-        <artifactId>jqwik</artifactId>
-        <version>${jqwik.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
