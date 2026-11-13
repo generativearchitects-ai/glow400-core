@@ -17,46 +17,46 @@ import java.util.function.Supplier;
  * generator in turn (empty, exactly at the limit, one over, zero, maximum digits, first and last valid date), and the
  * remaining cases are random. There is no shrinking.
  */
-final class Gen {
+public final class Gen {
 
-    static final String LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    static final String LETTERS_AND_SPACES = LETTERS + "   ";
+    public static final String LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    public static final String LETTERS_AND_SPACES = LETTERS + "   ";
 
     private final Random random;
     private final int caseIndex;
 
-    Gen(long seed, int caseIndex) {
+    public Gen(long seed, int caseIndex) {
         this.random = new Random(seed ^ (caseIndex * 0x9E3779B97F4A7C15L));
         this.caseIndex = caseIndex;
     }
 
-    int caseIndex() {
+    public int caseIndex() {
         return caseIndex;
     }
 
     /** The boundary value for this case if there is one left, otherwise a random value. */
-    <T> T boundaryOrElse(List<T> boundaries, Supplier<T> random) {
+    public <T> T boundaryOrElse(List<T> boundaries, Supplier<T> random) {
         return caseIndex < boundaries.size() ? boundaries.get(caseIndex) : random.get();
     }
 
     // ---- shapes
 
-    <T> T pick(List<T> choices) {
+    public <T> T pick(List<T> choices) {
         return choices.get(random.nextInt(choices.size()));
     }
 
-    int intIn(int min, int max) {
+    public int intIn(int min, int max) {
         return boundaryOrElse(List.of(min, max, Math.max(min, Math.min(max, 0)), Math.min(max, min + 1)), () -> min + random.nextInt(max - min + 1));
     }
 
-    boolean bool() {
+    public boolean bool() {
         return boundaryOrElse(List.of(false, true), random::nextBoolean);
     }
 
     // ---- text
 
     /** A text of {@code min} to {@code max} characters from an alphabet. */
-    String text(String alphabet, int min, int max) {
+    public String text(String alphabet, int min, int max) {
         return boundaryOrElse(List.of(repeat(alphabet, min), repeat(alphabet, max)), () -> randomText(alphabet, min + random.nextInt(max - min + 1)));
     }
 
@@ -64,7 +64,7 @@ final class Gen {
      * A text around a field's limit: empty, exactly the limit, one over the limit, then any length up to the limit plus
      * {@code extra}.
      */
-    String textAround(String alphabet, int limit, int extra) {
+    public String textAround(String alphabet, int limit, int extra) {
         return boundaryOrElse(List.of("", repeat(alphabet, limit), repeat(alphabet, limit + 1)), () -> randomText(alphabet, random.nextInt(limit + extra + 1)));
     }
 
@@ -87,29 +87,29 @@ final class Gen {
     // ---- numbers
 
     /** A whole number from 0 up to {@code digits} digits: 0, 1, the largest one, then random. */
-    BigInteger digits(int digits) {
+    public BigInteger digits(int digits) {
         BigInteger largest = BigInteger.TEN.pow(digits).subtract(BigInteger.ONE);
         return boundaryOrElse(List.of(BigInteger.ZERO, BigInteger.ONE, largest, BigInteger.TEN.pow(digits - 1)),
                 () -> new BigInteger(largest.bitLength() + 1, random).mod(largest.add(BigInteger.ONE)));
     }
 
     /** A whole number of up to {@code digits} digits, negative or not. */
-    BigInteger signedDigits(int digits) {
+    public BigInteger signedDigits(int digits) {
         BigInteger value = digits(digits);
         return caseIndex >= 4 && random.nextBoolean() ? value.negate() : value;
     }
 
     /** A decimal of up to {@code digits} digits with the given scale. */
-    BigDecimal decimal(int digits, int scale) {
+    public BigDecimal decimal(int digits, int scale) {
         return new BigDecimal(digits(digits), scale);
     }
 
-    long longValue() {
+    public long longValue() {
         return boundaryOrElse(List.of(0L, Long.MAX_VALUE, Long.MIN_VALUE, -1L, 1L), random::nextLong);
     }
 
     /** A finite double. */
-    double finiteDouble() {
+    public double finiteDouble() {
         return boundaryOrElse(List.of(0.0, 1.0, -1.0, Double.MAX_VALUE, Double.MIN_VALUE, -Double.MAX_VALUE), () -> {
             double d;
             do {
@@ -120,7 +120,7 @@ final class Gen {
     }
 
     /** A finite float. */
-    float finiteFloat() {
+    public float finiteFloat() {
         return boundaryOrElse(List.of(0.0f, 1.0f, -1.0f, Float.MAX_VALUE, Float.MIN_VALUE, -Float.MAX_VALUE), () -> {
             float f;
             do {
@@ -133,7 +133,7 @@ final class Gen {
     // ---- dates and times
 
     /** A date from 0000-01-01 to 9999-12-31, the years a four-digit year can hold. */
-    LocalDate date() {
+    public LocalDate date() {
         long first = LocalDate.of(0, 1, 1).toEpochDay();
         long last = LocalDate.of(9999, 12, 31).toEpochDay();
         return boundaryOrElse(List.of(LocalDate.of(0, 1, 1), LocalDate.of(9999, 12, 31), LocalDate.of(2024, 2, 29), LocalDate.of(2026, 1, 1)),
@@ -141,18 +141,18 @@ final class Gen {
     }
 
     /** A time of day in whole milliseconds. */
-    LocalTime time() {
+    public LocalTime time() {
         return boundaryOrElse(List.of(LocalTime.MIDNIGHT, LocalTime.of(23, 59, 59, 999_000_000), LocalTime.NOON, LocalTime.of(0, 0, 0, 1_000_000)),
                 () -> LocalTime.ofNanoOfDay(random.nextInt(24 * 3600 * 1000) * 1_000_000L));
     }
 
-    LocalDateTime dateTime() {
+    public LocalDateTime dateTime() {
         return LocalDateTime.of(date(), time());
     }
 
     // ---- bytes
 
-    byte[] bytes(int length) {
+    public byte[] bytes(int length) {
         byte[] bytes = new byte[length];
         random.nextBytes(bytes);
         if (caseIndex == 0) {
