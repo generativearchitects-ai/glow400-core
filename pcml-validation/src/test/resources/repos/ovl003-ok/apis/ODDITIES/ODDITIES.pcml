@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="ODDITIES" path="/QSYS.LIB/DEMOLIB.LIB/ODDITIES.PGM">
+    <data name="F" type="char" length="1" usage="input"/>
+    <data name="W" type="char" length="14" usage="input"/>
+    <data name="R" type="char" length="2" count="5" usage="output"/>
+    <data name="N" type="int" length="4" usage="output"/>
+  </program>
+</pcml>

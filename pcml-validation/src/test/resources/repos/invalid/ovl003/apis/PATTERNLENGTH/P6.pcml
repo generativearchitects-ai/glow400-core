@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="P6" path="/QSYS.LIB/DEMOLIB.LIB/P6.PGM">
+    <data name="A" type="char" length="8" usage="input"/>
+  </program>
+</pcml>

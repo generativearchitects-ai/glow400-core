@@ -1,0 +1,8 @@
+program: P10
+pcml: P10.pcml
+route: /nullas
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { nullAs: "NOT AVAILABLE" }

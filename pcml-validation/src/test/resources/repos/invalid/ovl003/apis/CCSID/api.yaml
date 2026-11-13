@@ -1,0 +1,5 @@
+program: P16
+pcml: P16.pcml
+route: /ccsid
+method: POST
+version: 1.0.0

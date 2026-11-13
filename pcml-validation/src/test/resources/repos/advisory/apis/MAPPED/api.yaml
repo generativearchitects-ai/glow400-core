@@ -1,0 +1,12 @@
+program: MAPPED
+pcml: MAPPED.pcml
+route: /mapped
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { direction: response }
+  ERR: { direction: internal }
+
+error:
+  when: { field: ERR, equals: KO }

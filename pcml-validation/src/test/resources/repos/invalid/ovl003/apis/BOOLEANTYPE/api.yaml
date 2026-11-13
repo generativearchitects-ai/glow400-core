@@ -1,0 +1,8 @@
+program: P9
+pcml: P9.pcml
+route: /booleantype
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { trueValue: "Y" }

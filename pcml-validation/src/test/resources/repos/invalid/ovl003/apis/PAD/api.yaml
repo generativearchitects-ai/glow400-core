@@ -1,0 +1,8 @@
+program: P3
+pcml: P3.pcml
+route: /pad
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { pad: left, padChar: "0" }
