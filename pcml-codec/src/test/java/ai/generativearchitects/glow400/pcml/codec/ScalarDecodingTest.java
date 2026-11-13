@@ -171,12 +171,30 @@ class ScalarDecodingTest {
         assertThat(decode(date, t("        "))).isEmpty();
         assertThat(decode(date, t("00000000"))).isEmpty();
         assertThat(decode(date, t(""))).isEmpty();
-        assertThat(decode(field("A", chr(6)).type(SemanticType.TIME), t("000000"))).isEmpty();
         assertThat(decode(field("A", chr(6)).type(SemanticType.TIME), t("      "))).isEmpty();
+        assertThat(decode(field("A", chr(6)).type(SemanticType.TIME), t(""))).isEmpty();
         assertThat(decode(field("A", chr(14)).type(SemanticType.DATETIME).format("yyyyMMddHHmmss"), t("00000000000000"))).isEmpty();
         assertThat(decode(field("A", chr(10)).type(SemanticType.DATE).pad(Pad.LEFT, '*'), t("0000000000"))).isEmpty();
         // Zeros inside a value are not "no date": a day 00 is simply not a date.
         assertThat(problems(date, t("20260100"))).containsExactly("VAL102");
+    }
+
+    @Test
+    void aTimeOfAllZerosIsMidnightAndOnlyABlankTimeIsAbsent() {
+        // Decision 47: "entirely zeros means absent" is for DATE and DATETIME, where all zeros is not a valid value.
+        assertThat(decode(field("A", chr(6)).type(SemanticType.TIME), t("000000"))).contains(new ApiValue.Time(LocalTime.MIDNIGHT));
+        assertThat(decode(field("A", chr(8)).type(SemanticType.TIME), t("00:00:00"))).contains(new ApiValue.Time(LocalTime.MIDNIGHT));
+        assertThat(decode(field("A", chr(9)).type(SemanticType.TIME).format("HHmmssSSS"), t("000000000"))).contains(new ApiValue.Time(LocalTime.MIDNIGHT));
+        assertThat(decode(field("A", chr(6)).type(SemanticType.TIME).pad(Pad.LEFT, ' '), t("000000"))).contains(new ApiValue.Time(LocalTime.MIDNIGHT));
+        assertThat(decode(field("A", chr(6)).type(SemanticType.TIME).pad(Pad.NONE), t("000000"))).contains(new ApiValue.Time(LocalTime.MIDNIGHT));
+        assertThat(decode(field("A", chr(6)).type(SemanticType.TIME), t("      "))).isEmpty();
+        // The test is on the raw text, before padding is removed: a field of spaces is blank even though padding removal empties it.
+        assertThat(decode(field("A", chr(6)).type(SemanticType.TIME).pad(Pad.LEFT, ' '), t("      "))).isEmpty();
+        // DATE and DATETIME are unchanged.
+        assertThat(decode(field("A", chr(8)).type(SemanticType.DATE), t("00000000"))).isEmpty();
+        assertThat(decode(field("A", chr(14)).type(SemanticType.DATETIME).format("yyyyMMddHHmmss"), t("00000000000000"))).isEmpty();
+        assertThat(decode(field("A", chr(8)).type(SemanticType.DATE), t("        "))).isEmpty();
+        assertThat(decode(field("A", chr(14)).type(SemanticType.DATETIME).format("yyyyMMddHHmmss"), t("              "))).isEmpty();
     }
 
     @Test

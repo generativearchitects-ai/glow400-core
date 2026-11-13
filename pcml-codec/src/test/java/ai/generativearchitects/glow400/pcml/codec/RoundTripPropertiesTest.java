@@ -136,13 +136,29 @@ class RoundTripPropertiesTest {
             LocalTime wholeSeconds = value.withNano(0);
             // A format without a fraction takes whole seconds only; the codec refuses anything else instead of cutting it.
             assertThat(roundTrip(field("A", chr(8)).type(SemanticType.TIME), new ApiValue.Time(wholeSeconds))).isEqualTo(new ApiValue.Time(wholeSeconds));
-            assertThat(roundTrip(field("A", chr(6)).type(SemanticType.TIME), new ApiValue.Time(wholeSeconds)))
-                    .isEqualTo(wholeSeconds.equals(LocalTime.MIDNIGHT) ? new ApiValue.Absent() : new ApiValue.Time(wholeSeconds));
+            assertThat(roundTrip(field("A", chr(6)).type(SemanticType.TIME), new ApiValue.Time(wholeSeconds))).isEqualTo(new ApiValue.Time(wholeSeconds));
             assertThat(roundTrip(field("A", chr(12)).type(SemanticType.TIME).format("HH:mm:ss.SSS"), new ApiValue.Time(value))).isEqualTo(new ApiValue.Time(value));
-            // 00:00:00 written as all zeros reads back as "no time": the rule of kickoff 03, changed in the next commit.
-            assertThat(roundTrip(field("A", chr(9)).type(SemanticType.TIME).format("HHmmssSSS"), new ApiValue.Time(value)))
-                    .isEqualTo(value.equals(LocalTime.MIDNIGHT) ? new ApiValue.Absent() : new ApiValue.Time(value));
+            // Midnight written as all zeros is midnight (decision 47), the compact formats included.
+            assertThat(roundTrip(field("A", chr(9)).type(SemanticType.TIME).format("HHmmssSSS"), new ApiValue.Time(value))).isEqualTo(new ApiValue.Time(value));
         });
+    }
+
+    @Test
+    void midnightRoundTripsInEveryTimeFormat() {
+        List<String> patterns = List.of("HHmmss", "HH:mm:ss", "HHmmssS", "HHmmssSSS", "HH:mm:ss.SSS", "HHmmssSSSSSSSSS", "HH.mm.ss.SSSS", "HH mm ss",
+                "HH'h'mm'm'ss", "HHmmss'Z'", "HH-mm-ss", "HH/mm/ss");
+        for (String pattern : patterns) {
+            int length = DatePattern.parse(pattern).pattern().orElseThrow().outputLength();
+            for (Pad pad : List.of(Pad.RIGHT, Pad.LEFT, Pad.NONE)) {
+                Ops.F f = field("A", chr(length)).type(SemanticType.TIME).format(pattern).pad(pad, ' ');
+                assertThat(roundTrip(f, new ApiValue.Time(LocalTime.MIDNIGHT))).as(pattern + " " + pad).isEqualTo(new ApiValue.Time(LocalTime.MIDNIGHT));
+            }
+        }
+        // The default formats, and a varchar.
+        assertThat(roundTrip(field("A", chr(6)).type(SemanticType.TIME), new ApiValue.Time(LocalTime.MIDNIGHT))).isEqualTo(new ApiValue.Time(LocalTime.MIDNIGHT));
+        assertThat(roundTrip(field("A", chr(8)).type(SemanticType.TIME), new ApiValue.Time(LocalTime.MIDNIGHT))).isEqualTo(new ApiValue.Time(LocalTime.MIDNIGHT));
+        assertThat(roundTrip(field("A", varchar(6)).type(SemanticType.TIME).format("HHmmss"), new ApiValue.Time(LocalTime.MIDNIGHT)))
+                .isEqualTo(new ApiValue.Time(LocalTime.MIDNIGHT));
     }
 
     @Test

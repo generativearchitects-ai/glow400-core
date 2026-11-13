@@ -215,7 +215,7 @@ final class TextCodec implements ScalarCodec {
                 return unreadable(where, problems);
             }
             case DATE, TIME, DATETIME -> {
-                if (isBlankOrZeros(raw)) {
+                if (noValue(raw)) {
                     return Optional.of(new ApiValue.Absent());
                 }
                 Optional<ApiValue> parsed = switch (semantic) {
@@ -264,9 +264,16 @@ final class TextCodec implements ScalarCodec {
         return raw.substring(start);
     }
 
-    /** Entirely blank or entirely zeros: how RPG programs write "no date". An empty field is blank. */
-    private static boolean isBlankOrZeros(String raw) {
-        return raw.isBlank() || raw.chars().allMatch(c -> c == '0');
+    /**
+     * Whether a raw date-like field means "no value". Entirely blank does for all three types; entirely zeros, which is how
+     * RPG programs write "no date", does for DATE and DATETIME, where it is not a valid value. For TIME all zeros is midnight.
+     * The text is the raw field, before padding is removed; an empty field is blank.
+     */
+    private boolean noValue(String raw) {
+        if (raw.isBlank()) {
+            return true;
+        }
+        return semantic != SemanticType.TIME && raw.chars().allMatch(c -> c == '0');
     }
 
     @Override
