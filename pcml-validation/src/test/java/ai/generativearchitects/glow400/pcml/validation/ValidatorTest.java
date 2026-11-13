@@ -51,7 +51,8 @@ class ValidatorTest {
                 error("apis/SEVERAL/api.yaml", 8),
                 error("apis/SEVERAL/api.yaml", 9),
                 error("apis/SEVERAL/api.yaml", 10),
-                error("apis/TRIMCOUNT/api.yaml", 9));        // trim.countField is not a whole number
+                error("apis/TRIMCOUNT/api.yaml", 9),         // trim.countField is not a whole number
+                error("apis/VARCHARPAD/api.yaml", 8));       // pad on a varchar (C89)
     }
 
     @Test

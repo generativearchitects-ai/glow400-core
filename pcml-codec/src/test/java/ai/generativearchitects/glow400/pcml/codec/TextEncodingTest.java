@@ -61,9 +61,9 @@ class TextEncodingTest {
     }
 
     @Test
-    void neverPadsAVarchar() {
+    void aVarcharIsNotPaddedByDefault() {
         assertThat(encodeOne(field("A", varchar(5)), text("ab"))).isEqualTo(new WireValue.Text("ab"));
-        assertThat(encodeOne(field("A", varchar(5)).pad(Pad.LEFT, '0'), text("ab"))).isEqualTo(new WireValue.Text("ab"));
+        assertThat(encodeOne(field("A", varchar(5)).pad(Pad.NONE, '0'), text("ab"))).isEqualTo(new WireValue.Text("ab"));
     }
 
     @Test

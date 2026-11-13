@@ -59,7 +59,7 @@ class ScalarDecodingTest {
     void noPaddingAndVarcharAreLeftAsTheyAre() {
         assertThat(decode(field("A", chr(5)).pad(Pad.NONE), t("ab   "))).contains(new ApiValue.Text("ab   "));
         assertThat(decode(field("A", varchar(5)), t("ab   "))).contains(new ApiValue.Text("ab   "));
-        assertThat(decode(field("A", varchar(5)).pad(Pad.LEFT, ' '), t("  ab"))).contains(new ApiValue.Text("  ab"));
+        assertThat(decode(field("A", varchar(5)).pad(Pad.NONE, ' '), t("  ab"))).contains(new ApiValue.Text("  ab"));
     }
 
     @Test

@@ -257,6 +257,25 @@ class ApiBuilderTest {
     }
 
     @Test
+    void aVarcharIsNeverPaddedByTheCharDefaultsButStillGetsTheirPadCharAndNullAs(@TempDir Path dir) {
+        String gateway = "defaults:\n  char:\n    pad: left\n    padChar: \"0\"\n    nullAs: \"-\"\n";
+        String pcml = HEAD + """
+              <program name="VC" path="/QSYS.LIB/DEMOLIB.LIB/VC.PGM">
+                <data name="C" type="char" length="4" usage="input"/>
+                <data name="V" type="varchar" length="4" usage="input"/>
+              </program>
+            </pcml>
+            """;
+        String overlay = "program: VC\npcml: VC.pcml\nroute: /vc\nmethod: POST\nversion: 1.0.0\n";
+        ApiOperation op = single(new Repos.Temp(dir).file("gateway.yaml", gateway).file("apis/A/VC.pcml", pcml)
+                .file("apis/A/api.yaml", overlay).load());
+        assertThat(binding(op, "C").codec().pad()).isEqualTo(Pad.LEFT);
+        assertThat(binding(op, "V").codec().pad()).isEqualTo(Pad.NONE);
+        assertThat(binding(op, "V").codec().padChar()).isEqualTo('0');
+        assertThat(binding(op, "V").codec().nullAs()).isEqualTo("-");
+    }
+
+    @Test
     void overlayCodecSettingsWinAndApplyToAnyWireType(@TempDir Path dir) {
         String extra = DIRECTIONS + "  A: { pad: right, padChar: \"#\", nullAs: \"?\", format: x }\n  CNT: { pad: left, padChar: \"0\" }\n";
         ApiOperation op = single(load(dir, yaml("/m", "POST", extra)));

@@ -32,9 +32,8 @@ final class ScalarCodecs {
         if (semantic != SemanticType.BOOLEAN && (settings.trueValue().isPresent() || settings.falseValue().isPresent())) {
             issues.add("trueValue and falseValue apply only to boolean fields");
         }
-        boolean text = wire instanceof WireType.Char || wire instanceof WireType.VarChar;
-        if (!text && settings.pad() != Pad.NONE) {
-            issues.add("pad applies only to char and varchar fields, not to " + type);
+        if (!(wire instanceof WireType.Char) && settings.pad() != Pad.NONE) {
+            issues.add("pad applies only to char fields, not to " + type);
         }
         if (semantic == null) {
             issues.add("the field has no semantic type");
@@ -120,7 +119,7 @@ final class ScalarCodecs {
         if (semantic == SemanticType.DATE || semantic == SemanticType.TIME || semantic == SemanticType.DATETIME) {
             pattern = pattern(settings.format(), semantic, length, varchar, issues);
         }
-        return new TextCodec(length, varchar, semantic, settings.pad(), settings.padChar(), settings.nullAs(), pattern, trueValue, falseValue);
+        return new TextCodec(length, semantic, settings.pad(), settings.padChar(), settings.nullAs(), pattern, trueValue, falseValue);
     }
 
     /** The pattern of a date-like field on char: the given one, or the default for the field's length; null if unusable. */

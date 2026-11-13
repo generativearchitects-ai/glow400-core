@@ -91,10 +91,12 @@ class ConfigurationCheckTest {
 
     @Test
     void padOtherThanNoneNeedsAChar() {
-        assertIssue("pad applies only to char and varchar", field("A", new WireType.Packed(5, 0)).pad(Pad.LEFT, '0'));
-        assertIssue("pad applies only to char and varchar", field("A", int4()).pad(Pad.RIGHT));
-        assertIssue("pad applies only to char and varchar", field("A", new WireType.Date()).pad(Pad.LEFT));
-        assertOk(field("A", int4()).pad(Pad.NONE), field("B", chr(3)).pad(Pad.LEFT, '0'), field("C", varchar(3)).pad(Pad.LEFT, '0'));
+        assertIssue("pad applies only to char fields", field("A", new WireType.Packed(5, 0)).pad(Pad.LEFT, '0'));
+        assertIssue("pad applies only to char fields", field("A", int4()).pad(Pad.RIGHT));
+        assertIssue("pad applies only to char fields", field("A", new WireType.Date()).pad(Pad.LEFT));
+        assertIssue("pad applies only to char fields, not to varchar", field("A", varchar(3)).pad(Pad.LEFT, '0'));
+        assertIssue("pad applies only to char fields, not to varchar", field("A", varchar(3)).pad(Pad.RIGHT));
+        assertOk(field("A", int4()).pad(Pad.NONE), field("B", chr(3)).pad(Pad.LEFT, '0'), field("C", varchar(3)).pad(Pad.NONE, '0'));
     }
 
     // ---- date, time and their formats on char

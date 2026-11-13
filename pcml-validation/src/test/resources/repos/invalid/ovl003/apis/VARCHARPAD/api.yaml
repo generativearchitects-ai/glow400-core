@@ -1,0 +1,8 @@
+program: P18
+pcml: P18.pcml
+route: /varcharpad
+method: POST
+version: 1.0.0
+
+parameters:
+  A: { pad: right }
