@@ -88,6 +88,12 @@ class CodecAgreementTest {
         assertThat(encoded.problems()).as(where).isEmpty();
         DecodeResult decoded = codec.decode(encoded.parameters().orElseThrow());
         assertThat(decoded.problems()).as(where).isEmpty();
+        if (decoded.error().isPresent()) {
+            // A blank output can satisfy the error condition: the status must then be one of the documented responses.
+            assertThat(item.at("/responses").has(String.valueOf(decoded.error().get().status()))).as(where + " error status").isTrue();
+            assertThat(decoded.response()).as(where).isEmpty();
+            return;
+        }
         ObjectNode response = JSON.objectNode();
         for (FieldBinding binding : operation.bindings()) {
             ApiValue value = decoded.response().orElseThrow().get(binding.exposedName());
