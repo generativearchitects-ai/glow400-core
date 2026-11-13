@@ -1,5 +1,6 @@
 package ai.generativearchitects.glow400.pcml.overlay;
 
+import ai.generativearchitects.glow400.pcml.api.ApiDefinition;
 import ai.generativearchitects.glow400.pcml.api.ApiOperation;
 import ai.generativearchitects.glow400.pcml.api.ApiRepositoryModel;
 import ai.generativearchitects.glow400.pcml.api.GatewayDefaults;
@@ -69,20 +70,29 @@ public final class OverlayLoader {
         Optional<GatewayDefaults> gateway = loadGateway();
         GatewayDefaults defaults = gateway.orElseGet(GatewayDefaults::standard);
 
-        List<ApiOperation> candidates = new ArrayList<>();
+        List<Pending> pending = new ArrayList<>();
         Path apis = realRoot.resolve("apis");
         if (Files.isDirectory(apis)) {
             for (Path folder : sortedChildren(apis, Files::isDirectory)) {
-                candidates.addAll(loadFolder(folder, defaults));
+                loadFolder(folder, defaults).ifPresent(pending::add);
             }
         }
-        List<ApiOperation> operations = dropDuplicates(candidates);
+        List<ApiOperation> operations = dropDuplicates(pending.stream().flatMap(p -> p.operations().stream()).toList());
+        java.util.Set<ApiOperation> kept = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        kept.addAll(operations);
+        List<ApiDefinition> definitions = new ArrayList<>();
+        for (Pending api : pending) {
+            List<ApiOperation> surviving = api.operations().stream().filter(kept::contains).toList();
+            if (!surviving.isEmpty()) {
+                definitions.add(new ApiDefinition(api.name(), api.title(), api.version(), api.overlayPath(), surviving));
+            }
+        }
 
         diagnostics.sort(Comparator
                 .comparing((Diagnostic d) -> d.location().file())
                 .thenComparingInt(d -> d.location().line())
                 .thenComparingInt(d -> d.location().column()));
-        Optional<ApiRepositoryModel> model = gateway.map(g -> new ApiRepositoryModel(g, operations));
+        Optional<ApiRepositoryModel> model = gateway.map(g -> new ApiRepositoryModel(g, operations, definitions));
         return new RepositoryResult(model, diagnostics);
     }
 
@@ -103,47 +113,64 @@ public final class OverlayLoader {
 
     // ------------------------------------------------------------------ one folder under apis/
 
-    private List<ApiOperation> loadFolder(Path folder, GatewayDefaults defaults) {
+    /** The built operations of one overlay file, before duplicates across files are dropped. */
+    private record Pending(String name, String title, String version, String overlayPath, List<ApiOperation> operations) {
+    }
+
+    private static final java.util.regex.Pattern API_NAME = java.util.regex.Pattern.compile("[a-z0-9][a-z0-9._-]*");
+
+    private Optional<Pending> loadFolder(Path folder, GatewayDefaults defaults) {
         List<Path> overlays = OVERLAY_NAMES.stream().map(folder::resolve).filter(Files::isRegularFile).toList();
         List<Path> pcmls = sortedChildren(folder, p -> Files.isRegularFile(p)
                 && p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".pcml"));
         if (overlays.size() > 1) {
             report("OVL020", Severity.ERROR, "More than one overlay file in this folder: "
                     + overlays.stream().map(p -> p.getFileName().toString()).toList(), location(overlays.get(1)));
-            return List.of();
+            return Optional.empty();
         }
         if (overlays.isEmpty()) {
             if (!pcmls.isEmpty()) {
                 report("OVL019", Severity.WARNING, "This folder has a PCML file but no overlay file (api.yaml)",
                         location(pcmls.get(0)));
             }
-            return List.of();
+            return Optional.empty();
         }
 
         Path overlay = overlays.get(0);
         String overlayPath = relative(overlay);
         Optional<String> text = read(overlay, overlayPath);
         if (text.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
         Optional<OverlayParser.Parsed> parsed = new OverlayParser(new YamlReader(overlayPath, diagnostics), overlayPath)
                 .parse(text.get());
         if (parsed.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
         OverlayFile file = parsed.get().file();
 
         Optional<Path> pcmlFile = resolvePcml(overlay, file);
         if (pcmlFile.isEmpty()) {
-            return List.of();
+            return Optional.empty();
         }
         String pcmlPath = relative(pcmlFile.get());
         ParseResult pcml = pcmlCache.computeIfAbsent(pcmlPath, key -> parsePcml(pcmlFile.get(), key));
         if (pcml.hasErrors() || pcml.document().isEmpty()) {
             report("OVL013", Severity.ERROR, "The PCML file " + pcmlPath + " has errors", file.pcml().at());
-            return List.of();
+            return Optional.empty();
         }
-        return build(parsed.get(), pcml.document().get(), defaults, pcmlPath);
+        List<ApiOperation> operations = build(parsed.get(), pcml.document().get(), defaults, pcmlPath);
+        String name = ApiRepositoryModel.apiName(overlayPath);
+        if (!API_NAME.matcher(name).matches()) {
+            report("OVL012", Severity.ERROR, "The API name '" + name + "' (the folder name, lower-cased) must match "
+                    + "[a-z0-9][a-z0-9._-]*", location(overlay));
+            return Optional.empty();
+        }
+        if (operations.isEmpty()) {
+            return Optional.empty();
+        }
+        String title = file.title().map(Located::value).orElse(name);
+        return Optional.of(new Pending(name, title, file.version().value(), overlayPath, operations));
     }
 
     /**

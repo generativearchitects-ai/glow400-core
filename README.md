@@ -12,7 +12,7 @@ Licence: Apache-2.0.
 |---|---|
 | `pcml-model` | Immutable call model of a PCML document, the API model, and the diagnostic types (JDK only) |
 | `pcml-parser` | PCML XML to call model, with source positions and diagnostics |
-| `pcml-overlay` | Reads `gateway.yaml` and the overlay files (format v0.5), merges them with the PCML into the API model; publishes the JSON Schemas for both file types |
+| `pcml-overlay` | Reads `gateway.yaml` and the overlay files (format v0.6), merges them with the PCML into the API model; publishes the JSON Schemas for both file types |
 | `pcml-codec` | Converts between API values and the values of a program call (scalars, structs, arrays); depends on `pcml-model` and the JDK only |
 | `pcml-validation` | Static validation of an API model: encodability (`OVL003`) and the advisory warnings `OVL005` and `OVL006` |
 
