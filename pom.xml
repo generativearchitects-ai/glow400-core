@@ -25,6 +25,8 @@
     <module>pcml-model</module>
     <module>pcml-parser</module>
     <module>pcml-overlay</module>
+    <module>pcml-codec</module>
+    <module>pcml-validation</module>
   </modules>
 
   <properties>
@@ -34,6 +36,7 @@
 
     <junit.version>5.11.4</junit.version>
     <assertj.version>3.27.3</assertj.version>
+    <jqwik.version>1.10.2</jqwik.version>
     <snakeyaml-engine.version>3.2</snakeyaml-engine.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <pitest.version>1.30.2</pitest.version>
@@ -57,6 +60,11 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
+        <groupId>ai.generativearchitects.glow400</groupId>
+        <artifactId>pcml-codec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.snakeyaml</groupId>
         <artifactId>snakeyaml-engine</artifactId>
         <version>${snakeyaml-engine.version}</version>
@@ -77,6 +85,12 @@
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>${assertj.version}</version>
+      </dependency>
+      <dependency>
+        <!-- Eclipse Public License 2.0; test scope only, never distributed. -->
+        <groupId>net.jqwik</groupId>
+        <artifactId>jqwik</artifactId>
+        <version>${jqwik.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
