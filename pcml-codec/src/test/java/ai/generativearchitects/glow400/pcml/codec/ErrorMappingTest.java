@@ -267,10 +267,13 @@ class ErrorMappingTest {
     }
 
     @Test
-    void aFieldThatIsNotThereIsAnIssue() {
-        List<ConfigurationIssue> issues = issues(mapping(new ErrorCondition.Equals("NOPE", "x"), "NOPE2", "NOPE3", 422, Map.of()), field("OK", chr(2)).internal());
-        assertThat(issues).extracting(ConfigurationIssue::message).containsExactly("the field of the error condition cannot be found",
-                "the error message field cannot be found", "the error code field cannot be found");
+    void aFieldThatIsNotThereIsLeftToTheLoaderAndTheDecoder() {
+        ErrorMapping mapping = mapping(new ErrorCondition.Equals("NOPE", "x"), "NOPE2", "NOPE3", 422, Map.of("ABCDEFGH", 404));
+        assertThat(issues(mapping, field("OK", chr(2)).internal())).isEmpty();
+        OperationCodec codec = OperationCodec.of(opWith(mapping, field("OK", chr(2)).internal()));
+        DecodeResult result = codec.decode(List.of(t("x")));
+        assertThat(result.problems()).extracting(ValueProblem::code).containsExactly("VAL101");
+        assertThat(result.problems().get(0).message()).isEqualTo("The program's output has no value for a field the error mapping reads");
     }
 
     @Test

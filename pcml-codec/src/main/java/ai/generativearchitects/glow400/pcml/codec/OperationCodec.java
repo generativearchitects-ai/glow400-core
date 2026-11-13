@@ -187,12 +187,11 @@ public final class OperationCodec {
         }
     }
 
-    /** The plan of a field the mapping reads, or {@code null} after reporting why it cannot be read as text. */
+    /** The plan of a field the mapping reads, or {@code null} if it is not there or, after reporting why, cannot be read as text. */
     private static FieldPlan mappingField(String path, String what, FieldPlan.Scope top, List<ConfigurationIssue> issues) {
         FieldPlan.Found found = FieldPlan.resolve(path, top, top);
         if (found == null) {
-            issues.add(new ConfigurationIssue("", what + " cannot be found"));
-            return null;
+            return null; // the loader reports a field the program does not have; the decoder reports a missing value
         }
         FieldPlan plan = found.plan();
         if (plan.isStruct() || plan.isArray() || plan.field.wire() instanceof WireType.Byte) {

@@ -168,8 +168,15 @@ class EndToEndTest {
         OperationCodec codec = OperationCodec.of(Fixtures.operation(model, "ordstatus"));
         assertThat(encode(codec, map("orderNumber", text("9")), Map.of("P0ENV", "PRD", "P0TEN", "ACME")))
                 .containsExactly(t("PRD", 4), t("ACME", 8), t("9", 10), t("", 1), t("", 2), t("", 8), t("", 60));
-        assertThat(decode(codec, t("PRD", 4), t("ACME", 8), t("9", 10), t("S", 1), t("KO", 2), t("NOTFOUND", 8), t("no such order", 60)))
+        assertThat(decode(codec, t("PRD", 4), t("ACME", 8), t("9", 10), t("S", 1), t("", 2), t("", 8), t("", 60)))
                 .containsExactly(Map.entry("status", text("S")));
+        // The error condition is true: the result is the error of the mapping, with the status of its code, and no response.
+        var failed = codec.decode(List.of(t("PRD", 4), t("ACME", 8), t("9", 10), t("S", 1), t("KO", 2), t("NOTFOUND", 8), t("no such order", 60)));
+        assertThat(failed.problems()).isEmpty();
+        assertThat(failed.response()).isEmpty();
+        assertThat(failed.error().orElseThrow().status()).isEqualTo(404);
+        assertThat(failed.error().orElseThrow().code()).contains("NOTFOUND");
+        assertThat(failed.error().orElseThrow().message()).contains("no such order");
     }
 
     @Test
