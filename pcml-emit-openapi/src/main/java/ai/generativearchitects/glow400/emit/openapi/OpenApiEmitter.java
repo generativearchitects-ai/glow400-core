@@ -1,5 +1,6 @@
 package ai.generativearchitects.glow400.emit.openapi;
 
+import ai.generativearchitects.glow400.contract.ApiSurface;
 import ai.generativearchitects.glow400.pcml.api.ApiDefinition;
 import ai.generativearchitects.glow400.pcml.api.ApiRepositoryModel;
 import ai.generativearchitects.glow400.pcml.api.EmitResult;
@@ -25,7 +26,7 @@ public final class OpenApiEmitter implements Emitter {
     public EmitResult emit(ApiRepositoryModel model) {
         List<EmittedFile> files = new ArrayList<>();
         for (ApiDefinition api : model.apis()) {
-            String yaml = YamlWriter.write(OpenApiBuilder.document(api));
+            String yaml = YamlWriter.write(OpenApiBuilder.document(ApiSurface.of(api)));
             files.add(new EmittedFile("openapi/" + api.name() + ".yaml", yaml.getBytes(StandardCharsets.UTF_8)));
         }
         return new EmitResult(files, List.of());

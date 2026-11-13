@@ -19,6 +19,10 @@
       <groupId>ai.generativearchitects.glow400</groupId>
       <artifactId>pcml-model</artifactId>
     </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-contract</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>ai.generativearchitects.glow400</groupId>

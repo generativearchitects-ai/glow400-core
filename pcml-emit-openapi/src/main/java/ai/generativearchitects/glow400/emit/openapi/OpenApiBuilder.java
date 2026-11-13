@@ -1,12 +1,11 @@
 package ai.generativearchitects.glow400.emit.openapi;
 
-import ai.generativearchitects.glow400.pcml.api.ApiDefinition;
-import ai.generativearchitects.glow400.pcml.api.ApiOperation;
-import ai.generativearchitects.glow400.pcml.api.Direction;
-import ai.generativearchitects.glow400.pcml.api.FieldBinding;
+import ai.generativearchitects.glow400.contract.ApiSurface;
+import ai.generativearchitects.glow400.contract.FieldSurface;
+import ai.generativearchitects.glow400.contract.Limits;
+import ai.generativearchitects.glow400.contract.OperationSurface;
 import ai.generativearchitects.glow400.pcml.api.Location;
 import ai.generativearchitects.glow400.pcml.api.SemanticType;
-import ai.generativearchitects.glow400.pcml.model.Count;
 import ai.generativearchitects.glow400.pcml.model.Length;
 import ai.generativearchitects.glow400.pcml.model.WireType;
 import java.math.BigInteger;
@@ -46,7 +45,7 @@ final class OpenApiBuilder {
     private OpenApiBuilder() {
     }
 
-    static Map<String, Object> document(ApiDefinition api) {
+    static Map<String, Object> document(ApiSurface api) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("openapi", "3.1.0");
         Map<String, Object> info = new LinkedHashMap<>();
@@ -62,7 +61,7 @@ final class OpenApiBuilder {
             root.put("tags", list);
         }
         Map<String, Object> paths = new LinkedHashMap<>();
-        for (ApiOperation operation : api.operations()) {
+        for (OperationSurface operation : api.operations()) {
             @SuppressWarnings("unchecked")
             Map<String, Object> item = (Map<String, Object>) paths.computeIfAbsent(operation.route(), route -> new LinkedHashMap<String, Object>());
             item.put(operation.method().name().toLowerCase(Locale.ROOT), operation(operation));
@@ -99,7 +98,7 @@ final class OpenApiBuilder {
 
     // ------------------------------------------------------------------ operations
 
-    private static Map<String, Object> operation(ApiOperation operation) {
+    private static Map<String, Object> operation(OperationSurface operation) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("operationId", operation.id());
         operation.summary().ifPresent(summary -> out.put("summary", summary));
@@ -107,14 +106,13 @@ final class OpenApiBuilder {
         if (!operation.tags().isEmpty()) {
             out.put("tags", List.copyOf(operation.tags()));
         }
-        List<FieldBinding> request = operation.bindings().stream().filter(b -> onRequest(b) && b.location().isPresent()).toList();
         List<Object> parameters = new ArrayList<>();
-        List<FieldBinding> body = new ArrayList<>();
-        for (FieldBinding binding : request) {
-            if (binding.location().get() == Location.BODY) {
-                body.add(binding);
+        List<FieldSurface> body = new ArrayList<>();
+        for (FieldSurface field : operation.request()) {
+            if (field.location().get() == Location.BODY) {
+                body.add(field);
             } else {
-                parameters.add(parameter(binding));
+                parameters.add(parameter(field));
             }
         }
         if (!parameters.isEmpty()) {
@@ -127,29 +125,21 @@ final class OpenApiBuilder {
         return out;
     }
 
-    private static boolean onRequest(FieldBinding binding) {
-        return binding.direction() == Direction.REQUEST || binding.direction() == Direction.BOTH;
-    }
-
-    private static boolean onResponse(FieldBinding binding) {
-        return binding.direction() == Direction.RESPONSE || binding.direction() == Direction.BOTH;
-    }
-
-    private static Map<String, Object> parameter(FieldBinding binding) {
+    private static Map<String, Object> parameter(FieldSurface field) {
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("name", binding.exposedName());
-        out.put("in", binding.location().get().name().toLowerCase(Locale.ROOT));
-        out.put("required", binding.required() || binding.location().get() == Location.PATH);
-        description(binding).ifPresent(text -> out.put("description", text));
-        out.put("schema", scalar(binding));
-        example(binding).ifPresent(value -> out.put("example", value));
-        out.put(EXTENSION, extension(binding));
+        out.put("name", field.exposedName());
+        out.put("in", field.location().get().name().toLowerCase(Locale.ROOT));
+        out.put("required", field.required() || field.location().get() == Location.PATH);
+        description(field).ifPresent(text -> out.put("description", text));
+        out.put("schema", scalar(field));
+        example(field).ifPresent(value -> out.put("example", value));
+        out.put(EXTENSION, extension(field));
         return out;
     }
 
-    private static Map<String, Object> requestBody(List<FieldBinding> body) {
+    private static Map<String, Object> requestBody(List<FieldSurface> body) {
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("required", body.stream().anyMatch(FieldBinding::required));
+        out.put("required", body.stream().anyMatch(FieldSurface::required));
         out.put("content", content(JSON, object(body)));
         return out;
     }
@@ -162,25 +152,23 @@ final class OpenApiBuilder {
         return content;
     }
 
-    private static Map<String, Object> responses(ApiOperation operation) {
+    private static Map<String, Object> responses(OperationSurface operation) {
         Map<String, Object> out = new LinkedHashMap<>();
-        List<FieldBinding> response = operation.bindings().stream().filter(b -> onResponse(b) && !b.hidden()).toList();
-        if (response.isEmpty()) {
+        if (!operation.hasContent()) {
             Map<String, Object> none = new LinkedHashMap<>();
             none.put("description", "No content");
             out.put("204", none);
         } else {
             Map<String, Object> ok = new LinkedHashMap<>();
             ok.put("description", "The program ran");
-            ok.put("content", content(JSON, object(response)));
+            ok.put("content", content(JSON, object(operation.response())));
             out.put("200", ok);
         }
         TreeSet<Integer> statuses = new TreeSet<>(ALWAYS);
-        operation.errorMapping().ifPresent(error -> {
+        if (operation.defaultErrorStatus().isPresent()) {
             statuses.add(422);
-            statuses.add(error.httpStatus());
-            statuses.addAll(error.statusByCode().values());
-        });
+            statuses.addAll(operation.errorStatuses());
+        }
         for (int status : statuses) {
             Map<String, Object> error = new LinkedHashMap<>();
             error.put("description", REASONS.getOrDefault(status, "Error"));
@@ -219,19 +207,16 @@ final class OpenApiBuilder {
 
     // ------------------------------------------------------------------ schemas
 
-    /** An object schema of the bindings that appear, in PCML order. */
-    private static Map<String, Object> object(List<FieldBinding> bindings) {
+    /** An object schema of the fields, in PCML order. */
+    private static Map<String, Object> object(List<FieldSurface> fields) {
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
         Map<String, Object> properties = new LinkedHashMap<>();
         List<Object> required = new ArrayList<>();
-        for (FieldBinding binding : bindings) {
-            if (binding.hidden()) {
-                continue;
-            }
-            properties.put(binding.exposedName(), property(binding));
-            if (binding.required()) {
-                required.add(binding.exposedName());
+        for (FieldSurface field : fields) {
+            properties.put(field.exposedName(), property(field));
+            if (field.required()) {
+                required.add(field.exposedName());
             }
         }
         schema.put("properties", properties);
@@ -242,53 +227,50 @@ final class OpenApiBuilder {
         return schema;
     }
 
-    /** The schema of a field inside an object: a struct, a scalar, or an array of either. */
-    private static Map<String, Object> property(FieldBinding binding) {
+    /** The schema of a field inside an object: an object, a scalar, or an array of either. */
+    private static Map<String, Object> property(FieldSurface field) {
         Map<String, Object> element;
-        if (binding.field().wire() instanceof WireType.Struct) {
-            element = object(binding.children());
+        if (field.object()) {
+            element = object(field.children());
         } else {
-            element = scalar(binding);
-            example(binding).ifPresent(value -> element.put("examples", List.of(value)));
+            element = scalar(field);
+            example(field).ifPresent(value -> element.put("examples", List.of(value)));
         }
         Map<String, Object> out;
-        Count count = binding.field().count();
-        if (count instanceof Count.None) {
+        if (!field.array()) {
             out = element;
         } else {
             out = new LinkedHashMap<>();
             out.put("type", "array");
             out.put("items", element);
-            if (count instanceof Count.Fixed fixed) {
-                out.put("maxItems", fixed.value());
-            }
+            field.limits().maxItems().ifPresent(items -> out.put("maxItems", items));
         }
         // Description and extension go on the outermost schema, so that an array and its elements are not described twice.
         Map<String, Object> described = new LinkedHashMap<>();
-        description(binding).ifPresent(text -> described.put("description", text));
+        description(field).ifPresent(text -> described.put("description", text));
         described.putAll(out);
-        described.put(EXTENSION, extension(binding));
+        described.put(EXTENSION, extension(field));
         return described;
     }
 
-    /** The schema of one value of a scalar field, by semantic type and wire type. */
-    private static Map<String, Object> scalar(FieldBinding binding) {
+    /** The schema of one value of a scalar field, by semantic type and limits. */
+    private static Map<String, Object> scalar(FieldSurface field) {
         Map<String, Object> out = new LinkedHashMap<>();
-        SemanticType semantic = binding.semanticType().orElseThrow();
-        WireType wire = binding.field().wire();
-        switch (semantic) {
+        Limits limits = field.limits();
+        switch (field.type().orElseThrow()) {
             case STRING -> {
                 out.put("type", "string");
-                fixedLength(wire).ifPresent(length -> out.put("maxLength", length));
+                limits.maxLength().ifPresent(length -> out.put("maxLength", length));
             }
             case INTEGER -> {
                 out.put("type", "integer");
-                integerBounds(wire, out);
+                limits.minimum().ifPresent(minimum -> out.put("minimum", number(minimum)));
+                limits.maximum().ifPresent(maximum -> out.put("maximum", number(maximum)));
             }
             case DECIMAL -> {
                 out.put("type", "string");
                 out.put("format", "decimal");
-                out.put("pattern", decimalPattern(wire));
+                out.put("pattern", decimalPattern(limits));
             }
             case BOOLEAN -> out.put("type", "boolean");
             case DATE -> {
@@ -308,8 +290,8 @@ final class OpenApiBuilder {
             case BINARY -> {
                 out.put("type", "string");
                 out.put("contentEncoding", "base64");
-                fixedLength(wire).ifPresent(length -> {
-                    int encoded = 4 * ((length + 2) / 3);
+                limits.maxBytes().ifPresent(bytes -> {
+                    int encoded = 4 * ((bytes + 2) / 3);
                     out.put("minLength", encoded);
                     out.put("maxLength", encoded);
                 });
@@ -318,14 +300,17 @@ final class OpenApiBuilder {
         return out;
     }
 
+    /** Small numbers are written as such; a bound beyond a long keeps all its digits. */
+    private static Object number(BigInteger value) {
+        return value.bitLength() < 32 ? (Object) value.intValue() : value;
+    }
+
     /** A decimal is text: with the field's scale for packed and zoned, unsigned for text fields, any fraction for float. */
-    private static String decimalPattern(WireType wire) {
-        return switch (wire) {
-            case WireType.Packed p -> fixedScalePattern(p.length(), p.precision());
-            case WireType.Zoned z -> fixedScalePattern(z.length(), z.precision());
-            case WireType.Float f -> "^[-+]?\\d+(\\.\\d+)?$";
-            default -> "^\\d+(\\.\\d+)?$";
-        };
+    private static String decimalPattern(Limits limits) {
+        if (limits.scale().isPresent()) {
+            return fixedScalePattern(limits.digits().get(), limits.scale().get());
+        }
+        return limits.minimum().isPresent() ? "^\\d+(\\.\\d+)?$" : "^[-+]?\\d+(\\.\\d+)?$";
     }
 
     private static String fixedScalePattern(int digits, int scale) {
@@ -334,55 +319,20 @@ final class OpenApiBuilder {
         return "^-?" + integer + (scale > 0 ? "\\.\\d{" + scale + "}" : "") + "$";
     }
 
-    private static Optional<Integer> fixedLength(WireType wire) {
-        Length length = switch (wire) {
-            case WireType.Char c -> c.length();
-            case WireType.VarChar v -> v.length();
-            case WireType.Byte b -> b.length();
-            default -> null;
-        };
-        return length instanceof Length.Fixed fixed ? Optional.of(fixed.value()) : Optional.empty();
-    }
-
-    /** The range of the numbers the field holds: by size and sign for int, by digits for the others. */
-    private static void integerBounds(WireType wire, Map<String, Object> out) {
-        switch (wire) {
-            case WireType.Int i -> {
-                int bits = i.lengthBytes() * 8;
-                boolean unsigned = i.precision().isPresent() && i.precision().get() == bits;
-                BigInteger one = BigInteger.ONE;
-                out.put("minimum", unsigned ? BigInteger.ZERO : one.shiftLeft(bits - 1).negate());
-                out.put("maximum", unsigned ? one.shiftLeft(bits).subtract(one) : one.shiftLeft(bits - 1).subtract(one));
-            }
-            case WireType.Packed p -> signedDigits(p.length(), out);
-            case WireType.Zoned z -> signedDigits(z.length(), out);
-            default -> {
-                out.put("minimum", 0);
-                fixedLength(wire).ifPresent(digits -> out.put("maximum", BigInteger.TEN.pow(digits).subtract(BigInteger.ONE)));
-            }
-        }
-    }
-
-    private static void signedDigits(int digits, Map<String, Object> out) {
-        BigInteger largest = BigInteger.TEN.pow(digits).subtract(BigInteger.ONE);
-        out.put("minimum", largest.negate());
-        out.put("maximum", largest);
-    }
-
     /** The description of the field, with what the schema cannot say about decimals. */
-    private static Optional<String> description(FieldBinding binding) {
-        Optional<String> note = decimalNote(binding);
-        if (binding.description().isPresent() && note.isPresent()) {
-            return Optional.of(binding.description().get() + " " + note.get());
+    private static Optional<String> description(FieldSurface field) {
+        Optional<String> note = decimalNote(field);
+        if (field.description().isPresent() && note.isPresent()) {
+            return Optional.of(field.description().get() + " " + note.get());
         }
-        return binding.description().isPresent() ? binding.description() : note;
+        return field.description().isPresent() ? field.description() : note;
     }
 
-    private static Optional<String> decimalNote(FieldBinding binding) {
-        if (binding.semanticType().orElse(null) != SemanticType.DECIMAL) {
+    private static Optional<String> decimalNote(FieldSurface field) {
+        if (field.type().orElse(null) != SemanticType.DECIMAL) {
             return Optional.empty();
         }
-        return switch (binding.field().wire()) {
+        return switch (field.origin().wire()) {
             case WireType.Packed p -> Optional.of(digitsNote(p.length(), p.precision()));
             case WireType.Zoned z -> Optional.of(digitsNote(z.length(), z.precision()));
             case WireType.Float f -> Optional.of("A floating-point number of " + f.lengthBytes() + " bytes.");
@@ -402,14 +352,14 @@ final class OpenApiBuilder {
                 : "A decimal number.";
     }
 
-    /** The example in the form the schema describes: a number, a boolean or text. */
-    private static Optional<Object> example(FieldBinding binding) {
-        if (binding.example().isEmpty() || binding.semanticType().isEmpty()) {
+    /** The example in the form the schema describes: a whole number, a boolean or text. */
+    private static Optional<Object> example(FieldSurface field) {
+        if (field.example().isEmpty() || field.type().isEmpty()) {
             return Optional.empty();
         }
-        String text = binding.example().get();
+        String text = field.example().get();
         try {
-            return Optional.of(switch (binding.semanticType().get()) {
+            return Optional.of(switch (field.type().get()) {
                 case INTEGER -> new BigInteger(text);
                 case BOOLEAN -> Boolean.valueOf(Boolean.parseBoolean(text));
                 default -> text;
@@ -420,23 +370,15 @@ final class OpenApiBuilder {
     }
 
     /** The RPG field and its wire type, and for a decimal its digits and scale. */
-    private static Map<String, Object> extension(FieldBinding binding) {
+    private static Map<String, Object> extension(FieldSurface field) {
         Map<String, Object> out = new LinkedHashMap<>();
-        out.put("name", binding.fieldPath());
-        out.put("wire", wireText(binding.field().wire()));
-        if (binding.semanticType().orElse(null) == SemanticType.DECIMAL) {
-            switch (binding.field().wire()) {
-                case WireType.Packed p -> digitsAndScale(out, p.length(), p.precision());
-                case WireType.Zoned z -> digitsAndScale(out, z.length(), z.precision());
-                default -> { }
-            }
+        out.put("name", field.origin().fieldPath());
+        out.put("wire", wireText(field.origin().wire()));
+        if (field.type().orElse(null) == SemanticType.DECIMAL && field.limits().scale().isPresent()) {
+            out.put("digits", field.limits().digits().get());
+            out.put("scale", field.limits().scale().get());
         }
         return out;
-    }
-
-    private static void digitsAndScale(Map<String, Object> out, int digits, int scale) {
-        out.put("digits", digits);
-        out.put("scale", scale);
     }
 
     static String wireText(WireType wire) {

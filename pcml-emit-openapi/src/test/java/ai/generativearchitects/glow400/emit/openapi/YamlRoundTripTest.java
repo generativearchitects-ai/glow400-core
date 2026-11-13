@@ -25,7 +25,7 @@ class YamlRoundTripTest {
             for (int i = 0; i < files.size(); i++) {
                 ApiDefinition api = model.apis().get(i);
                 Object parsed = new Load(LoadSettings.builder().build()).loadFromString(new String(files.get(i).content(), StandardCharsets.UTF_8));
-                assertSame(OpenApiBuilder.document(api), parsed, repository + " " + api.name());
+                assertSame(OpenApiBuilder.document(ai.generativearchitects.glow400.contract.ApiSurface.of(api)), parsed, repository + " " + api.name());
                 documents++;
             }
         }
