@@ -209,4 +209,65 @@ class ApiModelTest {
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }
+
+    @Test
+    void anApiGroupsItsOperationsAndTheRepositoryAgreesWithIt() {
+        ApiOperation a = operation("a", "1.0.0", "/a", List.of(), List.of());
+        ApiOperation b = operation("b", "1.0.0", "/b", List.of(), List.of());
+        ApiDefinition api = new ApiDefinition("x", "X API", "1.0.0", "apis/X/api.yaml", new ArrayList<>(List.of(a, b)));
+        assertThat(api.operations()).containsExactly(a, b);
+        assertThatThrownBy(() -> api.operations().clear()).isInstanceOf(UnsupportedOperationException.class);
+        ApiRepositoryModel model = new ApiRepositoryModel(GatewayDefaults.standard(), List.of(a, b), List.of(api));
+        assertThat(model.apis()).containsExactly(api);
+        assertThatThrownBy(() -> new ApiRepositoryModel(GatewayDefaults.standard(), List.of(a), List.of(api)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ApiDefinition("x", "X", "1.0.0", "p", List.of())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ApiDefinition(" ", "X", "1.0.0", "p", List.of(a))).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("name");
+        assertThatThrownBy(() -> new ApiDefinition("x", " ", "1.0.0", "p", List.of(a))).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("title");
+        assertThatThrownBy(() -> new ApiDefinition("x", "X", " ", "p", List.of(a))).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("version");
+        assertThatThrownBy(() -> new ApiDefinition("x", "X", "1.0.0", null, List.of(a))).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void aModelBuiltFromOperationsGroupsThemByOverlayFile() {
+        ApiOperation a = operationIn("apis/Ord/api.yaml", "a", "1.2.0");
+        ApiOperation b = operationIn("apis/Ord/api.yaml", "b", "1.2.0");
+        ApiOperation c = operationIn("apis/Other/api.yaml", "c", "0.1.0");
+        ApiRepositoryModel model = new ApiRepositoryModel(GatewayDefaults.standard(), List.of(a, b, c));
+        assertThat(model.apis()).extracting(ApiDefinition::name).containsExactly("ord", "other");
+        assertThat(model.apis()).extracting(ApiDefinition::title).containsExactly("ord", "other");
+        assertThat(model.apis()).extracting(ApiDefinition::version).containsExactly("1.2.0", "0.1.0");
+        assertThat(model.apis().get(0).operations()).containsExactly(a, b);
+        assertThat(ApiRepositoryModel.apiName("api.yaml")).isEqualTo("api");
+        assertThat(ApiRepositoryModel.apiName("apis/MiXed/api.yaml")).isEqualTo("mixed");
+    }
+
+    private static ApiOperation operationIn(String overlay, String id, String version) {
+        return new ApiOperation(id, version, Optional.empty(), Optional.empty(), List.of(), PROGRAM, "p.pcml", overlay, "/" + id,
+                HttpMethod.GET, CallStrategy.AUTO, List.of(), Optional.empty(), Optional.empty(), AT);
+    }
+
+    @Test
+    void emittedFilesHaveSafePathsAndOwnTheirBytes() {
+        byte[] bytes = {1, 2, 3};
+        EmittedFile file = new EmittedFile("openapi/x.yaml", bytes);
+        bytes[0] = 9;
+        assertThat(file.content()).containsExactly(1, 2, 3);
+        file.content()[1] = 9;
+        assertThat(file.content()).containsExactly(1, 2, 3);
+        assertThat(file).isEqualTo(new EmittedFile("openapi/x.yaml", new byte[] {1, 2, 3})).hasSameHashCodeAs(new EmittedFile("openapi/x.yaml", new byte[] {1, 2, 3}));
+        assertThat(file).isNotEqualTo(new EmittedFile("openapi/y.yaml", new byte[] {1, 2, 3})).isNotEqualTo(new EmittedFile("openapi/x.yaml", new byte[] {1}));
+        assertThat(file.toString()).contains("openapi/x.yaml").contains("3 bytes");
+        for (String bad : List.of("", "/abs", "a\\b", "../x", "a/../b")) {
+            assertThatThrownBy(() -> new EmittedFile(bad, new byte[0])).as(bad).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThat(new EmittedFile("a..b/c", new byte[0]).path()).isEqualTo("a..b/c");
+        assertThatThrownBy(() -> new EmittedFile(null, new byte[0])).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new EmittedFile("a", null)).isInstanceOf(NullPointerException.class);
+        List<EmittedFile> files = new ArrayList<>(List.of(file));
+        EmitResult result = new EmitResult(files, new ArrayList<>());
+        files.clear();
+        assertThat(result.files()).hasSize(1);
+        assertThat(result.diagnostics()).isEmpty();
+    }
 }

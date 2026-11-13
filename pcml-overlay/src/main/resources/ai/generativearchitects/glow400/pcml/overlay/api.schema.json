@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "glow400 overlay file (api.yaml), format v0.5",
+  "title": "glow400 overlay file (api.yaml), format v0.6",
   "description": "One overlay file per folder under apis/. Common form: route and method at the top level. Several operations: an operations list. The loader applies further rules that a schema cannot express (for example that a parameter exists in the PCML).",
   "type": "object",
   "required": [
@@ -16,6 +16,11 @@
     "version": {
       "type": "string",
       "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Title of the API in the OpenAPI document; the API name (the folder name, lower-cased) when absent."
     },
     "call": {
       "enum": [

@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "ordact",
+      "title": "ordact",
+      "version": "1.0.0",
+      "overlay": "apis/ORDACT/api.yaml",
+      "operations": [
+        {
+          "id": "cancel-order",
+          "summary": null,
+          "description": null,
+          "tags": [],
+          "route": "/orders/{orderNumber}/cancel",
+          "method": "POST",
+          "call": "pcml",
+          "program": {
+            "name": "ORDACT",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/ORDACT.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/ORDACT/ORDACT.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0ACT",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ORDN",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0RES",
+                "wire": {
+                  "kind": "char",
+                  "length": 20,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0ACT",
+              "direction": "injected",
+              "name": "p0act",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": {
+                "kind": "literal",
+                "value": "CANCEL"
+              },
+              "children": []
+            },
+            {
+              "field": "P0ORDN",
+              "direction": "request",
+              "name": "orderNumber",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0RES",
+              "direction": "response",
+              "name": "result",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        },
+        {
+          "id": "hold-order",
+          "summary": null,
+          "description": null,
+          "tags": [],
+          "route": "/orders/{orderNumber}/hold",
+          "method": "POST",
+          "call": "pcml",
+          "program": {
+            "name": "ORDACT",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/ORDACT.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/ORDACT/ORDACT.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0ACT",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ORDN",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0RES",
+                "wire": {
+                  "kind": "char",
+                  "length": 20,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0ACT",
+              "direction": "injected",
+              "name": "p0act",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": {
+                "kind": "literal",
+                "value": "HOLD"
+              },
+              "children": []
+            },
+            {
+              "field": "P0ORDN",
+              "direction": "request",
+              "name": "orderNumber",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0RES",
+              "direction": "response",
+              "name": "result",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

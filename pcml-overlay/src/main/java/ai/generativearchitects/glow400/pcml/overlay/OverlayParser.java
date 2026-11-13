@@ -35,7 +35,7 @@ final class OverlayParser {
 
     private enum Level { SINGLE, SHARED, OPERATION }
 
-    private static final Set<String> HEADER_KEYS = Set.of("pcml", "version", "call");
+    private static final Set<String> HEADER_KEYS = Set.of("pcml", "version", "call", "title");
     private static final Set<String> SETTING_KEYS = Set.of("program", "tags", "inject", "parameters", "error", "cache");
     private static final Set<String> SINGLE_KEYS = union(HEADER_KEYS, SETTING_KEYS,
             Set.of("id", "route", "method", "summary", "description"));
@@ -105,6 +105,8 @@ final class OverlayParser {
                 .flatMap(e -> yaml.choice(e, Vocabulary.CALL))
                 .orElseGet(() -> new Located<>(CallStrategy.AUTO, yaml.at(root)));
 
+        Optional<Located<String>> title = yaml.find(entries, "title").flatMap(yaml::nonBlankString);
+
         OperationSettings shared;
         boolean sharedProgramKey = false;
         List<OperationSettings> operations = new ArrayList<>();
@@ -144,7 +146,7 @@ final class OverlayParser {
         }
         // An invalid version is replaced by a placeholder: the operations of such a file are never used.
         Located<String> versionValue = version.orElseGet(() -> new Located<>("0.0.0", yaml.at(root)));
-        return Optional.of(new Parsed(new OverlayFile(path, pcml.get(), versionValue, call, shared, operations),
+        return Optional.of(new Parsed(new OverlayFile(path, pcml.get(), versionValue, title, call, shared, operations),
                 operationValid, fileLevelErrors == 0, complete));
     }
 

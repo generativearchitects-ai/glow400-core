@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "getbal",
+      "title": "getbal",
+      "version": "1.0.0",
+      "overlay": "apis/GETBAL/api.yaml",
+      "operations": [
+        {
+          "id": "getbal",
+          "summary": null,
+          "description": null,
+          "tags": [],
+          "route": "/balances",
+          "method": "GET",
+          "call": "pcml",
+          "program": {
+            "name": "GETBAL",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/GETBAL.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/GETBAL/GETBAL.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "ACCT",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "inputoutput",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "BAL",
+                "wire": {
+                  "kind": "packed",
+                  "length": 11,
+                  "precision": 2
+                },
+                "usage": "inputoutput",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "ACCT",
+              "direction": "both",
+              "name": "acct",
+              "in": "query",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "BAL",
+              "direction": "both",
+              "name": "bal",
+              "in": "query",
+              "type": "decimal",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

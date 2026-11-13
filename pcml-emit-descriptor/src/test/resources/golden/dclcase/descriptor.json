@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "dclcase",
+      "title": "dclcase",
+      "version": "1.0.0",
+      "overlay": "apis/DCLCASE/api.yaml",
+      "operations": [
+        {
+          "id": "dclcase",
+          "summary": null,
+          "description": null,
+          "tags": [],
+          "route": "/orders/{orderNumber}",
+          "method": "GET",
+          "call": "pcml",
+          "program": {
+            "name": "DCLCASE",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/DCLCASE.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/DCLCASE/DCLCASE.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "OrderNumber",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "ORDER_DATE",
+                "wire": {
+                  "kind": "char",
+                  "length": 8,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "Cust_Name",
+                "wire": {
+                  "kind": "char",
+                  "length": 30,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "_LEAD__TRAIL_",
+                "wire": {
+                  "kind": "char",
+                  "length": 2,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "OrderNumber",
+              "direction": "request",
+              "name": "orderNumber",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "ORDER_DATE",
+              "direction": "response",
+              "name": "orderDate",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "Cust_Name",
+              "direction": "response",
+              "name": "cust_Name",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "_LEAD__TRAIL_",
+              "direction": "response",
+              "name": "leadTrail",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

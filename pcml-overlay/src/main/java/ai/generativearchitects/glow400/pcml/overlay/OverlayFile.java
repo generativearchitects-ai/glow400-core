@@ -15,6 +15,7 @@ import java.util.Objects;
  * @param path       the file, relative to the repository root, with {@code /} separators
  * @param pcml       {@code pcml}: the PCML file, relative to the overlay file
  * @param version    {@code version}
+ * @param title      {@code title}, when given
  * @param call       {@code call}; {@link CallStrategy#AUTO} when absent
  * @param shared     settings shared by every operation
  * @param operations the operations, in file order
@@ -23,6 +24,7 @@ public record OverlayFile(
         String path,
         Located<String> pcml,
         Located<String> version,
+        java.util.Optional<Located<String>> title,
         Located<CallStrategy> call,
         OperationSettings shared,
         List<OperationSettings> operations) {
@@ -32,6 +34,7 @@ public record OverlayFile(
         Objects.requireNonNull(path, "path");
         Objects.requireNonNull(pcml, "pcml");
         Objects.requireNonNull(version, "version");
+        Objects.requireNonNull(title, "title");
         Objects.requireNonNull(call, "call");
         Objects.requireNonNull(shared, "shared");
         operations = List.copyOf(operations);

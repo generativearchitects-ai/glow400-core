@@ -1,0 +1,133 @@
+openapi: "3.1.0"
+info:
+  title: listlines
+  version: "2.1.0"
+servers:
+  - url: "/{tenant}/{environment}"
+    variables:
+      tenant:
+        description: "The tenant the program is called for."
+        default: tenant
+      environment:
+        description: "The environment the program is called for."
+        default: environment
+paths:
+  "/orders/{orderNumber}/lines":
+    get:
+      operationId: listlines
+      parameters:
+        - name: orderNumber
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 10
+          x-glow400-field:
+            name: P0ORDN
+            wire: "char(10)"
+      responses:
+        "200":
+          description: "The program ran"
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  lines:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        itemCode:
+                          type: string
+                          maxLength: 10
+                          x-glow400-field:
+                            name: P0ROWS.ITEMCD
+                            wire: "char(10)"
+                        quantity:
+                          type: integer
+                          minimum: 0
+                          maximum: 99999
+                          x-glow400-field:
+                            name: P0ROWS.QTY
+                            wire: "char(5)"
+                        price:
+                          type: object
+                          properties:
+                            amount:
+                              description: "A decimal number with up to 9 digits, 2 of them after the decimal point."
+                              type: number
+                              x-glow400-field:
+                                name: P0ROWS.PRICE.AMT
+                                wire: "packed(9,2)"
+                                digits: 9
+                                scale: 2
+                            currency:
+                              type: string
+                              maxLength: 3
+                              x-glow400-field:
+                                name: P0ROWS.PRICE.CUR
+                                wire: "char(3)"
+                          additionalProperties: false
+                          x-glow400-field:
+                            name: P0ROWS.PRICE
+                            wire: "struct(LINE.PRICE)"
+                      additionalProperties: false
+                    maxItems: 500
+                    x-glow400-field:
+                      name: P0ROWS
+                      wire: "struct(LINE)"
+                additionalProperties: false
+        "400":
+          description: "The request is not valid"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "404":
+          description: "Not found"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "502":
+          description: "The program or the system could not be reached or answered badly"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "503":
+          description: "Service unavailable"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "504":
+          description: "The program did not answer in time"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+components:
+  schemas:
+    ProblemDetails:
+      type: object
+      description: "A problem details object (RFC 9457)."
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: "A URI that identifies the kind of problem."
+        title:
+          type: string
+          description: "A short summary of the kind of problem."
+        status:
+          type: integer
+          description: "The HTTP status code."
+        detail:
+          type: string
+          description: "An explanation of this occurrence of the problem."
+        instance:
+          type: string
+          format: uri-reference
+          description: "A URI that identifies this occurrence of the problem."

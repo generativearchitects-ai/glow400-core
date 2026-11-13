@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="HIT">
+    <data name="ID" type="char" length="6"/>
+    <data name="SCORE" type="packed" length="5" precision="1"/>
+    <data name="REF" type="char" length="4"/>
+  </struct>
+  <program name="SEARCH" path="/QSYS.LIB/DEMOLIB.LIB/SEARCH.PGM">
+    <data name="P0CODE" type="char" length="10" usage="input"/>
+    <data name="P0REG" type="char" length="3" usage="input"/>
+    <data name="P0QRY" type="varchar" length="20" usage="input"/>
+    <data name="P0SRC" type="char" length="4" usage="input"/>
+    <data name="P0FLAG" type="char" length="1" usage="input"/>
+    <data name="P0DATE" type="char" length="8" usage="input"/>
+    <data name="P0TIME" type="char" length="6" usage="input"/>
+    <data name="P0WHEN" type="timestamp" usage="input"/>
+    <data name="P0QTY" type="int" length="4" usage="input"/>
+    <data name="P0AMT" type="packed" length="9" precision="2" usage="input"/>
+    <data name="P0ZON" type="zoned" length="5" precision="0" usage="input"/>
+    <data name="P0RATE" type="float" length="8" usage="input"/>
+    <data name="P0BIN" type="byte" length="4" usage="input"/>
+    <data name="P0ECHO" type="char" length="6" usage="inputoutput"/>
+    <data name="P0RC" type="char" length="2" usage="output"/>
+    <data name="P0MSG" type="char" length="30" usage="output"/>
+    <data name="P0LEN" type="int" length="4" usage="output"/>
+    <data name="P0DYN" type="char" length="P0LEN" usage="output"/>
+    <data name="P0CNT" type="int" length="4" usage="output"/>
+    <data name="P0HITS" type="struct" struct="HIT" count="20" usage="output"/>
+    <data name="P0TAGS" type="char" length="5" count="10" usage="output"/>
+    <data name="P0VAR" type="varchar" length="12" usage="output"/>
+    <data name="P0DAY" type="date" usage="output"/>
+    <data name="P0AT" type="time" usage="output"/>
+  </program>
+  <program name="LOOKUP" path="/QSYS.LIB/DEMOLIB.LIB/LOOKUP.PGM">
+    <data name="P0CODE" type="char" length="10" usage="input"/>
+    <data name="P0INFO" type="char" length="20" usage="output"/>
+    <data name="P0OK" type="char" length="1" usage="output"/>
+  </program>
+</pcml>
