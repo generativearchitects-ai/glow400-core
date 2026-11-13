@@ -117,7 +117,7 @@ class DescriptorReaderTest {
         Diagnostic d = only(DescriptorReader.read(broken));
         assertThat(d.code()).isEqualTo("DSC001");
         assertThat(d.message()).isEqualTo("The document cannot be read: IOException");
-        assertThat(d.location()).isEqualTo(new SourceLocation("descriptor.json", 0, 0));
+        assertThat(d.location()).isEqualTo(new SourceLocation("descriptor.json", 1, 1));
     }
 
     @Test
@@ -320,7 +320,7 @@ class DescriptorReaderTest {
         Diagnostic d = only(doc.read());
         assertThat(d.code()).isEqualTo("DSC003");
         assertThat(d.message()).contains(problem.message());
-        assertThat(d.location()).isEqualTo(new SourceLocation("descriptor.json", 0, 0));
+        assertThat(d.location()).isEqualTo(new SourceLocation("descriptor.json", 1, 1));
     }
 
     @Test
