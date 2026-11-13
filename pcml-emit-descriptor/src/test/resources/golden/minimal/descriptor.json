@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "ordstatus",
+      "title": "ordstatus",
+      "version": "1.0.0",
+      "overlay": "apis/ORDSTATUS/api.yaml",
+      "operations": [
+        {
+          "id": "ordstatus",
+          "summary": "Returns the status of a purchase order",
+          "description": "Looks up one order by number.",
+          "tags": [
+            "orders"
+          ],
+          "route": "/orders/{orderNumber}/status",
+          "method": "GET",
+          "call": "pcml",
+          "program": {
+            "name": "ORDSTATUS",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/ORDSTATUS.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/ORDSTATUS/ORDSTATUS.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0ORDN",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0STAT",
+                "wire": {
+                  "kind": "char",
+                  "length": 1,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0DATE",
+                "wire": {
+                  "kind": "char",
+                  "length": 8,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0ORDN",
+              "direction": "request",
+              "name": "orderNumber",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": "Purchase order number",
+              "example": "1042",
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0STAT",
+              "direction": "response",
+              "name": "status",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0DATE",
+              "direction": "response",
+              "name": "deliveryDate",
+              "in": null,
+              "type": "date",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": "yyyyMMdd",
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

@@ -27,6 +27,8 @@
     <module>pcml-overlay</module>
     <module>pcml-codec</module>
     <module>pcml-validation</module>
+    <module>pcml-emit-descriptor</module>
+    <module>pcml-emit-openapi</module>
   </modules>
 
   <properties>
@@ -38,6 +40,7 @@
     <assertj.version>3.27.3</assertj.version>
     <snakeyaml-engine.version>3.2</snakeyaml-engine.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
+    <jackson.version>2.22.4</jackson.version>
     <pitest.version>1.30.2</pitest.version>
     <pitest-junit5.version>1.2.3</pitest-junit5.version>
     <!-- Minimum share of mutants the tests must kill, in percent. Raise it as the test suite grows. -->
@@ -62,6 +65,24 @@
         <groupId>ai.generativearchitects.glow400</groupId>
         <artifactId>pcml-codec</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.glow400</groupId>
+        <artifactId>pcml-validation</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.glow400</groupId>
+        <artifactId>pcml-emit-descriptor</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <!-- One Jackson version for every Jackson artefact: streaming API in the descriptor reader, databind only in tests via json-schema-validator. -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.snakeyaml</groupId>

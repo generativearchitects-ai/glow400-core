@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "neworder",
+      "title": "neworder",
+      "version": "1.0.0",
+      "overlay": "apis/NEWORDER/api.yaml",
+      "operations": [
+        {
+          "id": "neworder",
+          "summary": null,
+          "description": null,
+          "tags": [],
+          "route": "/orders",
+          "method": "POST",
+          "call": "raw",
+          "program": {
+            "name": "NEWORDER",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/NEWORDER.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/NEWORDER/NEWORDER.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0HDR",
+                "wire": {
+                  "kind": "struct",
+                  "name": "HEADER"
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": [
+                  {
+                    "name": "CUSTID",
+                    "wire": {
+                      "kind": "char",
+                      "length": 8,
+                      "ccsid": null
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  },
+                  {
+                    "name": "NOTE",
+                    "wire": {
+                      "kind": "char",
+                      "length": 40,
+                      "ccsid": null
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  }
+                ]
+              },
+              {
+                "name": "P0TAGS",
+                "wire": {
+                  "kind": "char",
+                  "length": 6,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": 4,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ORDN",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0HDR",
+              "direction": "request",
+              "name": "header",
+              "in": "body",
+              "type": null,
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": [
+                {
+                  "field": "P0HDR.CUSTID",
+                  "direction": "request",
+                  "name": "customerId",
+                  "in": "body",
+                  "type": "string",
+                  "codec": {
+                    "pad": "right",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": true,
+                  "hidden": false,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                },
+                {
+                  "field": "P0HDR.NOTE",
+                  "direction": "request",
+                  "name": "note",
+                  "in": "body",
+                  "type": "string",
+                  "codec": {
+                    "pad": "right",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": false,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "field": "P0TAGS",
+              "direction": "request",
+              "name": "tags",
+              "in": "body",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0ORDN",
+              "direction": "response",
+              "name": "orderNumber",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

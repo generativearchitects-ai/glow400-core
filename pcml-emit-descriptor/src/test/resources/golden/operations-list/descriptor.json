@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "ordersrv",
+      "title": "ordersrv",
+      "version": "1.2.0",
+      "overlay": "apis/ORDERSRV/api.yaml",
+      "operations": [
+        {
+          "id": "get-order-status",
+          "summary": "Returns the status of a purchase order",
+          "description": null,
+          "tags": [
+            "orders"
+          ],
+          "route": "/orders/{orderNumber}/status",
+          "method": "GET",
+          "call": "pcml",
+          "program": {
+            "name": "GETSTATUS",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/ORDERSRV.SRVPGM",
+            "entryPoint": "GETSTATUS",
+            "returnValue": null,
+            "pcml": "apis/ORDERSRV/ORDERSRV.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0ENV",
+                "wire": {
+                  "kind": "char",
+                  "length": 4,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ORDN",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0STAT",
+                "wire": {
+                  "kind": "char",
+                  "length": 1,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0ENV",
+              "direction": "injected",
+              "name": "p0env",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": {
+                "kind": "expression",
+                "value": "${environment.code}"
+              },
+              "children": []
+            },
+            {
+              "field": "P0ORDN",
+              "direction": "request",
+              "name": "orderNumber",
+              "in": "path",
+              "type": "integer",
+              "codec": {
+                "pad": "left",
+                "padChar": "0",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0STAT",
+              "direction": "response",
+              "name": "status",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        },
+        {
+          "id": "cancel-order",
+          "summary": null,
+          "description": null,
+          "tags": [
+            "orders",
+            "changes"
+          ],
+          "route": "/orders/{orderNumber}/cancel",
+          "method": "POST",
+          "call": "pcml",
+          "program": {
+            "name": "CANCELORD",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/ORDERSRV.SRVPGM",
+            "entryPoint": "CANCELORD",
+            "returnValue": null,
+            "pcml": "apis/ORDERSRV/ORDERSRV.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0ENV",
+                "wire": {
+                  "kind": "char",
+                  "length": 4,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ORDN",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0RSN",
+                "wire": {
+                  "kind": "char",
+                  "length": 20,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0ENV",
+              "direction": "injected",
+              "name": "p0env",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": {
+                "kind": "expression",
+                "value": "${environment.code}"
+              },
+              "children": []
+            },
+            {
+              "field": "P0ORDN",
+              "direction": "request",
+              "name": "orderNumber",
+              "in": "path",
+              "type": "integer",
+              "codec": {
+                "pad": "left",
+                "padChar": "0",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0RSN",
+              "direction": "request",
+              "name": "reason",
+              "in": "body",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

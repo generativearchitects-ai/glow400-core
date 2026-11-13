@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "listlines",
+      "title": "listlines",
+      "version": "2.1.0",
+      "overlay": "apis/LISTLINES/api.yaml",
+      "operations": [
+        {
+          "id": "listlines",
+          "summary": null,
+          "description": null,
+          "tags": [],
+          "route": "/orders/{orderNumber}/lines",
+          "method": "GET",
+          "call": "raw",
+          "program": {
+            "name": "LISTLINES",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/LISTLINES.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/LISTLINES/LISTLINES.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0ORDN",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0NROW",
+                "wire": {
+                  "kind": "int",
+                  "length": 4,
+                  "precision": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ROWS",
+                "wire": {
+                  "kind": "struct",
+                  "name": "LINE"
+                },
+                "usage": "output",
+                "count": 500,
+                "attributes": {},
+                "fields": [
+                  {
+                    "name": "ITEMCD",
+                    "wire": {
+                      "kind": "char",
+                      "length": 10,
+                      "ccsid": null
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  },
+                  {
+                    "name": "QTY",
+                    "wire": {
+                      "kind": "char",
+                      "length": 5,
+                      "ccsid": null
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  },
+                  {
+                    "name": "FILLER",
+                    "wire": {
+                      "kind": "char",
+                      "length": 3,
+                      "ccsid": null
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  },
+                  {
+                    "name": "PRICE",
+                    "wire": {
+                      "kind": "struct",
+                      "name": "LINE.PRICE"
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": [
+                      {
+                        "name": "AMT",
+                        "wire": {
+                          "kind": "packed",
+                          "length": 9,
+                          "precision": 2
+                        },
+                        "usage": "inherit",
+                        "count": null,
+                        "attributes": {},
+                        "fields": null
+                      },
+                      {
+                        "name": "CUR",
+                        "wire": {
+                          "kind": "char",
+                          "length": 3,
+                          "ccsid": null
+                        },
+                        "usage": "inherit",
+                        "count": null,
+                        "attributes": {},
+                        "fields": null
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0ORDN",
+              "direction": "request",
+              "name": "orderNumber",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0NROW",
+              "direction": "internal",
+              "name": "p0nrow",
+              "in": null,
+              "type": "integer",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0ROWS",
+              "direction": "response",
+              "name": "lines",
+              "in": null,
+              "type": null,
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": {
+                "kind": "countField",
+                "field": "P0NROW"
+              },
+              "inject": null,
+              "children": [
+                {
+                  "field": "P0ROWS.ITEMCD",
+                  "direction": "response",
+                  "name": "itemCode",
+                  "in": null,
+                  "type": "string",
+                  "codec": {
+                    "pad": "right",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": false,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                },
+                {
+                  "field": "P0ROWS.QTY",
+                  "direction": "response",
+                  "name": "quantity",
+                  "in": null,
+                  "type": "integer",
+                  "codec": {
+                    "pad": "left",
+                    "padChar": "0",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": false,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                },
+                {
+                  "field": "P0ROWS.FILLER",
+                  "direction": "response",
+                  "name": "filler",
+                  "in": null,
+                  "type": "string",
+                  "codec": {
+                    "pad": "right",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": true,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                },
+                {
+                  "field": "P0ROWS.PRICE",
+                  "direction": "response",
+                  "name": "price",
+                  "in": null,
+                  "type": null,
+                  "codec": {
+                    "pad": "none",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": false,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": [
+                    {
+                      "field": "P0ROWS.PRICE.AMT",
+                      "direction": "response",
+                      "name": "amount",
+                      "in": null,
+                      "type": "decimal",
+                      "codec": {
+                        "pad": "none",
+                        "padChar": " ",
+                        "nullAs": "",
+                        "format": null,
+                        "trueValue": null,
+                        "falseValue": null
+                      },
+                      "required": false,
+                      "hidden": false,
+                      "description": null,
+                      "example": null,
+                      "trim": null,
+                      "inject": null,
+                      "children": []
+                    },
+                    {
+                      "field": "P0ROWS.PRICE.CUR",
+                      "direction": "response",
+                      "name": "currency",
+                      "in": null,
+                      "type": "string",
+                      "codec": {
+                        "pad": "right",
+                        "padChar": " ",
+                        "nullAs": "",
+                        "format": null,
+                        "trueValue": null,
+                        "falseValue": null
+                      },
+                      "required": false,
+                      "hidden": false,
+                      "description": null,
+                      "example": null,
+                      "trim": null,
+                      "inject": null,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

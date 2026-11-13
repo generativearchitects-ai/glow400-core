@@ -1,0 +1,64 @@
+pcml: CATALOG.pcml
+version: 1.4.0
+title: Item catalog API
+tags: [items]
+
+operations:
+  - id: search-items
+    program: SEARCH
+    route: /items/{code}/search
+    method: POST
+    summary: Searches the catalog
+    description: "Every type the descriptor and the OpenAPI document can hold."
+    tags: [items, search]
+    inject:
+      P0SRC: web
+    parameters:
+      P0CODE: { name: code, direction: request, in: path, example: ABC123 }
+      P0REG: { name: region, direction: request, in: header, required: true }
+      P0QRY: { name: query, direction: request, in: query, description: "Free text" }
+      P0FLAG: { name: active, direction: request, type: boolean, trueValue: "Y", falseValue: "N", required: true }
+      P0DATE: { name: since, direction: request, type: date, example: "2026-01-31" }
+      P0TIME: { name: at, direction: request, type: time }
+      P0WHEN: { name: when, direction: request }
+      P0QTY: { name: quantity, direction: request, example: "12" }
+      P0AMT: { name: amount, direction: request, example: "10.50" }
+      P0ZON: { name: level, direction: request, type: integer }
+      P0RATE: { name: rate, direction: request }
+      P0BIN: { name: token, direction: request }
+      P0ECHO: { name: echo, direction: both }
+      P0RC: { direction: internal }
+      P0MSG: { direction: internal }
+      P0LEN: { direction: internal }
+      P0DYN: { name: dynamic, direction: response }
+      P0CNT: { direction: internal }
+      P0HITS:
+        name: hits
+        direction: response
+        trim: { countField: P0CNT }
+        fields:
+          ID: { name: id }
+          SCORE: { name: score, description: "Relevance" }
+          REF: { hidden: true }
+      P0TAGS: { name: tags, direction: response, trim: { dropBlank: true } }
+      P0VAR: { name: note, direction: response }
+      P0DAY: { name: day, direction: response }
+      P0AT: { name: time, direction: response }
+    error:
+      when: { field: P0RC, in: ["E1", "E2"] }
+      code: P0RC
+      message: P0MSG
+      httpStatus: 409
+      statusByCode: { E1: 404, E2: 410 }
+    cache:
+      ttlSeconds: 30
+  - id: lookup-item
+    program: LOOKUP
+    route: /items/{code}
+    method: GET
+    parameters:
+      P0CODE: { name: code, direction: request, in: path }
+      P0INFO: { name: info, direction: response }
+      P0OK: { direction: internal }
+    error:
+      when: { field: P0OK, notEquals: "Y" }

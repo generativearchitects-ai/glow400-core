@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "ordstatus",
+      "title": "ordstatus",
+      "version": "1.0.0",
+      "overlay": "apis/ORDSTATUS/api.yaml",
+      "operations": [
+        {
+          "id": "ordstatus",
+          "summary": null,
+          "description": null,
+          "tags": [],
+          "route": "/orders/{orderNumber}/status",
+          "method": "GET",
+          "call": "pcml",
+          "program": {
+            "name": "ORDSTATUS",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/ORDSTATUS.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/ORDSTATUS/ORDSTATUS.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0ENV",
+                "wire": {
+                  "kind": "char",
+                  "length": 4,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0TEN",
+                "wire": {
+                  "kind": "char",
+                  "length": 8,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ORDN",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0STAT",
+                "wire": {
+                  "kind": "char",
+                  "length": 1,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ERR",
+                "wire": {
+                  "kind": "char",
+                  "length": 2,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ERRC",
+                "wire": {
+                  "kind": "char",
+                  "length": 8,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0XERR",
+                "wire": {
+                  "kind": "char",
+                  "length": 60,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0ENV",
+              "direction": "injected",
+              "name": "p0env",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": {
+                "kind": "expression",
+                "value": "${environment.code}"
+              },
+              "children": []
+            },
+            {
+              "field": "P0TEN",
+              "direction": "injected",
+              "name": "p0ten",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": {
+                "kind": "expression",
+                "value": "${tenant.id}"
+              },
+              "children": []
+            },
+            {
+              "field": "P0ORDN",
+              "direction": "request",
+              "name": "orderNumber",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0STAT",
+              "direction": "response",
+              "name": "status",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0ERR",
+              "direction": "internal",
+              "name": "p0err",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0ERRC",
+              "direction": "internal",
+              "name": "p0errc",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0XERR",
+              "direction": "internal",
+              "name": "p0xerr",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": {
+            "when": {
+              "field": "P0ERR",
+              "op": "equals",
+              "value": "KO"
+            },
+            "codeField": "P0ERRC",
+            "messageField": "P0XERR",
+            "status": 422,
+            "statusByCode": {
+              "NOTFOUND": 404
+            }
+          },
+          "cache": {
+            "ttlSeconds": 0
+          }
+        }
+      ]
+    }
+  ]
+}

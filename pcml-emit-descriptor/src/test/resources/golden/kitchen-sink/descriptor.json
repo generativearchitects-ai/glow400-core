@@ -1,0 +1,1123 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100
+  },
+  "apis": [
+    {
+      "name": "catalog",
+      "title": "Item catalog API",
+      "version": "1.4.0",
+      "overlay": "apis/CATALOG/api.yaml",
+      "operations": [
+        {
+          "id": "search-items",
+          "summary": "Searches the catalog",
+          "description": "Every type the descriptor and the OpenAPI document can hold.",
+          "tags": [
+            "items",
+            "search"
+          ],
+          "route": "/items/{code}/search",
+          "method": "POST",
+          "call": "raw",
+          "program": {
+            "name": "SEARCH",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/SEARCH.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/CATALOG/CATALOG.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0CODE",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0REG",
+                "wire": {
+                  "kind": "char",
+                  "length": 3,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0QRY",
+                "wire": {
+                  "kind": "varchar",
+                  "length": 20,
+                  "varLength": null,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0SRC",
+                "wire": {
+                  "kind": "char",
+                  "length": 4,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0FLAG",
+                "wire": {
+                  "kind": "char",
+                  "length": 1,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0DATE",
+                "wire": {
+                  "kind": "char",
+                  "length": 8,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0TIME",
+                "wire": {
+                  "kind": "char",
+                  "length": 6,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0WHEN",
+                "wire": {
+                  "kind": "timestamp"
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0QTY",
+                "wire": {
+                  "kind": "int",
+                  "length": 4,
+                  "precision": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0AMT",
+                "wire": {
+                  "kind": "packed",
+                  "length": 9,
+                  "precision": 2
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ZON",
+                "wire": {
+                  "kind": "zoned",
+                  "length": 5,
+                  "precision": 0
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0RATE",
+                "wire": {
+                  "kind": "float",
+                  "length": 8
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0BIN",
+                "wire": {
+                  "kind": "byte",
+                  "length": 4
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0ECHO",
+                "wire": {
+                  "kind": "char",
+                  "length": 6,
+                  "ccsid": null
+                },
+                "usage": "inputoutput",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0RC",
+                "wire": {
+                  "kind": "char",
+                  "length": 2,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0MSG",
+                "wire": {
+                  "kind": "char",
+                  "length": 30,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0LEN",
+                "wire": {
+                  "kind": "int",
+                  "length": 4,
+                  "precision": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0DYN",
+                "wire": {
+                  "kind": "char",
+                  "length": "P0LEN",
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0CNT",
+                "wire": {
+                  "kind": "int",
+                  "length": 4,
+                  "precision": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0HITS",
+                "wire": {
+                  "kind": "struct",
+                  "name": "HIT"
+                },
+                "usage": "output",
+                "count": 20,
+                "attributes": {},
+                "fields": [
+                  {
+                    "name": "ID",
+                    "wire": {
+                      "kind": "char",
+                      "length": 6,
+                      "ccsid": null
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  },
+                  {
+                    "name": "SCORE",
+                    "wire": {
+                      "kind": "packed",
+                      "length": 5,
+                      "precision": 1
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  },
+                  {
+                    "name": "REF",
+                    "wire": {
+                      "kind": "char",
+                      "length": 4,
+                      "ccsid": null
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  }
+                ]
+              },
+              {
+                "name": "P0TAGS",
+                "wire": {
+                  "kind": "char",
+                  "length": 5,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": 10,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0VAR",
+                "wire": {
+                  "kind": "varchar",
+                  "length": 12,
+                  "varLength": null,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0DAY",
+                "wire": {
+                  "kind": "date"
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0AT",
+                "wire": {
+                  "kind": "time"
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0CODE",
+              "direction": "request",
+              "name": "code",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": "ABC123",
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0REG",
+              "direction": "request",
+              "name": "region",
+              "in": "header",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0QRY",
+              "direction": "request",
+              "name": "query",
+              "in": "query",
+              "type": "string",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": "Free text",
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0SRC",
+              "direction": "injected",
+              "name": "p0src",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": {
+                "kind": "literal",
+                "value": "web"
+              },
+              "children": []
+            },
+            {
+              "field": "P0FLAG",
+              "direction": "request",
+              "name": "active",
+              "in": "body",
+              "type": "boolean",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": "Y",
+                "falseValue": "N"
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0DATE",
+              "direction": "request",
+              "name": "since",
+              "in": "body",
+              "type": "date",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": "2026-01-31",
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0TIME",
+              "direction": "request",
+              "name": "at",
+              "in": "body",
+              "type": "time",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0WHEN",
+              "direction": "request",
+              "name": "when",
+              "in": "body",
+              "type": "datetime",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0QTY",
+              "direction": "request",
+              "name": "quantity",
+              "in": "body",
+              "type": "integer",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": "12",
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0AMT",
+              "direction": "request",
+              "name": "amount",
+              "in": "body",
+              "type": "decimal",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": "10.50",
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0ZON",
+              "direction": "request",
+              "name": "level",
+              "in": "body",
+              "type": "integer",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0RATE",
+              "direction": "request",
+              "name": "rate",
+              "in": "body",
+              "type": "decimal",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0BIN",
+              "direction": "request",
+              "name": "token",
+              "in": "body",
+              "type": "binary",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0ECHO",
+              "direction": "both",
+              "name": "echo",
+              "in": "body",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0RC",
+              "direction": "internal",
+              "name": "p0rc",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0MSG",
+              "direction": "internal",
+              "name": "p0msg",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0LEN",
+              "direction": "internal",
+              "name": "p0len",
+              "in": null,
+              "type": "integer",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0DYN",
+              "direction": "response",
+              "name": "dynamic",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0CNT",
+              "direction": "internal",
+              "name": "p0cnt",
+              "in": null,
+              "type": "integer",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0HITS",
+              "direction": "response",
+              "name": "hits",
+              "in": null,
+              "type": null,
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": {
+                "kind": "countField",
+                "field": "P0CNT"
+              },
+              "inject": null,
+              "children": [
+                {
+                  "field": "P0HITS.ID",
+                  "direction": "response",
+                  "name": "id",
+                  "in": null,
+                  "type": "string",
+                  "codec": {
+                    "pad": "right",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": false,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                },
+                {
+                  "field": "P0HITS.SCORE",
+                  "direction": "response",
+                  "name": "score",
+                  "in": null,
+                  "type": "decimal",
+                  "codec": {
+                    "pad": "none",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": false,
+                  "description": "Relevance",
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                },
+                {
+                  "field": "P0HITS.REF",
+                  "direction": "response",
+                  "name": "ref",
+                  "in": null,
+                  "type": "string",
+                  "codec": {
+                    "pad": "right",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": true,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "field": "P0TAGS",
+              "direction": "response",
+              "name": "tags",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": {
+                "kind": "dropBlank"
+              },
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0VAR",
+              "direction": "response",
+              "name": "note",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0DAY",
+              "direction": "response",
+              "name": "day",
+              "in": null,
+              "type": "date",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0AT",
+              "direction": "response",
+              "name": "time",
+              "in": null,
+              "type": "time",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": {
+            "when": {
+              "field": "P0RC",
+              "op": "in",
+              "values": [
+                "E1",
+                "E2"
+              ]
+            },
+            "codeField": "P0RC",
+            "messageField": "P0MSG",
+            "status": 409,
+            "statusByCode": {
+              "E1": 404,
+              "E2": 410
+            }
+          },
+          "cache": {
+            "ttlSeconds": 30
+          }
+        },
+        {
+          "id": "lookup-item",
+          "summary": null,
+          "description": null,
+          "tags": [
+            "items"
+          ],
+          "route": "/items/{code}",
+          "method": "GET",
+          "call": "pcml",
+          "program": {
+            "name": "LOOKUP",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/LOOKUP.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/CATALOG/CATALOG.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "P0CODE",
+                "wire": {
+                  "kind": "char",
+                  "length": 10,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0INFO",
+                "wire": {
+                  "kind": "char",
+                  "length": 20,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "P0OK",
+                "wire": {
+                  "kind": "char",
+                  "length": 1,
+                  "ccsid": null
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "P0CODE",
+              "direction": "request",
+              "name": "code",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0INFO",
+              "direction": "response",
+              "name": "info",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "P0OK",
+              "direction": "internal",
+              "name": "p0ok",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": {
+            "when": {
+              "field": "P0OK",
+              "op": "notEquals",
+              "value": "Y"
+            },
+            "codeField": null,
+            "messageField": null,
+            "status": 422,
+            "statusByCode": {}
+          },
+          "cache": null
+        }
+      ]
+    }
+  ]
+}
