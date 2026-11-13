@@ -9,7 +9,6 @@ import ai.generativearchitects.glow400.pcml.api.SemanticType;
 import ai.generativearchitects.glow400.pcml.model.Count;
 import ai.generativearchitects.glow400.pcml.model.Length;
 import ai.generativearchitects.glow400.pcml.model.WireType;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -287,10 +286,9 @@ final class OpenApiBuilder {
                 integerBounds(wire, out);
             }
             case DECIMAL -> {
-                out.put("type", "number");
-                if (wire instanceof WireType.Char || wire instanceof WireType.VarChar) {
-                    out.put("minimum", 0);
-                }
+                out.put("type", "string");
+                out.put("format", "decimal");
+                out.put("pattern", decimalPattern(wire));
             }
             case BOOLEAN -> out.put("type", "boolean");
             case DATE -> {
@@ -318,6 +316,22 @@ final class OpenApiBuilder {
             }
         }
         return out;
+    }
+
+    /** A decimal is text: with the field's scale for packed and zoned, unsigned for text fields, any fraction for float. */
+    private static String decimalPattern(WireType wire) {
+        return switch (wire) {
+            case WireType.Packed p -> fixedScalePattern(p.length(), p.precision());
+            case WireType.Zoned z -> fixedScalePattern(z.length(), z.precision());
+            case WireType.Float f -> "^[-+]?\\d+(\\.\\d+)?$";
+            default -> "^\\d+(\\.\\d+)?$";
+        };
+    }
+
+    private static String fixedScalePattern(int digits, int scale) {
+        int integerDigits = digits - scale;
+        String integer = integerDigits <= 0 ? "0" : "\\d{1," + integerDigits + "}";
+        return "^-?" + integer + (scale > 0 ? "\\.\\d{" + scale + "}" : "") + "$";
     }
 
     private static Optional<Integer> fixedLength(WireType wire) {
@@ -397,7 +411,6 @@ final class OpenApiBuilder {
         try {
             return Optional.of(switch (binding.semanticType().get()) {
                 case INTEGER -> new BigInteger(text);
-                case DECIMAL -> new BigDecimal(text);
                 case BOOLEAN -> Boolean.valueOf(Boolean.parseBoolean(text));
                 default -> text;
             });

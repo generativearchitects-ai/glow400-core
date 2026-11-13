@@ -34,7 +34,14 @@ public sealed interface ApiValue {
         }
     }
 
-    /** An exact decimal number ({@code DECIMAL}). */
+    /**
+     * An exact decimal number ({@code DECIMAL}).
+     *
+     * <p>In JSON a decimal is text, so that no caller loses precision (decision 56). Whoever maps JSON to
+     * {@code ApiValue} reads a decimal from a JSON string only: a JSON number for a decimal field is {@code VAL002}.
+     * On output a decimal is written in plain notation, with exactly the field's scale for {@code packed} and
+     * {@code zoned} fields and as decoded for fields held as text. Whole numbers ({@code INTEGER}) remain JSON numbers.
+     */
     record Decimal(BigDecimal value) implements ApiValue {
         /** @throws NullPointerException if {@code value} is {@code null} */
         public Decimal {

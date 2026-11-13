@@ -98,9 +98,11 @@ paths:
                     wire: "int(4)"
                 amount:
                   description: "A decimal number with up to 9 digits, 2 of them after the decimal point."
-                  type: number
+                  type: string
+                  format: decimal
+                  pattern: "^-?\\d{1,7}\\.\\d{2}$"
                   examples:
-                    - 10.50
+                    - "10.50"
                   x-glow400-field:
                     name: P0AMT
                     wire: "packed(9,2)"
@@ -115,7 +117,9 @@ paths:
                     wire: "zoned(5,0)"
                 rate:
                   description: "A floating-point number of 8 bytes."
-                  type: number
+                  type: string
+                  format: decimal
+                  pattern: "^[-+]?\\d+(\\.\\d+)?$"
                   x-glow400-field:
                     name: P0RATE
                     wire: "float(8)"
@@ -168,7 +172,9 @@ paths:
                             wire: "char(6)"
                         score:
                           description: "Relevance A decimal number with up to 5 digits, 1 of them after the decimal point."
-                          type: number
+                          type: string
+                          format: decimal
+                          pattern: "^-?\\d{1,4}\\.\\d{1}$"
                           x-glow400-field:
                             name: P0HITS.SCORE
                             wire: "packed(5,1)"

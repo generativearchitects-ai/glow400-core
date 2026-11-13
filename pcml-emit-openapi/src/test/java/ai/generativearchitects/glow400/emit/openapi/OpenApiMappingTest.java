@@ -271,26 +271,55 @@ class OpenApiMappingTest {
     }
 
     @Test
-    void decimalIsANumberWithItsDigitsAndScaleStated(@TempDir Path dir) {
+    void decimalIsTextWithAPatternAndItsDigitsAndScaleStated(@TempDir Path dir) {
         JsonNode packed = field(dir.resolve("a"), "type=\"packed\" length=\"9\" precision=\"2\"", "");
-        assertThat(packed.get("type").asText()).isEqualTo("number");
+        assertThat(packed.get("type").asText()).isEqualTo("string");
+        assertThat(packed.get("format").asText()).isEqualTo("decimal");
+        assertThat(packed.get("pattern").asText()).isEqualTo("^-?\\d{1,7}\\.\\d{2}$");
         assertThat(packed.has("minimum")).isFalse();
+        assertThat(packed.has("maximum")).isFalse();
         assertThat(packed.get("description").asText()).isEqualTo("A decimal number with up to 9 digits, 2 of them after the decimal point.");
         assertThat(packed.at("/x-glow400-field/digits").asInt()).isEqualTo(9);
         assertThat(packed.at("/x-glow400-field/scale").asInt()).isEqualTo(2);
         JsonNode zoned = field(dir.resolve("b"), "type=\"zoned\" length=\"6\" precision=\"3\"", "");
+        assertThat(zoned.get("pattern").asText()).isEqualTo("^-?\\d{1,3}\\.\\d{3}$");
         assertThat(zoned.at("/x-glow400-field/digits").asInt()).isEqualTo(6);
         assertThat(zoned.at("/x-glow400-field/scale").asInt()).isEqualTo(3);
         assertThat(zoned.at("/x-glow400-field/wire").asText()).isEqualTo("zoned(6,3)");
+        assertThat(field(dir.resolve("b1"), "type=\"packed\" length=\"5\" precision=\"5\"", "").get("pattern").asText()).isEqualTo("^-?0\\.\\d{5}$");
+        assertThat(field(dir.resolve("b2"), "type=\"packed\" length=\"5\" precision=\"0\"", "").get("pattern").asText()).isEqualTo("^-?\\d{1,5}$");
         JsonNode text = field(dir.resolve("c"), "type=\"char\" length=\"8\"", ", type: decimal");
-        assertThat(text.get("minimum").asInt()).isZero();
+        assertThat(text.get("type").asText()).isEqualTo("string");
+        assertThat(text.get("format").asText()).isEqualTo("decimal");
+        assertThat(text.get("pattern").asText()).isEqualTo("^\\d+(\\.\\d+)?$");
+        assertThat(text.has("minimum")).isFalse();
         assertThat(text.get("description").asText()).isEqualTo("A decimal number written with at most 8 characters, the decimal point included.");
         assertThat(text.at("/x-glow400-field").has("digits")).isFalse();
         JsonNode floating = field(dir.resolve("d"), "type=\"float\" length=\"4\"", "");
+        assertThat(floating.get("pattern").asText()).isEqualTo("^[-+]?\\d+(\\.\\d+)?$");
         assertThat(floating.get("description").asText()).isEqualTo("A floating-point number of 4 bytes.");
-        assertThat(floating.has("minimum")).isFalse();
         JsonNode both = field(dir.resolve("e"), "type=\"packed\" length=\"5\" precision=\"1\"", ", description: \"The price.\"");
         assertThat(both.get("description").asText()).isEqualTo("The price. A decimal number with up to 5 digits, 1 of them after the decimal point.");
+    }
+
+    @Test
+    void thePatternsAcceptWhatTheCodecWritesAndRefuseTheRest(@TempDir Path dir) {
+        String packed = field(dir.resolve("a"), "type=\"packed\" length=\"9\" precision=\"2\"", "").get("pattern").asText();
+        for (String ok : List.of("0.00", "-1.50", "1234567.99", "-1234567.99")) {
+            assertThat(java.util.regex.Pattern.matches(packed, ok)).as(ok).isTrue();
+        }
+        for (String bad : List.of("1", "1.5", "1.500", "12345678.00", ".50", "+1.00", "1e2", "")) {
+            assertThat(java.util.regex.Pattern.matches(packed, bad)).as(bad).isFalse();
+        }
+        String text = field(dir.resolve("b"), "type=\"char\" length=\"8\"", ", type: decimal").get("pattern").asText();
+        assertThat(java.util.regex.Pattern.matches(text, "12")).isTrue();
+        assertThat(java.util.regex.Pattern.matches(text, "1.25")).isTrue();
+        assertThat(java.util.regex.Pattern.matches(text, "-1")).isFalse();
+        assertThat(java.util.regex.Pattern.matches(text, "1.")).isFalse();
+        String floating = field(dir.resolve("c"), "type=\"float\" length=\"8\"", "").get("pattern").asText();
+        assertThat(java.util.regex.Pattern.matches(floating, "-1.5")).isTrue();
+        assertThat(java.util.regex.Pattern.matches(floating, "+2")).isTrue();
+        assertThat(java.util.regex.Pattern.matches(floating, "1e5")).isFalse();
     }
 
     @Test
@@ -398,8 +427,8 @@ class OpenApiMappingTest {
         JsonNode props = doc(dir, pcml, overlay).at(BODY + "/properties");
         assertThat(props.at("/i/examples/0").isIntegralNumber()).isTrue();
         assertThat(props.at("/i/examples/0").asInt()).isEqualTo(42);
-        assertThat(props.at("/d/examples/0").isNumber()).isTrue();
-        assertThat(props.at("/d/examples/0").decimalValue()).isEqualByComparingTo("10.50");
+        assertThat(props.at("/d/examples/0").isTextual()).isTrue();
+        assertThat(props.at("/d/examples/0").asText()).isEqualTo("10.50");
         assertThat(props.at("/b/examples/0").isBoolean()).isTrue();
         assertThat(props.at("/b/examples/0").asBoolean()).isTrue();
         assertThat(props.at("/s/examples/0").isTextual()).isTrue();

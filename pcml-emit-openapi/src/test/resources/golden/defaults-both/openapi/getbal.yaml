@@ -30,7 +30,9 @@ paths:
           required: false
           description: "A decimal number with up to 11 digits, 2 of them after the decimal point."
           schema:
-            type: number
+            type: string
+            format: decimal
+            pattern: "^-?\\d{1,9}\\.\\d{2}$"
           x-glow400-field:
             name: BAL
             wire: "packed(11,2)"
@@ -52,7 +54,9 @@ paths:
                       wire: "char(10)"
                   bal:
                     description: "A decimal number with up to 11 digits, 2 of them after the decimal point."
-                    type: number
+                    type: string
+                    format: decimal
+                    pattern: "^-?\\d{1,9}\\.\\d{2}$"
                     x-glow400-field:
                       name: BAL
                       wire: "packed(11,2)"
