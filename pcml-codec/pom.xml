@@ -19,12 +19,5 @@
       <groupId>ai.generativearchitects.glow400</groupId>
       <artifactId>pcml-model</artifactId>
     </dependency>
-
-    <!-- Test scope only: property-based round-trip tests. -->
-    <dependency>
-      <groupId>net.jqwik</groupId>
-      <artifactId>jqwik</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 </project>
