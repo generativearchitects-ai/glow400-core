@@ -1,0 +1,107 @@
+openapi: "3.1.0"
+info:
+  title: dclcase
+  version: "1.0.0"
+servers:
+  - url: "/{tenant}/{environment}"
+    variables:
+      tenant:
+        description: "The tenant the program is called for."
+        default: tenant
+      environment:
+        description: "The environment the program is called for."
+        default: environment
+paths:
+  "/orders/{orderNumber}":
+    get:
+      operationId: dclcase
+      parameters:
+        - name: orderNumber
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 10
+          x-glow400-field:
+            name: OrderNumber
+            wire: "char(10)"
+      responses:
+        "200":
+          description: "The program ran"
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  orderDate:
+                    type: string
+                    maxLength: 8
+                    x-glow400-field:
+                      name: ORDER_DATE
+                      wire: "char(8)"
+                  cust_Name:
+                    type: string
+                    maxLength: 30
+                    x-glow400-field:
+                      name: Cust_Name
+                      wire: "char(30)"
+                  leadTrail:
+                    type: string
+                    maxLength: 2
+                    x-glow400-field:
+                      name: _LEAD__TRAIL_
+                      wire: "char(2)"
+                additionalProperties: false
+        "400":
+          description: "The request is not valid"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "404":
+          description: "Not found"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "502":
+          description: "The program or the system could not be reached or answered badly"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "503":
+          description: "Service unavailable"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "504":
+          description: "The program did not answer in time"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+components:
+  schemas:
+    ProblemDetails:
+      type: object
+      description: "A problem details object (RFC 9457)."
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: "A URI that identifies the kind of problem."
+        title:
+          type: string
+          description: "A short summary of the kind of problem."
+        status:
+          type: integer
+          description: "The HTTP status code."
+        detail:
+          type: string
+          description: "An explanation of this occurrence of the problem."
+        instance:
+          type: string
+          format: uri-reference
+          description: "A URI that identifies this occurrence of the problem."

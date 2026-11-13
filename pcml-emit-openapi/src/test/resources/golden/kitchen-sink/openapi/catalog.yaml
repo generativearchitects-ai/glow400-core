@@ -1,0 +1,345 @@
+openapi: "3.1.0"
+info:
+  title: "Item catalog API"
+  version: "1.4.0"
+servers:
+  - url: "/{tenant}/{environment}"
+    variables:
+      tenant:
+        description: "The tenant the program is called for."
+        default: tenant
+      environment:
+        description: "The environment the program is called for."
+        default: environment
+tags:
+  - name: items
+  - name: search
+paths:
+  "/items/{code}/search":
+    post:
+      operationId: search-items
+      summary: "Searches the catalog"
+      description: "Every type the descriptor and the OpenAPI document can hold."
+      tags:
+        - items
+        - search
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 10
+          example: ABC123
+          x-glow400-field:
+            name: P0CODE
+            wire: "char(10)"
+        - name: region
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 3
+          x-glow400-field:
+            name: P0REG
+            wire: "char(3)"
+        - name: query
+          in: query
+          required: false
+          description: "Free text"
+          schema:
+            type: string
+            maxLength: 20
+          x-glow400-field:
+            name: P0QRY
+            wire: "varchar(20)"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+                  x-glow400-field:
+                    name: P0FLAG
+                    wire: "char(1)"
+                since:
+                  type: string
+                  format: date
+                  examples:
+                    - "2026-01-31"
+                  x-glow400-field:
+                    name: P0DATE
+                    wire: "char(8)"
+                at:
+                  type: string
+                  format: time
+                  x-glow400-field:
+                    name: P0TIME
+                    wire: "char(6)"
+                when:
+                  type: string
+                  format: local-date-time
+                  pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$"
+                  x-glow400-field:
+                    name: P0WHEN
+                    wire: timestamp
+                quantity:
+                  type: integer
+                  minimum: -2147483648
+                  maximum: 2147483647
+                  examples:
+                    - 12
+                  x-glow400-field:
+                    name: P0QTY
+                    wire: "int(4)"
+                amount:
+                  description: "A decimal number with up to 9 digits, 2 of them after the decimal point."
+                  type: number
+                  examples:
+                    - 10.50
+                  x-glow400-field:
+                    name: P0AMT
+                    wire: "packed(9,2)"
+                    digits: 9
+                    scale: 2
+                level:
+                  type: integer
+                  minimum: -99999
+                  maximum: 99999
+                  x-glow400-field:
+                    name: P0ZON
+                    wire: "zoned(5,0)"
+                rate:
+                  description: "A floating-point number of 8 bytes."
+                  type: number
+                  x-glow400-field:
+                    name: P0RATE
+                    wire: "float(8)"
+                token:
+                  type: string
+                  contentEncoding: base64
+                  minLength: 8
+                  maxLength: 8
+                  x-glow400-field:
+                    name: P0BIN
+                    wire: "byte(4)"
+                echo:
+                  type: string
+                  maxLength: 6
+                  x-glow400-field:
+                    name: P0ECHO
+                    wire: "char(6)"
+              required:
+                - active
+              additionalProperties: false
+      responses:
+        "200":
+          description: "The program ran"
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  echo:
+                    type: string
+                    maxLength: 6
+                    x-glow400-field:
+                      name: P0ECHO
+                      wire: "char(6)"
+                  dynamic:
+                    type: string
+                    x-glow400-field:
+                      name: P0DYN
+                      wire: "char(P0LEN)"
+                  hits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          maxLength: 6
+                          x-glow400-field:
+                            name: P0HITS.ID
+                            wire: "char(6)"
+                        score:
+                          description: "Relevance A decimal number with up to 5 digits, 1 of them after the decimal point."
+                          type: number
+                          x-glow400-field:
+                            name: P0HITS.SCORE
+                            wire: "packed(5,1)"
+                            digits: 5
+                            scale: 1
+                      additionalProperties: false
+                    maxItems: 20
+                    x-glow400-field:
+                      name: P0HITS
+                      wire: "struct(HIT)"
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                      maxLength: 5
+                    maxItems: 10
+                    x-glow400-field:
+                      name: P0TAGS
+                      wire: "char(5)"
+                  note:
+                    type: string
+                    maxLength: 12
+                    x-glow400-field:
+                      name: P0VAR
+                      wire: "varchar(12)"
+                  day:
+                    type: string
+                    format: date
+                    x-glow400-field:
+                      name: P0DAY
+                      wire: date
+                  time:
+                    type: string
+                    format: time
+                    x-glow400-field:
+                      name: P0AT
+                      wire: time
+                additionalProperties: false
+        "400":
+          description: "The request is not valid"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "404":
+          description: "Not found"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "409":
+          description: Conflict
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "410":
+          description: Gone
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "422":
+          description: "The program reported an error"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "502":
+          description: "The program or the system could not be reached or answered badly"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "503":
+          description: "Service unavailable"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "504":
+          description: "The program did not answer in time"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+  "/items/{code}":
+    get:
+      operationId: lookup-item
+      tags:
+        - items
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 10
+          x-glow400-field:
+            name: P0CODE
+            wire: "char(10)"
+      responses:
+        "200":
+          description: "The program ran"
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  info:
+                    type: string
+                    maxLength: 20
+                    x-glow400-field:
+                      name: P0INFO
+                      wire: "char(20)"
+                additionalProperties: false
+        "400":
+          description: "The request is not valid"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "404":
+          description: "Not found"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "422":
+          description: "The program reported an error"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "502":
+          description: "The program or the system could not be reached or answered badly"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "503":
+          description: "Service unavailable"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "504":
+          description: "The program did not answer in time"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+components:
+  schemas:
+    ProblemDetails:
+      type: object
+      description: "A problem details object (RFC 9457)."
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: "A URI that identifies the kind of problem."
+        title:
+          type: string
+          description: "A short summary of the kind of problem."
+        status:
+          type: integer
+          description: "The HTTP status code."
+        detail:
+          type: string
+          description: "An explanation of this occurrence of the problem."
+        instance:
+          type: string
+          format: uri-reference
+          description: "A URI that identifies this occurrence of the problem."
