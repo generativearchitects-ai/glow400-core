@@ -43,6 +43,12 @@
       <artifactId>pcml-codec</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Test scope only: the YAML library of pcml-overlay reads every emitted document back. -->
+    <dependency>
+      <groupId>org.snakeyaml</groupId>
+      <artifactId>snakeyaml-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- Test scope only: validates the emitted documents against the official OpenAPI 3.1 JSON Schema. -->
     <dependency>
       <groupId>com.networknt</groupId>
