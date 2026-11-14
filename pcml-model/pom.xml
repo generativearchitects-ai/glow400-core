@@ -13,4 +13,9 @@
   <artifactId>pcml-model</artifactId>
   <name>pcml-model</name>
   <description>Immutable call model of a PCML document. Depends on the JDK only.</description>
+
+  <properties>
+    <!-- Decision 63: a higher mutation threshold where an undetected fault costs most. -->
+    <mutation.threshold>95</mutation.threshold>
+  </properties>
 </project>
