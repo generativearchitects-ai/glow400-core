@@ -136,10 +136,7 @@ final class TextCodec implements ScalarCodec {
                 }
                 text = formatted.get();
             }
-            default -> {
-                wrongKind(where, problems);
-                return Optional.empty();
-            }
+            default -> throw new IllegalStateException("A text field cannot hold " + semantic);
         }
         return finish(text, where, problems);
     }
