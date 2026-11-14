@@ -67,8 +67,8 @@ public final class ApiDiff {
                         new SourceLocation("gateway.yaml", 1, 1)));
             }
         }
-        diagnostics.sort(Comparator.comparing((Diagnostic d) -> d.location().file()).thenComparingInt(d -> d.location().line())
-                .thenComparingInt(d -> d.location().column()).thenComparing(Diagnostic::code));
+        diagnostics.sort(Comparator.comparing((Diagnostic d) -> d.location().file()).thenComparing(d -> d.location().line())
+                .thenComparing(d -> d.location().column()).thenComparing(Diagnostic::code));
         return new DiffResult(sets, diagnostics);
     }
 

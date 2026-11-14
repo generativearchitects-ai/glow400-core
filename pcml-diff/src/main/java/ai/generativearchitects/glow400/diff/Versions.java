@@ -59,12 +59,8 @@ final class Versions {
     }
 
     private static int firstOf(ApiDiff.Compared compared, Impact impact) {
-        for (int i = 0; i < compared.changes().size(); i++) {
-            if (compared.changes().get(i).impact() == impact) {
-                return i;
-            }
-        }
-        throw new IllegalStateException("No change with impact " + impact);
+        return java.util.stream.IntStream.range(0, compared.changes().size()).filter(i -> compared.changes().get(i).impact() == impact)
+                .findFirst().orElseThrow();
     }
 
     private static String line(Change change) {

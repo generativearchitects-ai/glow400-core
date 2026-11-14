@@ -364,4 +364,74 @@ class ClassificationTest {
         assertThat(result.apis().get(0).impact()).isEqualTo(Impact.BREAKING);
         assertThat(changes(result)).contains("DOCUMENTATION documentation", "BREAKING request.b");
     }
+
+    // ---- what the mutation analysis found untested
+
+    @Test
+    void aResponseFieldThatIsNoLongerAlwaysThereIsBreakingAndOneThatIsNowAlwaysThereIsCompatible(@TempDir Path dir) {
+        String pcml = data("A", "type=\"char\" length=\"4\"", "output");
+        String always = overlay("/x", "POST", "", "  A: { name: a, required: true }\n");
+        String sometimes = overlay("/x", "POST", "", PA);
+        DiffResult lost = same(dir.resolve("a"), pcml, always, sometimes);
+        assertThat(changes(lost)).containsExactly("BREAKING response.a");
+        assertThat(lost.apis().get(0).changes().get(0).description()).isEqualTo("Response field a is no longer always present");
+        DiffResult gained = same(dir.resolve("b"), pcml, sometimes, always);
+        assertThat(changes(gained)).containsExactly("COMPATIBLE response.a");
+        assertThat(gained.apis().get(0).changes().get(0).description()).isEqualTo("Response field a is now always present");
+    }
+
+    @Test
+    void theLimitsOfAnArrayOfObjectsAreComparedToo(@TempDir Path dir) {
+        String before = data("R", "type=\"struct\" struct=\"ROW\" count=\"5\"", "input");
+        String after = data("R", "type=\"struct\" struct=\"ROW\" count=\"3\"", "input");
+        String ov = overlay("/x", "POST", "", "  R: { name: r }\n");
+        DiffResult tighter = diff(dir.resolve("a"), before, ov, after, ov);
+        assertThat(changes(tighter)).contains("BREAKING request.r");
+        assertThat(tighter.apis().get(0).changes().stream().filter(c -> c.impact() == Impact.BREAKING).findFirst().orElseThrow().description())
+                .isEqualTo("The limits of request field r got tighter: maxItems");
+        assertThat(changes(diff(dir.resolve("b"), after, ov, before, ov))).contains("COMPATIBLE request.r");
+    }
+
+    @Test
+    void theMessageListsOnlyTheLimitsThatGotTighter(@TempDir Path dir) {
+        // a byte field of exact length: 8 to 4 lowers both bounds, and only the maximum is tighter
+        DiffResult shorter = limits(dir.resolve("a"), "input", "type=\"byte\" length=\"8\"", "type=\"byte\" length=\"4\"");
+        assertThat(shorter.apis().get(0).changes().stream().filter(c -> c.impact() == Impact.BREAKING).findFirst().orElseThrow().description())
+                .isEqualTo("The limits of request field a got tighter: maxBytes");
+        DiffResult longer = limits(dir.resolve("b"), "input", "type=\"byte\" length=\"4\"", "type=\"byte\" length=\"8\"");
+        assertThat(longer.apis().get(0).changes().stream().filter(c -> c.impact() == Impact.BREAKING).findFirst().orElseThrow().description())
+                .isEqualTo("The limits of request field a got tighter: minBytes");
+        // signed to unsigned: the minimum is higher (tighter) and the maximum too (looser)
+        DiffResult unsigned = limits(dir.resolve("c"), "input", "type=\"int\" length=\"4\"", "type=\"int\" length=\"4\" precision=\"32\"");
+        assertThat(unsigned.apis().get(0).changes().stream().filter(c -> c.impact() == Impact.BREAKING).findFirst().orElseThrow().description())
+                .isEqualTo("The limits of request field a got tighter: minimum");
+        DiffResult signed = limits(dir.resolve("d"), "input", "type=\"int\" length=\"4\" precision=\"32\"", "type=\"int\" length=\"4\"");
+        assertThat(signed.apis().get(0).changes().stream().filter(c -> c.impact() == Impact.BREAKING).findFirst().orElseThrow().description())
+                .isEqualTo("The limits of request field a got tighter: maximum");
+        // a limit that appears is tighter and one that disappears is looser
+        String n = data("N", "type=\"int\" length=\"4\"", "input");
+        DiffResult appears = diff(dir.resolve("e"), n + data("A", "type=\"char\" length=\"N\"", "input"), overlay("/x", "POST", "", "  N: { direction: internal }\n" + PA),
+                n + data("A", "type=\"char\" length=\"4\"", "input"), overlay("/x", "POST", "", "  N: { direction: internal }\n" + PA));
+        assertThat(appears.apis().get(0).changes().stream().filter(c -> c.impact() == Impact.BREAKING).findFirst().orElseThrow().description())
+                .isEqualTo("The limits of request field a got tighter: maxLength");
+        DiffResult goes = diff(dir.resolve("f"), n + data("A", "type=\"char\" length=\"4\"", "input"), overlay("/x", "POST", "", "  N: { direction: internal }\n" + PA),
+                n + data("A", "type=\"char\" length=\"N\"", "input"), overlay("/x", "POST", "", "  N: { direction: internal }\n" + PA));
+        assertThat(goes.apis().get(0).changes().stream().filter(c -> c.impact() == Impact.COMPATIBLE).findFirst().orElseThrow().description())
+                .isEqualTo("The limits of request field a changed: maxLength (looser)");
+    }
+
+    @Test
+    void twoOperationsOnDifferentRoutesWithTheSameMethodAreNotOneOperationWhoseIdChanged(@TempDir Path dir) {
+        String before = OPS + "  - { id: one, route: /a, method: POST, parameters: { A: { name: a } } }\n";
+        String after = OPS + "  - { id: two, route: /b, method: POST, parameters: { A: { name: a } } }\n";
+        assertThat(changes(same(dir, A, before, after))).containsExactly("BREAKING ", "COMPATIBLE ");
+    }
+
+    @Test
+    void aChangeInAMemberOfAnObjectIsInternalWhenOnlyItsPaddingChanged(@TempDir Path dir) {
+        String pcml = data("R", "type=\"struct\" struct=\"ROW\"", "input");
+        String before = overlay("/x", "POST", "", "  R:\n    name: r\n    fields:\n      X: { name: x }\n");
+        String after = overlay("/x", "POST", "", "  R:\n    name: r\n    fields:\n      X: { name: x, pad: left }\n");
+        assertThat(changes(same(dir, pcml, before, after))).containsExactly("INTERNAL field settings");
+    }
 }

@@ -4,12 +4,12 @@ import ai.generativearchitects.glow400.contract.FieldSurface;
 import ai.generativearchitects.glow400.contract.Limits;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiPredicate;
 
 /** The changes between two versions of the fields of one scope, on one side of an operation. */
 final class FieldComparison {
@@ -117,8 +117,8 @@ final class FieldComparison {
         upper("maxItems", was.maxItems(), now.maxItems(), tighter, looser);
         upper("maxBytes", was.maxBytes(), now.maxBytes(), tighter, looser);
         lower("minBytes", was.minBytes(), now.minBytes(), tighter, looser);
-        upperBig("maximum", was.maximum(), now.maximum(), tighter, looser);
-        lowerBig("minimum", was.minimum(), now.minimum(), tighter, looser);
+        upper("maximum", was.maximum(), now.maximum(), tighter, looser);
+        lower("minimum", was.minimum(), now.minimum(), tighter, looser);
         String side = request ? "request" : "response";
         if (request && !tighter.isEmpty()) {
             add(Impact.BREAKING, parents, name, "The limits of " + side + " field " + where + " got tighter: " + String.join(", ", tighter));
@@ -135,29 +135,21 @@ final class FieldComparison {
     }
 
     /** A maximum: lower is tighter; no limit is the loosest. */
-    private static void upper(String limit, Optional<Integer> was, Optional<Integer> now, List<String> tighter, List<String> looser) {
-        compare(limit, was, now, (a, b) -> a.compareTo(b) > 0, tighter, looser, true);
+    private static <T extends Comparable<T>> void upper(String limit, Optional<T> was, Optional<T> now, List<String> tighter, List<String> looser) {
+        compare(limit, was, now, tighter, looser, true);
     }
 
     /** A minimum: higher is tighter; no limit is the loosest. */
-    private static void lower(String limit, Optional<Integer> was, Optional<Integer> now, List<String> tighter, List<String> looser) {
-        compare(limit, was, now, (a, b) -> a.compareTo(b) > 0, tighter, looser, false);
-    }
-
-    private static void upperBig(String limit, Optional<BigInteger> was, Optional<BigInteger> now, List<String> tighter, List<String> looser) {
-        compare(limit, was, now, (a, b) -> a.compareTo(b) > 0, tighter, looser, true);
-    }
-
-    private static void lowerBig(String limit, Optional<BigInteger> was, Optional<BigInteger> now, List<String> tighter, List<String> looser) {
-        compare(limit, was, now, (a, b) -> a.compareTo(b) > 0, tighter, looser, false);
+    private static <T extends Comparable<T>> void lower(String limit, Optional<T> was, Optional<T> now, List<String> tighter, List<String> looser) {
+        compare(limit, was, now, tighter, looser, false);
     }
 
     /**
-     * Notes a limit that moved. {@code greater} says whether its first argument is the larger; {@code maximum} says whether
-     * a smaller value is the tighter one (a maximum) or a larger one (a minimum).
+     * Notes a limit that moved. {@code maximum} says whether a smaller value is the tighter one (a maximum) or a larger one
+     * (a minimum); no limit is the loosest of all.
      */
-    private static <T> void compare(String limit, Optional<T> was, Optional<T> now, BiPredicate<T, T> greater, List<String> tighter,
-                                    List<String> looser, boolean maximum) {
+    private static <T extends Comparable<T>> void compare(String limit, Optional<T> was, Optional<T> now, List<String> tighter,
+                                                          List<String> looser, boolean maximum) {
         if (was.equals(now)) {
             return;
         }
@@ -167,8 +159,9 @@ final class FieldComparison {
         } else if (now.isEmpty()) {
             tightens = false;
         } else {
-            boolean nowGreater = greater.test(now.get(), was.get());
-            tightens = maximum != nowGreater;
+            // the two values differ, so the larger one is one of them
+            boolean nowIsLarger = Collections.max(List.of(was.get(), now.get())).equals(now.get());
+            tightens = maximum != nowIsLarger;
         }
         (tightens ? tighter : looser).add(limit);
     }

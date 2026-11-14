@@ -167,4 +167,38 @@ class DiagnosticsTest {
         changes.clear();
         assertThat(set.changes()).hasSize(1);
     }
+
+    @Test
+    void theDiagnosticsOfOneApiAreInTheOrderOfTheirPositions(@TempDir Path dir) {
+        String after = overlay("/x", "POST", "", "  A: { name: a, type: integer }\n").replace("version: 1.0.0", "version: 1.0.1");
+        DiffResult result = ApiDiff.compare(Repo.load(dir.resolve("released"), "T", A, overlay("/x", "POST", "", PA)),
+                Repo.load(dir.resolve("current"), "T", A, after));
+        // API002 is at the field (line 7) and API003 at line 1 of the file, though API002 is made first
+        assertThat(result.diagnostics()).extracting(Diagnostic::code).containsExactly("API003", "API002");
+    }
+
+    @Test
+    void theDiagnosticsOfOneFileAreOrderedByLineThenColumnThenCode(@TempDir Path dir) {
+        // two changes to fields in different lines and the summary at line 1
+        String before = overlay("/x", "POST", "", PA + PB);
+        String after = overlay("/x", "POST", "", "  A: { name: a, type: integer }\n  B: { name: b, type: integer }\n").replace("version: 1.0.0", "version: 1.0.1");
+        DiffResult result = ApiDiff.compare(Repo.load(dir.resolve("released"), "T", AB, before), Repo.load(dir.resolve("current"), "T", AB, after));
+        assertThat(result.diagnostics()).isSortedAccordingTo(Comparator.comparing((Diagnostic d) -> d.location().file())
+                .thenComparingInt(d -> d.location().line()).thenComparingInt(d -> d.location().column()).thenComparing(Diagnostic::code));
+        assertThat(result.diagnostics()).extracting(d -> d.location().line()).isSorted();
+    }
+
+    @Test
+    void theErrorIsAtTheFirstBreakingChangeEvenWhenADocumentationChangeComesFirst(@TempDir Path dir) {
+        String before = overlay("/x", "POST", "title: One\n", PA);
+        String after = overlay("/x", "POST", "title: Two\n", "  A: { name: a, type: integer }\n").replace("version: 1.0.0", "version: 1.0.1");
+        ApiRepositoryModel current = Repo.load(dir.resolve("current"), "T", A, after);
+        DiffResult result = ApiDiff.compare(Repo.load(dir.resolve("released"), "T", A, before), current);
+        assertThat(result.apis().get(0).changes().get(0).impact()).isEqualTo(Impact.DOCUMENTATION);
+        assertThat(only(result, "API002").location()).isEqualTo(current.operations().get(0).bindings().get(0).source());
+        String compatible = overlay("/x", "POST", "title: Three\n", PA + PB);
+        ApiRepositoryModel second = Repo.load(dir.resolve("second"), "T", AB, compatible);
+        DiffResult result2 = ApiDiff.compare(Repo.load(dir.resolve("released2"), "T", A, overlay("/x", "POST", "title: One\n", PA)), second);
+        assertThat(only(result2, "API004").location()).isEqualTo(second.operations().get(0).bindings().get(1).source());
+    }
 }
