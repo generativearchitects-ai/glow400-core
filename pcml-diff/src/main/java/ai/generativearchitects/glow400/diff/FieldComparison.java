@@ -4,7 +4,6 @@ import ai.generativearchitects.glow400.contract.FieldSurface;
 import ai.generativearchitects.glow400.contract.Limits;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -159,8 +158,7 @@ final class FieldComparison {
         } else if (now.isEmpty()) {
             tightens = false;
         } else {
-            // the two values differ, so the larger one is one of them
-            boolean nowIsLarger = Collections.max(List.of(was.get(), now.get())).equals(now.get());
+            boolean nowIsLarger = now.get().compareTo(was.get()) > 0;
             tightens = maximum != nowIsLarger;
         }
         (tightens ? tighter : looser).add(limit);
