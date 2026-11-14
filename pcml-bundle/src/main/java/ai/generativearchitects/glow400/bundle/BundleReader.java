@@ -107,7 +107,7 @@ public final class BundleReader {
 
         DescriptorResult descriptor = DescriptorReader.read(new ByteArrayInputStream(entries.get(BundleFormat.DESCRIPTOR)));
         if (descriptor.model().isEmpty()) {
-            descriptor.diagnostics().forEach(d -> found.add(diagnostic("BDL005", "The descriptor is invalid: " + d.code() + " " + d.message(), manifestAt)));
+            descriptor.diagnostics().forEach(d -> found.add(diagnostic("BDL005", "The descriptor is invalid: " + d.code() + " " + BundleFormat.shown(d.message(), BundleFormat.SHOWN_MESSAGE_LENGTH), manifestAt)));
             return failure(found);
         }
         ApiRepositoryModel model = descriptor.model().get();
@@ -155,11 +155,11 @@ public final class BundleReader {
                 if (!unsafe.isEmpty()) {
                     found.add(diagnostic("BDL003", "An entry has an unsafe name: " + unsafe, at));
                 } else if (entry.getMethod() != ZipEntry.STORED) {
-                    found.add(diagnostic("BDL003", "The entry " + path + " is compressed; entries must be stored", at));
+                    found.add(diagnostic("BDL003", "The entry " + BundleFormat.shown(path) + " is compressed; entries must be stored", at));
                 } else if (!BundleFormat.allowed(path)) {
-                    found.add(diagnostic("BDL003", "The entry " + path + " is not allowed by the layout of a bundle", at));
+                    found.add(diagnostic("BDL003", "The entry " + BundleFormat.shown(path) + " is not allowed by the layout of a bundle", at));
                 } else if (entries.putIfAbsent(path, content) != null) {
-                    found.add(diagnostic("BDL003", "The entry " + path + " appears more than once", at));
+                    found.add(diagnostic("BDL003", "The entry " + BundleFormat.shown(path) + " appears more than once", at));
                 }
             }
         } catch (IOException e) {
@@ -194,7 +194,7 @@ public final class BundleReader {
         for (int n = zip.read(buffer); n >= 0; n = zip.read(buffer)) {
             size += n;
             if (size > limits.maxEntryBytes()) {
-                found.add(diagnostic("BDL003", "The entry " + path + " holds more than " + limits.maxEntryBytes() + " bytes", at));
+                found.add(diagnostic("BDL003", "The entry " + BundleFormat.shown(path) + " holds more than " + limits.maxEntryBytes() + " bytes", at));
                 throw new Stop();
             }
             out.write(buffer, 0, n);
@@ -210,7 +210,7 @@ public final class BundleReader {
         boolean unsortedReported = false;
         for (Manifest.FileEntry file : manifest.files()) {
             if (!listed.add(file.path())) {
-                found.add(diagnostic("BDL003", "The manifest lists " + file.path() + " more than once", at));
+                found.add(diagnostic("BDL003", "The manifest lists " + BundleFormat.shown(file.path()) + " more than once", at));
             } else if (previous != null && previous.compareTo(file.path()) > 0 && !unsortedReported) {
                 found.add(diagnostic("BDL003", "The manifest does not list its files sorted by path", at));
                 unsortedReported = true;
@@ -219,12 +219,12 @@ public final class BundleReader {
             if (file.path().equals(BundleFormat.MANIFEST)) {
                 found.add(diagnostic("BDL003", "The manifest lists itself", at));
             } else if (!entries.containsKey(file.path())) {
-                found.add(diagnostic("BDL003", "The manifest lists " + file.path() + ", which the bundle does not have", at));
+                found.add(diagnostic("BDL003", "The manifest lists " + BundleFormat.shown(file.path()) + ", which the bundle does not have", at));
             }
         }
         for (String path : entries.keySet()) {
             if (!path.equals(BundleFormat.MANIFEST) && !listed.contains(path)) {
-                found.add(diagnostic("BDL003", "The bundle has " + path + ", which the manifest does not list", at));
+                found.add(diagnostic("BDL003", "The bundle has " + BundleFormat.shown(path) + ", which the manifest does not list", at));
             }
         }
     }
@@ -233,10 +233,10 @@ public final class BundleReader {
         for (Manifest.FileEntry file : manifest.files()) {
             byte[] bytes = entries.get(file.path());
             if (bytes.length != file.size()) {
-                found.add(diagnostic("BDL004", "The size of " + file.path() + " is not the one in the manifest", at));
+                found.add(diagnostic("BDL004", "The size of " + BundleFormat.shown(file.path()) + " is not the one in the manifest", at));
             }
             if (!BundleFormat.sha256(bytes).equals(file.sha256())) {
-                found.add(diagnostic("BDL004", "The checksum of " + file.path() + " is not the one in the manifest", at));
+                found.add(diagnostic("BDL004", "The checksum of " + BundleFormat.shown(file.path()) + " is not the one in the manifest", at));
             }
         }
         if (!BundleFormat.contentDigest(manifest.files()).equals(manifest.contentDigest())) {
@@ -264,7 +264,7 @@ public final class BundleReader {
                 }
             }
         }
-        missing.forEach(path -> found.add(diagnostic("BDL005", "The descriptor refers to " + path + ", which the bundle does not have", at)));
+        missing.forEach(path -> found.add(diagnostic("BDL005", "The descriptor refers to " + BundleFormat.shown(path) + ", which the bundle does not have", at)));
     }
 
     private static BundleReadResult failure(List<Diagnostic> found) {

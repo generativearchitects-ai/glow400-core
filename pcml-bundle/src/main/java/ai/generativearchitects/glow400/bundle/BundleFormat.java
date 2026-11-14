@@ -80,6 +80,34 @@ final class BundleFormat {
         return "";
     }
 
+    /** The longest name or text shown in a message, in characters of the original. */
+    static final int SHOWN_LENGTH = 100;
+
+    /** The longest message of another program shown in a message. */
+    static final int SHOWN_MESSAGE_LENGTH = 300;
+
+    /** A name from an untrusted file, for a message: printable ASCII as it is, everything else as {@code \\uXXXX}, cut at 100 characters. */
+    static String shown(String name) {
+        return shown(name, SHOWN_LENGTH);
+    }
+
+    /** Like {@link #shown(String)}, cut at {@code limit} characters of the original. */
+    static String shown(String text, int limit) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            if (i == limit) {
+                return out.append("...").toString();
+            }
+            char c = text.charAt(i);
+            if (c >= 0x20 && c <= 0x7e) {
+                out.append(c);
+            } else {
+                out.append(String.format("\\u%04x", (int) c));
+            }
+        }
+        return out.toString();
+    }
+
     static String sha256(byte[] bytes) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));

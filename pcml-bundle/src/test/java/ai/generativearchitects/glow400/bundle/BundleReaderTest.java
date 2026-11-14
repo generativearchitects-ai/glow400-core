@@ -526,4 +526,50 @@ class BundleReaderTest {
         assertThatThrownBy(() -> new Manifest.ApiEntry("n", null, "v")).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new Manifest.ApiEntry("n", "t", null)).isInstanceOf(NullPointerException.class);
     }
+
+    // ---- names from the file in messages
+
+    @Test
+    void theHelperKeepsPrintableAsciiEscapesTheRestAndCutsAtOneHundredCharacters() {
+        assertThat(BundleFormat.shown("apis/A/a.pcml")).isEqualTo("apis/A/a.pcml");
+        assertThat(BundleFormat.shown(" ~")).isEqualTo(" ~");
+        assertThat(BundleFormat.shown("a\nb")).isEqualTo("a\\u000ab");
+        assertThat(BundleFormat.shown("a\u001b[31mb")).isEqualTo("a\\u001b[31mb");
+        assertThat(BundleFormat.shown("\u007f\u0000\u00e9\u20ac")).isEqualTo("\\u007f\\u0000\\u00e9\\u20ac");
+        assertThat(BundleFormat.shown("x".repeat(100))).isEqualTo("x".repeat(100));
+        assertThat(BundleFormat.shown("x".repeat(101))).isEqualTo("x".repeat(100) + "...");
+        assertThat(BundleFormat.shown("x".repeat(500), 300)).isEqualTo("x".repeat(300) + "...");
+        assertThat(BundleFormat.shown("")).isEmpty();
+    }
+
+    @Test
+    void aNameWithControlCharactersIsNeverWrittenRawIntoAMessage(@TempDir Path dir) {
+        String nasty = "extra\n\u001b[2Jfile\u00e9.txt";
+        BundleReadResult layout = read(dir.resolve("a"), Support.zip(List.of(Support.Entry.stored(nasty, new byte[] {1}))));
+        Diagnostic d = only(layout, "BDL003");
+        assertThat(d.message()).isEqualTo("The entry extra\\u000a\\u001b[2Jfile\\u00e9.txt is not allowed by the layout of a bundle");
+        String longName = "openapi/" + "n".repeat(300) + ".txt";
+        assertThat(only(read(dir.resolve("b"), Support.zip(List.of(Support.Entry.stored(longName, new byte[] {1})))), "BDL003").message())
+                .isEqualTo("The entry " + longName.substring(0, 100) + "... is not allowed by the layout of a bundle");
+        byte[] compressed = Support.zip(List.of(new Support.Entry("descriptor.json", "{}".repeat(50).getBytes(StandardCharsets.UTF_8), false)));
+        assertThat(only(read(dir.resolve("c"), compressed), "BDL003").message()).isEqualTo("The entry descriptor.json is compressed; entries must be stored");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void namesFromTheManifestAndTheDescriptorAreEscapedToo(@TempDir Path dir) {
+        byte[] good = kitchenSink(dir.resolve("repo"));
+        byte[] key = Support.rebuilt(good, entries -> { }, tree -> tree.put("bad\nkey\u001b", 1));
+        assertThat(only(read(dir.resolve("a"), key), "BDL003").message()).isEqualTo("manifest: unexpected key 'bad\\u000akey\\u001b'");
+        byte[] listed = Support.rebuilt(good, entries -> { }, tree -> {
+            List<Object> files = (List<Object>) tree.get("files");
+            Map<String, Object> ghost = new java.util.LinkedHashMap<>((Map<String, Object>) files.get(0));
+            ghost.put("path", "openapi/zzz\n.yaml");
+            files.add(ghost);
+        });
+        assertThat(only(read(dir.resolve("b"), listed), "BDL003").message()).isEqualTo("The manifest lists openapi/zzz\\u000a.yaml, which the bundle does not have");
+        byte[] descriptor = Support.rebuilt(good, entries -> entries.put("descriptor.json", Support.bytes("{\"schemaVersion\": 1, \"x\\u001b\": 1}")), tree -> { });
+        String message = only(read(dir.resolve("c"), descriptor), "BDL005").message();
+        assertThat(message).startsWith("The descriptor is invalid: DSC003 ").doesNotContain("\u001b").doesNotContain("\n");
+    }
 }

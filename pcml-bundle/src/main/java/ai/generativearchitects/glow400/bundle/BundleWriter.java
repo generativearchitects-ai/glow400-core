@@ -76,7 +76,7 @@ public final class BundleWriter {
         for (EmittedFile file : emitted) {
             String path = file.path();
             if (entries.containsKey(path)) {
-                problems.add(error("Two emitted files have the path " + path));
+                problems.add(error("Two emitted files have the path " + BundleFormat.shown(path)));
             } else if (!check(path, problems)) {
                 continue;
             } else if (path.equals(BundleFormat.MANIFEST)) {
@@ -148,20 +148,20 @@ public final class BundleWriter {
                 continue;
             }
             if (entries.containsKey(path)) {
-                problems.add(error("An emitted file collides with the source file " + path));
+                problems.add(error("An emitted file collides with the source file " + BundleFormat.shown(path)));
                 continue;
             }
             try {
                 Path file = real.resolve(path).toRealPath();
                 if (!file.startsWith(real)) {
-                    problems.add(error("The source file " + path + " is outside the repository"));
+                    problems.add(error("The source file " + BundleFormat.shown(path) + " is outside the repository"));
                 } else if (!Files.isRegularFile(file) || Files.size(file) > BundleFormat.Limits.STANDARD.maxEntryBytes()) {
-                    problems.add(error("The source file " + path + " is not a regular file of at most " + BundleFormat.Limits.STANDARD.maxEntryBytes() + " bytes"));
+                    problems.add(error("The source file " + BundleFormat.shown(path) + " is not a regular file of at most " + BundleFormat.Limits.STANDARD.maxEntryBytes() + " bytes"));
                 } else {
                     entries.put(path, Files.readAllBytes(file));
                 }
             } catch (IOException e) {
-                problems.add(error("The source file " + path + " cannot be read"));
+                problems.add(error("The source file " + BundleFormat.shown(path) + " cannot be read"));
             }
         }
     }
@@ -170,11 +170,11 @@ public final class BundleWriter {
     private static boolean check(String path, List<Diagnostic> problems) {
         String unsafe = BundleFormat.unsafe(path);
         if (!unsafe.isEmpty()) {
-            problems.add(error("The path " + path + " is not allowed in a bundle: " + unsafe));
+            problems.add(error("The path " + BundleFormat.shown(path) + " is not allowed in a bundle: " + unsafe));
             return false;
         }
         if (!BundleFormat.allowed(path)) {
-            problems.add(error("The path " + path + " is not allowed by the layout of a bundle"));
+            problems.add(error("The path " + BundleFormat.shown(path) + " is not allowed by the layout of a bundle"));
             return false;
         }
         return true;

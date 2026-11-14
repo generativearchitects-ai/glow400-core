@@ -184,7 +184,7 @@ final class ManifestJson {
     private static void done(Map<String, Object> map, Set<String> seen, String where) {
         for (String key : map.keySet()) {
             if (!seen.contains(key)) {
-                throw new Invalid("BDL003", where + ": unexpected key '" + key + "'");
+                throw new Invalid("BDL003", where + ": unexpected key '" + BundleFormat.shown(key) + "'");
             }
         }
     }
