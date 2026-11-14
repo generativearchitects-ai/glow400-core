@@ -55,7 +55,7 @@ public final class DescriptorReader {
     /** The name of the file, and of the fixed location of every element read from it. */
     public static final String FILE = DescriptorEmitter.FILE;
 
-    private static final SourceLocation HERE = new SourceLocation(FILE, 0, 0);
+    private static final SourceLocation HERE = new SourceLocation(FILE, 1, 1);
 
     private final Map<String, FieldDef> fields = new LinkedHashMap<>();
 

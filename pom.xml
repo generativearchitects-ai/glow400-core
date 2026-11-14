@@ -27,6 +27,8 @@
     <module>pcml-overlay</module>
     <module>pcml-codec</module>
     <module>pcml-validation</module>
+    <module>pcml-contract</module>
+    <module>pcml-diff</module>
     <module>pcml-emit-descriptor</module>
     <module>pcml-emit-openapi</module>
   </modules>
@@ -69,6 +71,16 @@
       <dependency>
         <groupId>ai.generativearchitects.glow400</groupId>
         <artifactId>pcml-validation</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.glow400</groupId>
+        <artifactId>pcml-contract</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.glow400</groupId>
+        <artifactId>pcml-diff</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

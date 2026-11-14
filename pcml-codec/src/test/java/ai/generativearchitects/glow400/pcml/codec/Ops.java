@@ -165,6 +165,13 @@ final class Ops {
                 HttpMethod.POST, CallStrategy.AUTO, bindings, Optional.empty(), Optional.empty(), AT);
     }
 
+    /** An operation with an error mapping. */
+    static ApiOperation opWith(ai.generativearchitects.glow400.pcml.api.ErrorMapping mapping, F... fields) {
+        ApiOperation base = op(fields);
+        return new ApiOperation(base.id(), base.version(), base.summary(), base.description(), base.tags(), base.program(), base.pcmlPath(),
+                base.overlayPath(), base.route(), base.method(), base.callStrategy(), base.bindings(), Optional.of(mapping), base.cache(), base.source());
+    }
+
     static OperationCodec codec(F... fields) {
         return OperationCodec.of(op(fields));
     }

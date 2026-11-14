@@ -73,10 +73,10 @@ class CodecAgreementTest {
             ApiValue value = sample(binding);
             request.put(binding.exposedName(), value);
             if (binding.location().get() == Location.BODY) {
-                body.set(binding.exposedName(), json(value));
+                body.set(binding.exposedName(), json(value, binding));
             } else {
                 JsonNode parameter = parameter(item, binding.exposedName());
-                assertThat(OpenApiSchema.schemaOf(document, parameter.get("schema")).validate(json(value))).as(where + " " + binding.exposedName()).isEmpty();
+                assertThat(OpenApiSchema.schemaOf(document, parameter.get("schema")).validate(json(value, binding))).as(where + " " + binding.exposedName()).isEmpty();
             }
         }
         JsonNode bodySchema = item.at("/requestBody/content/application~1json/schema");
@@ -88,8 +88,19 @@ class CodecAgreementTest {
         assertThat(encoded.problems()).as(where).isEmpty();
         DecodeResult decoded = codec.decode(encoded.parameters().orElseThrow());
         assertThat(decoded.problems()).as(where).isEmpty();
+        if (decoded.error().isPresent()) {
+            // A blank output can satisfy the error condition: the status must then be one of the documented responses.
+            assertThat(item.at("/responses").has(String.valueOf(decoded.error().get().status()))).as(where + " error status").isTrue();
+            assertThat(decoded.response()).as(where).isEmpty();
+            return;
+        }
         ObjectNode response = JSON.objectNode();
-        decoded.response().orElseThrow().forEach((name, value) -> response.set(name, json(value)));
+        for (FieldBinding binding : operation.bindings()) {
+            ApiValue value = decoded.response().orElseThrow().get(binding.exposedName());
+            if (value != null && (binding.direction() == Direction.RESPONSE || binding.direction() == Direction.BOTH)) {
+                response.set(binding.exposedName(), json(value, binding));
+            }
+        }
         JsonNode okSchema = item.at("/responses/200/content/application~1json/schema");
         if (okSchema.isMissingNode()) {
             assertThat(item.at("/responses").has("204")).as(where).isTrue();
@@ -131,12 +142,20 @@ class CodecAgreementTest {
         return switch (binding.semanticType().orElseThrow()) {
             case STRING -> new ApiValue.Text(fixedLength(wire) == 1 ? "a" : "ab");
             case INTEGER -> new ApiValue.Integer(BigInteger.valueOf(7));
-            case DECIMAL -> new ApiValue.Integer(BigInteger.ONE);
+            case DECIMAL -> new ApiValue.Decimal(new BigDecimal(BigInteger.ONE, 0).setScale(scaleOf(wire)));
             case BOOLEAN -> new ApiValue.Bool(true);
             case DATE -> new ApiValue.Date(LocalDate.of(2026, 1, 31));
             case TIME -> new ApiValue.Time(LocalTime.of(10, 20, 30));
             case DATETIME -> new ApiValue.DateTime(LocalDateTime.of(2026, 1, 31, 10, 20, 30));
             case BINARY -> new ApiValue.Binary(new byte[fixedLength(wire)]);
+        };
+    }
+
+    private static int scaleOf(WireType wire) {
+        return switch (wire) {
+            case WireType.Packed p -> p.precision();
+            case WireType.Zoned z -> z.precision();
+            default -> 0;
         };
     }
 
@@ -150,11 +169,17 @@ class CodecAgreementTest {
         return length instanceof Length.Fixed fixed ? fixed.value() : 2;
     }
 
-    private static JsonNode json(ApiValue value) {
+    /** A decimal is written in plain notation, with the scale of the field for packed and zoned (decision 56). */
+    private static String plain(BigDecimal value, WireType wire) {
+        boolean fixedScale = wire instanceof WireType.Packed || wire instanceof WireType.Zoned;
+        return (fixedScale ? value.setScale(scaleOf(wire)) : value).toPlainString();
+    }
+
+    private static JsonNode json(ApiValue value, FieldBinding binding) {
         return switch (value) {
             case ApiValue.Text t -> JSON.textNode(t.value());
             case ApiValue.Integer i -> JSON.numberNode(i.value());
-            case ApiValue.Decimal d -> JSON.numberNode(d.value());
+            case ApiValue.Decimal d -> JSON.textNode(plain(d.value(), binding.field().wire()));
             case ApiValue.Bool b -> JSON.booleanNode(b.value());
             case ApiValue.Date d -> JSON.textNode(d.value().toString());
             case ApiValue.Time t -> JSON.textNode(t.value().toString());
@@ -162,12 +187,16 @@ class CodecAgreementTest {
             case ApiValue.Binary b -> JSON.textNode(Base64.getEncoder().encodeToString(b.value()));
             case ApiValue.Obj o -> {
                 ObjectNode node = JSON.objectNode();
-                o.members().forEach((name, member) -> node.set(name, json(member)));
+                for (FieldBinding child : binding.children()) {
+                    if (o.members().containsKey(child.exposedName())) {
+                        node.set(child.exposedName(), json(o.members().get(child.exposedName()), child));
+                    }
+                }
                 yield node;
             }
             case ApiValue.Arr a -> {
                 ArrayNode node = JSON.arrayNode();
-                a.elements().forEach(element -> node.add(json(element)));
+                a.elements().forEach(element -> node.add(json(element, binding)));
                 yield node;
             }
             case ApiValue.Absent a -> JSON.nullNode();

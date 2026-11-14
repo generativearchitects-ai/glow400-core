@@ -2,10 +2,14 @@ package ai.generativearchitects.glow400.pcml.codec;
 
 import ai.generativearchitects.glow400.pcml.api.ApiOperation;
 import ai.generativearchitects.glow400.pcml.api.Direction;
+import ai.generativearchitects.glow400.pcml.api.ErrorCondition;
+import ai.generativearchitects.glow400.pcml.api.ErrorMapping;
 import ai.generativearchitects.glow400.pcml.api.FieldBinding;
 import ai.generativearchitects.glow400.pcml.api.SemanticType;
 import ai.generativearchitects.glow400.pcml.api.Trim;
 import ai.generativearchitects.glow400.pcml.model.Count;
+import ai.generativearchitects.glow400.pcml.model.Length;
+import ai.generativearchitects.glow400.pcml.model.WireType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -60,6 +64,7 @@ public final class OperationCodec {
         for (FieldPlan plan : plans) {
             checkField(plan, top, top, issues);
         }
+        operation.errorMapping().ifPresent(mapping -> checkErrorMapping(mapping, top, issues));
         return issues;
     }
 
@@ -164,6 +169,47 @@ public final class OperationCodec {
         }
     }
 
+    /** The fields of the error mapping must be text or numbers, and what they are compared with must fit them. */
+    private static void checkErrorMapping(ErrorMapping mapping, FieldPlan.Scope top, List<ConfigurationIssue> issues) {
+        List<String> values = switch (mapping.when()) {
+            case ErrorCondition.Equals equals -> List.of(equals.value());
+            case ErrorCondition.NotEquals notEquals -> List.of(notEquals.value());
+            case ErrorCondition.In in -> in.values();
+        };
+        FieldPlan when = mappingField(mapping.when().field(), "the field of the error condition", top, issues);
+        if (when != null && values.stream().anyMatch(value -> longerThan(value, when))) {
+            issues.add(new ConfigurationIssue(when.binding.fieldPath(), "a value of the error condition is longer than the field"));
+        }
+        mapping.messageField().ifPresent(path -> mappingField(path, "the error message field", top, issues));
+        FieldPlan code = mapping.codeField().map(path -> mappingField(path, "the error code field", top, issues)).orElse(null);
+        if (code != null && mapping.statusByCode().keySet().stream().anyMatch(key -> longerThan(key, code))) {
+            issues.add(new ConfigurationIssue(code.binding.fieldPath(), "a statusByCode key is longer than the error code field"));
+        }
+    }
+
+    /** The plan of a field the mapping reads, or {@code null} if it is not there or, after reporting why, cannot be read as text. */
+    private static FieldPlan mappingField(String path, String what, FieldPlan.Scope top, List<ConfigurationIssue> issues) {
+        FieldPlan.Found found = FieldPlan.resolve(path, top, top);
+        if (found == null) {
+            return null; // the loader reports a field the program does not have; the decoder reports a missing value
+        }
+        FieldPlan plan = found.plan();
+        if (plan.isStruct() || plan.isArray() || plan.field.wire() instanceof WireType.Byte) {
+            issues.add(new ConfigurationIssue(plan.binding.fieldPath(), what + " is not text or a number: a struct, an array and a byte field cannot be read as text"));
+            return null;
+        }
+        return plan;
+    }
+
+    private static boolean longerThan(String value, FieldPlan plan) {
+        Length length = switch (plan.field.wire()) {
+            case WireType.Char c -> c.length();
+            case WireType.VarChar v -> v.length();
+            default -> null;
+        };
+        return length instanceof Length.Fixed fixed && value.codePointCount(0, value.length()) > fixed.value();
+    }
+
     private static String codes(Problems problems) {
         return problems.list().stream().map(ValueProblem::code).distinct().collect(Collectors.joining(", "));
     }
@@ -231,9 +277,19 @@ public final class OperationCodec {
         Problems problems = new Problems();
         if (programOutput.size() != plans.size()) {
             problems.add("VAL101", Where.ROOT, "The program returned " + programOutput.size() + " parameters instead of " + plans.size());
-            return new DecodeResult(Optional.empty(), problems.list());
+            return new DecodeResult(Optional.empty(), Optional.empty(), problems.list());
         }
         FieldPlan.Scope top = new FieldPlan.Scope(plans, programOutput, null, operation.program().name());
+        if (operation.errorMapping().isPresent()) {
+            ErrorMapping mapping = operation.errorMapping().get();
+            Optional<String> condition = mappingText(mapping.when().field(), top, problems);
+            if (problems.any()) {
+                return new DecodeResult(Optional.empty(), Optional.empty(), problems.list());
+            }
+            if (holds(mapping.when(), condition.orElseThrow())) {
+                return outcome(mapping, top, problems);
+            }
+        }
         Map<String, ApiValue> response = new LinkedHashMap<>();
         for (int i = 0; i < plans.size(); i++) {
             FieldPlan plan = plans.get(i);
@@ -246,6 +302,55 @@ public final class OperationCodec {
                 response.put(plan.exposedName(), value.get());
             }
         }
-        return new DecodeResult(problems.any() ? Optional.empty() : Optional.of(response), problems.list());
+        return new DecodeResult(problems.any() ? Optional.empty() : Optional.of(response), Optional.empty(), problems.list());
+    }
+
+    private static boolean holds(ErrorCondition condition, String text) {
+        return switch (condition) {
+            case ErrorCondition.Equals equals -> text.equals(equals.value());
+            case ErrorCondition.NotEquals notEquals -> !text.equals(notEquals.value());
+            case ErrorCondition.In in -> in.values().contains(text);
+        };
+    }
+
+    /** The error the program reported: its status, and the code and message when their fields are set. */
+    private DecodeResult outcome(ErrorMapping mapping, FieldPlan.Scope top, Problems problems) {
+        Optional<String> code = mapping.codeField().flatMap(path -> mappingText(path, top, problems)).filter(text -> !text.isBlank());
+        Optional<String> message = mapping.messageField().flatMap(path -> mappingText(path, top, problems)).filter(text -> !text.isBlank());
+        if (problems.any()) {
+            return new DecodeResult(Optional.empty(), Optional.empty(), problems.list());
+        }
+        int status = code.map(mapping.statusByCode()::get).orElse(mapping.httpStatus());
+        return new DecodeResult(Optional.empty(), Optional.of(new ErrorOutcome(status, code, message)), problems.list());
+    }
+
+    /**
+     * A field the error mapping reads, as text with its padding removed, whatever its direction. Empty, with a VAL101 in
+     * {@code problems}, if the program returned a value of another shape: a struct, an array or bytes.
+     */
+    private static Optional<String> mappingText(String path, FieldPlan.Scope top, Problems problems) {
+        FieldPlan.Found found = FieldPlan.resolve(path, top, top);
+        Where where = new Where(path, "");
+        if (found == null || found.value() == null) {
+            problems.add("VAL101", where, "The program's output has no value for a field the error mapping reads");
+            return Optional.empty();
+        }
+        String text = switch (found.value()) {
+            case WireValue.Text t -> found.plan().scalar instanceof TextCodec codec ? codec.unpaddedText(t.value()) : t.value();
+            case WireValue.Blank b -> "";
+            case WireValue.Integer i -> i.value().toString();
+            case WireValue.Decimal d -> d.value().toPlainString();
+            case WireValue.Float f -> java.lang.Double.toString(f.value());
+            case WireValue.Date d -> d.value().toString();
+            case WireValue.Time t -> t.value().toString();
+            case WireValue.Timestamp t -> t.value().toString();
+            case WireValue.Bytes b -> null;
+            case WireValue.Struct s -> null;
+            case WireValue.Array a -> null;
+        };
+        if (text == null) {
+            problems.add("VAL101", where, "A field the error mapping reads has the wrong shape: it must be text or a number");
+        }
+        return Optional.ofNullable(text);
     }
 }

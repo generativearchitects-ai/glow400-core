@@ -68,7 +68,7 @@ class RoundTripTest {
     @Test
     void everyElementReadFromADescriptorHasTheSameLocationNamingTheDescriptor() {
         ApiRepositoryModel back = read(descriptor(Repositories.model("kitchen-sink")));
-        SourceLocation here = new SourceLocation("descriptor.json", 0, 0);
+        SourceLocation here = new SourceLocation("descriptor.json", 1, 1);
         for (ApiOperation operation : back.operations()) {
             assertThat(operation.source()).isEqualTo(here);
             assertThat(operation.program().source()).isEqualTo(here);

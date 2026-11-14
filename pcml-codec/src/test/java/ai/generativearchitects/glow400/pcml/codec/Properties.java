@@ -7,20 +7,20 @@ import java.util.function.Consumer;
  * own {@link Gen}. The seed is {@code -Dglow400.seed=n} when given and random otherwise. When a case fails, the error
  * names the seed and the case index, which is all it takes to reproduce the run.
  */
-final class Properties {
+public final class Properties {
 
-    static final int DEFAULT_CASES = 500;
-    static final String SEED_PROPERTY = "glow400.seed";
-    static final String CASES_PROPERTY = "glow400.cases";
+    public static final int DEFAULT_CASES = 500;
+    public static final String SEED_PROPERTY = "glow400.seed";
+    public static final String CASES_PROPERTY = "glow400.cases";
 
     private Properties() {
     }
 
-    static void check(String name, Consumer<Gen> property) {
+    public static void check(String name, Consumer<Gen> property) {
         check(name, Long.getLong(SEED_PROPERTY, new java.util.Random().nextLong()), Integer.getInteger(CASES_PROPERTY, DEFAULT_CASES), property);
     }
 
-    static void check(String name, long seed, int cases, Consumer<Gen> property) {
+    public static void check(String name, long seed, int cases, Consumer<Gen> property) {
         for (int i = 0; i < cases; i++) {
             try {
                 property.accept(new Gen(seed, i));

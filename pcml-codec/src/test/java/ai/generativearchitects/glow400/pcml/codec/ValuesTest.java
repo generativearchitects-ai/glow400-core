@@ -132,14 +132,14 @@ class ValuesTest {
     void resultsCopyTheirContentAndRejectNull() {
         List<ValueProblem> problems = new ArrayList<>(List.of(new ValueProblem("V", "", "", "x")));
         EncodeResult encoded = new EncodeResult(Optional.empty(), problems);
-        DecodeResult decoded = new DecodeResult(Optional.empty(), problems);
+        DecodeResult decoded = new DecodeResult(Optional.empty(), Optional.empty(), problems);
         problems.clear();
         assertThat(encoded.problems()).hasSize(1);
         assertThat(decoded.problems()).hasSize(1);
         assertThatThrownBy(() -> new EncodeResult(null, List.of())).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new DecodeResult(null, List.of())).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new DecodeResult(null, Optional.empty(), List.of())).isInstanceOf(NullPointerException.class);
         Map<String, ApiValue> response = new LinkedHashMap<>(Map.of("a", new ApiValue.Absent()));
-        DecodeResult ok = new DecodeResult(Optional.of(response), List.of());
+        DecodeResult ok = new DecodeResult(Optional.of(response), Optional.empty(), List.of());
         response.put("b", new ApiValue.Absent());
         assertThat(ok.response().orElseThrow()).containsOnlyKeys("a");
         assertThatThrownBy(() -> ok.response().orElseThrow().put("c", new ApiValue.Absent())).isInstanceOf(UnsupportedOperationException.class);

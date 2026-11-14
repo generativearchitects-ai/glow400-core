@@ -239,6 +239,11 @@ final class TextCodec implements ScalarCodec {
         return text.isBlank() || (!nullAs.isBlank() && text.equals(nullAs));
     }
 
+    /** The text of a returned field with its padding removed, without reading it as a value of its semantic type. */
+    String unpaddedText(String raw) {
+        return unpadded(raw);
+    }
+
     /** Removes the padding: trailing for {@code pad: right}, leading for {@code pad: left}, none when not padded. */
     private String unpadded(String raw) {
         if (pad == Pad.NONE) {

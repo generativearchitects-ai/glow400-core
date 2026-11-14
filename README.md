@@ -15,6 +15,8 @@ Licence: Apache-2.0.
 | `pcml-overlay` | Reads `gateway.yaml` and the overlay files (format v0.6), merges them with the PCML into the API model; publishes the JSON Schemas for both file types |
 | `pcml-codec` | Converts between API values and the values of a program call (scalars, structs, arrays); depends on `pcml-model` and the JDK only |
 | `pcml-validation` | Static validation of an API model: encodability (`OVL003`) and the advisory warnings `OVL005` and `OVL006` |
+| `pcml-contract` | The consumer-visible surface of an API (fields, types, limits, statuses), shared by the OpenAPI emitter and the comparison of releases |
+| `pcml-diff` | Breaking-change detection between a released and a current repository (`API002` to `API006`) |
 | `pcml-emit-descriptor` | Writes `descriptor.json` (schema version 1), the file the gateway reads, and reads it back into the API model; uses the streaming API of Jackson (`jackson-core`) to read |
 | `pcml-emit-openapi` | Writes one OpenAPI 3.1 document per API, `openapi/<api name>.yaml` |
 
