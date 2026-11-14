@@ -22,6 +22,13 @@ class ByteWidthTest {
     }
 
     @Test
+    void aDoubleByteCcsidThatIsNotInTheListIsFoundThroughTheJdk() {
+        // 834 and 1383 are multi-byte in the JDK but not in the fixed list
+        assertThat(ByteWidth.isSingleByte(834)).isFalse();
+        assertThat(ByteWidth.isSingleByte(1383)).isFalse();
+    }
+
+    @Test
     void commonSingleByteCcsidsAre() {
         for (int ccsid : new int[] {37, 273, 277, 278, 280, 284, 285, 297, 500, 871, 1140, 1141, 1148, 1047, 437, 850}) {
             assertThat(ByteWidth.isSingleByte(ccsid)).as("CCSID " + ccsid).isTrue();

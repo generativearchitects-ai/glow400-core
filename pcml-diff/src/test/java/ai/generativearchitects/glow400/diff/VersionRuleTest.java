@@ -66,7 +66,16 @@ class VersionRuleTest {
                 Arguments.of("0.4.2", "0.4.2", Impact.NONE, ""), Arguments.of("0.4.2", "0.4.1", Impact.NONE, "API004"),
                 // pre-releases are lower than their release
                 Arguments.of("1.0.0", "1.0.0-rc.1", Impact.NONE, "API004"), Arguments.of("1.0.0-rc.1", "1.0.0", Impact.NONE, ""),
-                Arguments.of("1.0.0-rc.1", "2.0.0", Impact.BREAKING, ""));
+                Arguments.of("1.0.0-rc.1", "2.0.0", Impact.BREAKING, ""),
+                // against a released pre-release any change is allowed when the version is higher (decision 61)
+                Arguments.of("2.0.0-rc.1", "2.0.0-rc.2", Impact.BREAKING, ""), Arguments.of("2.0.0-rc.1", "2.0.0", Impact.BREAKING, ""),
+                Arguments.of("2.0.0-rc.1", "2.0.0-rc.2", Impact.COMPATIBLE, ""), Arguments.of("2.0.0-rc.1", "2.0.0-rc.1", Impact.BREAKING, "API004"),
+                Arguments.of("2.0.0-rc.1", "2.0.0-rc.1", Impact.COMPATIBLE, "API004"), Arguments.of("2.0.0-rc.1", "2.0.0-rc.1", Impact.INTERNAL, ""),
+                Arguments.of("2.0.0-rc.1", "2.0.0-rc.1", Impact.DOCUMENTATION, ""), Arguments.of("2.0.0-rc.1", "2.0.0-rc.1", Impact.NONE, ""),
+                Arguments.of("2.0.0-rc.2", "2.0.0-rc.1", Impact.BREAKING, "API004"), Arguments.of("2.0.0-rc.2", "2.0.0-rc.1", Impact.NONE, "API004"),
+                Arguments.of("0.1.0-rc.1", "0.1.0-rc.2", Impact.BREAKING, ""), Arguments.of("0.1.0-rc.1", "0.1.0-rc.1", Impact.BREAKING, "API004"),
+                // a released final version followed by a pre-release still has the increase rules
+                Arguments.of("1.0.0", "1.1.0-rc.1", Impact.BREAKING, "API002"), Arguments.of("1.0.0", "2.0.0-rc.1", Impact.BREAKING, ""));
     }
 
     @ParameterizedTest(name = "{0} to {1}, {2}: {3}")
@@ -78,6 +87,15 @@ class VersionRuleTest {
         DiffResult result = ApiDiff.compare(before, after);
         assertThat(result.apis().get(0).impact()).isEqualTo(impact);
         assertThat(codes(result)).isEqualTo(expected.isEmpty() ? List.of() : List.of(expected));
+    }
+
+    @Test
+    void theMessageForAPreReleaseSaysSo(@TempDir Path dir) {
+        String[] e = edit(Impact.BREAKING);
+        DiffResult result = ApiDiff.compare(Repo.load(dir.resolve("a"), "T", e[0], e[1].replace("version: 1.0.0", "version: 2.0.0-rc.1")),
+                Repo.load(dir.resolve("b"), "T", e[2], e[3].replace("version: 1.0.0", "version: 2.0.0-rc.1")));
+        assertThat(result.diagnostics()).filteredOn(d -> d.code().equals("API004")).extracting(d -> d.message())
+                .containsExactly("API t has changes but its version is still the released pre-release 2.0.0-rc.1; it must be higher");
     }
 
     @Test

@@ -305,7 +305,7 @@ final class OpenApiBuilder {
         return value.bitLength() < 32 ? (Object) value.intValue() : value;
     }
 
-    /** A decimal is text: with the field's scale for packed and zoned, unsigned for text fields, any fraction for float. */
+    /** A decimal is text: up to the field's scale for packed and zoned (the codec accepts fewer decimals and writes the full scale), unsigned for text fields, any fraction for float. */
     private static String decimalPattern(Limits limits) {
         if (limits.scale().isPresent()) {
             return fixedScalePattern(limits.digits().get(), limits.scale().get());
@@ -316,7 +316,7 @@ final class OpenApiBuilder {
     private static String fixedScalePattern(int digits, int scale) {
         int integerDigits = digits - scale;
         String integer = integerDigits <= 0 ? "0" : "\\d{1," + integerDigits + "}";
-        return "^-?" + integer + (scale > 0 ? "\\.\\d{" + scale + "}" : "") + "$";
+        return "^-?" + integer + (scale > 0 ? "(\\.\\d{1," + scale + "})?" : "") + "$";
     }
 
     /** The description of the field, with what the schema cannot say about decimals. */

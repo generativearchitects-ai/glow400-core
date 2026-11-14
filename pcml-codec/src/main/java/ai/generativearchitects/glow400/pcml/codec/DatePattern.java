@@ -62,7 +62,7 @@ final class DatePattern {
                 if (!closed) {
                     return failed("a quote is not closed");
                 }
-                if (literal.length() > 0) {
+                if (!literal.isEmpty()) {
                     parts.add(new Part(Kind.LITERAL, 0, literal.toString()));
                 }
             } else if (Character.isLetter(c)) {

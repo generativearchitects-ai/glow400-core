@@ -38,8 +38,7 @@ final class BytesCodec implements ScalarCodec {
 
     @Override
     public Optional<WireValue> encodeInjected(String text, Where where, Problems problems) {
-        problems.add("VAL002", where, "A binary field cannot be injected");
-        return Optional.empty();
+        throw new UnsupportedOperationException("A binary field cannot be injected: see supportsInjection");
     }
 
     @Override
@@ -63,9 +62,7 @@ final class BytesCodec implements ScalarCodec {
 
     @Override
     public boolean isBlank(WireValue value) {
-        if (value instanceof WireValue.Blank) {
-            return true;
-        }
+        // WireValue.Blank is recognised by the caller before it asks the codec
         if (!(value instanceof WireValue.Bytes b)) {
             return false;
         }

@@ -319,8 +319,7 @@ final class FieldPlan {
     private Optional<Integer> readCount(String path, int size, Scope scope, boolean fromTop, Where where, Problems problems) {
         Found found = resolve(path, fromTop ? scope.top() : scope, scope);
         if (found == null) {
-            problems.add("VAL103", where, "The field that holds the number of elements cannot be found");
-            return Optional.empty();
+            throw new IllegalStateException("The count field " + path + " cannot be found: see OperationCodec.check");
         }
         Problems own = new Problems();
         Optional<ApiValue> read = found.value() instanceof WireValue.Blank ? Optional.empty()

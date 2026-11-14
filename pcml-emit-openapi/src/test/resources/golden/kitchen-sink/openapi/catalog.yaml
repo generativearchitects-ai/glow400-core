@@ -100,7 +100,7 @@ paths:
                   description: "A decimal number with up to 9 digits, 2 of them after the decimal point."
                   type: string
                   format: decimal
-                  pattern: "^-?\\d{1,7}\\.\\d{2}$"
+                  pattern: "^-?\\d{1,7}(\\.\\d{1,2})?$"
                   examples:
                     - "10.50"
                   x-glow400-field:
@@ -174,7 +174,7 @@ paths:
                           description: "Relevance A decimal number with up to 5 digits, 1 of them after the decimal point."
                           type: string
                           format: decimal
-                          pattern: "^-?\\d{1,4}\\.\\d{1}$"
+                          pattern: "^-?\\d{1,4}(\\.\\d{1,1})?$"
                           x-glow400-field:
                             name: P0HITS.SCORE
                             wire: "packed(5,1)"

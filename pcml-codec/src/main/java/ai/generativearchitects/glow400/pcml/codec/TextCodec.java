@@ -61,13 +61,15 @@ final class TextCodec implements ScalarCodec {
         switch (semantic) {
             case STRING -> {
                 if (!(value instanceof ApiValue.Text t)) {
-                    return wrongKind(where, problems);
+                    wrongKind(where, problems);
+                    return Optional.empty();
                 }
                 text = t.value();
             }
             case INTEGER -> {
                 if (!(value instanceof ApiValue.Integer i)) {
-                    return wrongKind(where, problems);
+                    wrongKind(where, problems);
+                    return Optional.empty();
                 }
                 if (i.value().signum() < 0) {
                     problems.add("VAL003", where, "A negative number cannot be stored in a text field");
@@ -82,7 +84,8 @@ final class TextCodec implements ScalarCodec {
                 } else if (value instanceof ApiValue.Integer i) {
                     number = new BigDecimal(i.value());
                 } else {
-                    return wrongKind(where, problems);
+                    wrongKind(where, problems);
+                    return Optional.empty();
                 }
                 if (number.signum() < 0) {
                     problems.add("VAL003", where, "A negative number cannot be stored in a text field");
@@ -92,43 +95,48 @@ final class TextCodec implements ScalarCodec {
             }
             case BOOLEAN -> {
                 if (!(value instanceof ApiValue.Bool b)) {
-                    return wrongKind(where, problems);
+                    wrongKind(where, problems);
+                    return Optional.empty();
                 }
                 text = b.value() ? trueValue : falseValue;
             }
             case DATE -> {
                 if (!(value instanceof ApiValue.Date d)) {
-                    return wrongKind(where, problems);
+                    wrongKind(where, problems);
+                    return Optional.empty();
                 }
                 Optional<String> formatted = pattern.format(d.value());
                 if (formatted.isEmpty()) {
-                    return doesNotFit(where, problems);
+                    doesNotFit(where, problems);
+                    return Optional.empty();
                 }
                 text = formatted.get();
             }
             case TIME -> {
                 if (!(value instanceof ApiValue.Time t)) {
-                    return wrongKind(where, problems);
+                    wrongKind(where, problems);
+                    return Optional.empty();
                 }
                 Optional<String> formatted = pattern.format(t.value());
                 if (formatted.isEmpty()) {
-                    return doesNotFit(where, problems);
+                    doesNotFit(where, problems);
+                    return Optional.empty();
                 }
                 text = formatted.get();
             }
             case DATETIME -> {
                 if (!(value instanceof ApiValue.DateTime t)) {
-                    return wrongKind(where, problems);
+                    wrongKind(where, problems);
+                    return Optional.empty();
                 }
                 Optional<String> formatted = pattern.format(t.value());
                 if (formatted.isEmpty()) {
-                    return doesNotFit(where, problems);
+                    doesNotFit(where, problems);
+                    return Optional.empty();
                 }
                 text = formatted.get();
             }
-            default -> {
-                return wrongKind(where, problems);
-            }
+            default -> throw new IllegalStateException("A text field cannot hold " + semantic);
         }
         return finish(text, where, problems);
     }
@@ -138,14 +146,12 @@ final class TextCodec implements ScalarCodec {
         return finish(text, where, problems);
     }
 
-    private Optional<WireValue> wrongKind(Where where, Problems problems) {
+    private void wrongKind(Where where, Problems problems) {
         problems.add("VAL002", where, "The value is not a " + semantic.name().toLowerCase(java.util.Locale.ROOT));
-        return Optional.empty();
     }
 
-    private Optional<WireValue> doesNotFit(Where where, Problems problems) {
+    private void doesNotFit(Where where, Problems problems) {
         problems.add("VAL003", where, "The value cannot be written in the field's format without losing part of it");
-        return Optional.empty();
     }
 
     /** Checks the length and pads. */
@@ -158,14 +164,11 @@ final class TextCodec implements ScalarCodec {
     }
 
     private String padded(String text) {
-        if (pad == Pad.NONE || length < 0) {
+        if (pad == Pad.NONE) {
             return text;
         }
-        int missing = length - text.codePointCount(0, text.length());
-        if (missing <= 0) {
-            return text;
-        }
-        String fill = String.valueOf(padChar).repeat(missing);
+        // A length that names another field is -1: nothing is missing then, and neither when the text fills the field.
+        String fill = String.valueOf(padChar).repeat(Math.max(0, length - text.codePointCount(0, text.length())));
         return pad == Pad.LEFT ? fill + text : text + fill;
     }
 
@@ -188,7 +191,8 @@ final class TextCodec implements ScalarCodec {
                     return Optional.of(new ApiValue.Absent());
                 }
                 if (!DIGITS.matcher(text).matches()) {
-                    return unreadable(where, problems);
+                    unreadable(where, problems);
+                    return Optional.empty();
                 }
                 return Optional.of(new ApiValue.Integer(new BigInteger(text)));
             }
@@ -199,7 +203,8 @@ final class TextCodec implements ScalarCodec {
                 // Left padding with '0' also removes the 0 before the decimal point: "000.5" is read as 0.5.
                 String number = text.startsWith(".") ? "0" + text : text;
                 if (!DECIMAL.matcher(number).matches()) {
-                    return unreadable(where, problems);
+                    unreadable(where, problems);
+                    return Optional.empty();
                 }
                 return Optional.of(new ApiValue.Decimal(new BigDecimal(number)));
             }
@@ -210,7 +215,8 @@ final class TextCodec implements ScalarCodec {
                 if (text.equals(falseValue) || text.isBlank()) {
                     return Optional.of(new ApiValue.Bool(false));
                 }
-                return unreadable(where, problems);
+                unreadable(where, problems);
+                return Optional.empty();
             }
             case DATE, TIME, DATETIME -> {
                 if (noValue(raw)) {
@@ -221,17 +227,17 @@ final class TextCodec implements ScalarCodec {
                     case TIME -> pattern.parseTime(text).map(ApiValue.Time::new);
                     default -> pattern.parseDateTime(text).map(ApiValue.DateTime::new);
                 };
-                return parsed.isPresent() ? parsed : unreadable(where, problems);
+                if (parsed.isEmpty()) {
+                    unreadable(where, problems);
+                }
+                return parsed;
             }
-            default -> {
-                return unreadable(where, problems);
-            }
+            default -> throw new IllegalStateException("A text field cannot hold " + semantic);
         }
     }
 
-    private Optional<ApiValue> unreadable(Where where, Problems problems) {
+    private void unreadable(Where where, Problems problems) {
         problems.add("VAL102", where, "The text cannot be read as " + semantic.name().toLowerCase(java.util.Locale.ROOT));
-        return Optional.empty();
     }
 
     /** Blank, or the text that stands for "no value" when there is one. */

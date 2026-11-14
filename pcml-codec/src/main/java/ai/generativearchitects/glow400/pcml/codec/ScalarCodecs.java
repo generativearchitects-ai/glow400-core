@@ -22,6 +22,12 @@ final class ScalarCodecs {
     }
 
     static ScalarCodec create(FieldBinding binding, List<String> issues) {
+        ScalarCodec codec = build(binding, issues);
+        return codec != null ? codec : new Unusable();
+    }
+
+    /** The codec of a field, or {@code null} after adding to {@code issues} why there is none. */
+    private static ScalarCodec build(FieldBinding binding, List<String> issues) {
         FieldDef field = binding.field();
         WireType wire = field.wire();
         CodecSettings settings = binding.codec();
@@ -38,7 +44,7 @@ final class ScalarCodecs {
         }
         if (semantic == null) {
             issues.add("the field has no semantic type");
-            return new Unusable();
+            return null;
         }
 
         return switch (wire) {
@@ -54,7 +60,7 @@ final class ScalarCodecs {
             case WireType.Timestamp t -> temporal(TemporalCodec.Kind.TIMESTAMP, SemanticType.DATETIME, semantic, type, issues);
             case WireType.Struct s -> {
                 issues.add("a struct is not a scalar");
-                yield new Unusable();
+                yield null;
             }
         };
     }
@@ -75,9 +81,8 @@ final class ScalarCodecs {
         };
     }
 
-    private static ScalarCodec notAllowed(SemanticType semantic, String wire, List<String> issues) {
+    private static void notAllowed(SemanticType semantic, String wire, List<String> issues) {
         issues.add("semantic type " + semantic + " is not allowed for wire type " + wire);
-        return new Unusable();
     }
 
     // ------------------------------------------------------------------ char and varchar
@@ -87,7 +92,8 @@ final class ScalarCodecs {
         String type = varchar ? "varchar" : "char";
         SemanticType semantic = binding.semanticType().orElseThrow();
         if (semantic == SemanticType.BINARY) {
-            return notAllowed(semantic, type, issues);
+            notAllowed(semantic, type, issues);
+        return null;
         }
         CodecSettings settings = binding.codec();
         int length = lengthOf instanceof Length.Fixed fixed ? fixed.value() : -1;
@@ -172,18 +178,19 @@ final class ScalarCodecs {
 
     private static ScalarCodec integer(WireType.Int wire, SemanticType semantic, List<String> issues) {
         if (semantic != SemanticType.INTEGER) {
-            return notAllowed(semantic, "int", issues);
+            notAllowed(semantic, "int", issues);
+        return null;
         }
         int bytes = wire.lengthBytes();
         if (bytes != 2 && bytes != 4 && bytes != 8) {
             issues.add("an int field of " + bytes + " bytes is not supported: use 2, 4 or 8");
-            return new Unusable();
+            return null;
         }
         int bits = bytes * 8;
         boolean unsigned = wire.precision().isPresent() && wire.precision().get() == bits;
         if (wire.precision().isPresent() && !unsigned && wire.precision().get() != bits - 1) {
             issues.add("the precision of an int field of " + bytes + " bytes must be " + (bits - 1) + " (signed) or " + bits + " (unsigned)");
-            return new Unusable();
+            return null;
         }
         return new NumberCodecs.IntCodec(bytes, unsigned);
     }
@@ -193,31 +200,34 @@ final class ScalarCodecs {
         if (!allowed) {
             if (semantic == SemanticType.INTEGER) {
                 issues.add("semantic type INTEGER is not allowed for a " + type + " field with decimal places");
-                return new Unusable();
+                return null;
             }
-            return notAllowed(semantic, type, issues);
+            notAllowed(semantic, type, issues);
+        return null;
         }
         if (length < 1 || scale > length) {
             issues.add("a " + type + " field needs at least one digit and no more decimals than digits");
-            return new Unusable();
+            return null;
         }
         return new NumberCodecs.DecimalCodec(length, scale, semantic);
     }
 
     private static ScalarCodec floating(WireType.Float wire, SemanticType semantic, List<String> issues) {
         if (semantic != SemanticType.DECIMAL) {
-            return notAllowed(semantic, "float", issues);
+            notAllowed(semantic, "float", issues);
+        return null;
         }
         if (wire.lengthBytes() != 4 && wire.lengthBytes() != 8) {
             issues.add("a float field of " + wire.lengthBytes() + " bytes is not supported: use 4 or 8");
-            return new Unusable();
+            return null;
         }
         return new NumberCodecs.FloatCodec(wire.lengthBytes());
     }
 
     private static ScalarCodec bytes(WireType.Byte wire, SemanticType semantic, boolean requestSide, boolean injected, List<String> issues) {
         if (semantic != SemanticType.BINARY) {
-            return notAllowed(semantic, "byte", issues);
+            notAllowed(semantic, "byte", issues);
+        return null;
         }
         int length = wire.length() instanceof Length.Fixed fixed ? fixed.value() : -1;
         if (length < 0 && requestSide) {
@@ -231,50 +241,47 @@ final class ScalarCodecs {
 
     private static ScalarCodec temporal(TemporalCodec.Kind kind, SemanticType allowed, SemanticType semantic, String type, List<String> issues) {
         if (semantic != allowed) {
-            return notAllowed(semantic, type, issues);
+            notAllowed(semantic, type, issues);
+        return null;
         }
         return new TemporalCodec(kind);
     }
 
     /** Stands in for a field that cannot be encoded; never used, because such an operation has no codec. */
     private static final class Unusable implements ScalarCodec {
-        private static IllegalStateException fail() {
-            return new IllegalStateException("The field cannot be encoded: see OperationCodec.check");
-        }
-
         @Override
         public Optional<WireValue> absent() {
-            throw fail();
+            throw new IllegalStateException("The field cannot be encoded: see OperationCodec.check");
         }
 
         @Override
         public WireValue blank() {
-            throw fail();
+            throw new IllegalStateException("The field cannot be encoded: see OperationCodec.check");
         }
 
         @Override
         public Optional<WireValue> encode(ApiValue value, Where where, Problems problems) {
-            throw fail();
+            throw new IllegalStateException("The field cannot be encoded: see OperationCodec.check");
         }
 
         @Override
         public Optional<WireValue> encodeInjected(String text, Where where, Problems problems) {
-            throw fail();
+            throw new IllegalStateException("The field cannot be encoded: see OperationCodec.check");
         }
 
         @Override
         public boolean supportsInjection() {
-            throw fail();
+            throw new IllegalStateException("The field cannot be encoded: see OperationCodec.check");
         }
 
         @Override
         public Optional<ApiValue> decode(WireValue value, Where where, Problems problems) {
-            throw fail();
+            throw new IllegalStateException("The field cannot be encoded: see OperationCodec.check");
         }
 
         @Override
         public boolean isBlank(WireValue value) {
-            throw fail();
+            throw new IllegalStateException("The field cannot be encoded: see OperationCodec.check");
         }
     }
 }
