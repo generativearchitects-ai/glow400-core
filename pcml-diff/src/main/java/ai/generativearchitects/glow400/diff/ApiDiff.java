@@ -113,12 +113,8 @@ public final class ApiDiff {
     }
 
     private static int indexOf(ApiSurface surface, String id) {
-        for (int i = 0; i < surface.operations().size(); i++) {
-            if (surface.operations().get(i).id().equals(id)) {
-                return i;
-            }
-        }
-        throw new IllegalStateException("No operation " + id);
+        return java.util.stream.IntStream.range(0, surface.operations().size()).filter(i -> surface.operations().get(i).id().equals(id)).findFirst()
+                .orElseThrow();
     }
 
     /**
