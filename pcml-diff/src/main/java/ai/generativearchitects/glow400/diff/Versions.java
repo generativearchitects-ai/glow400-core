@@ -24,6 +24,14 @@ final class Versions {
         if (after.compareTo(before) < 0) {
             out.add(new Diagnostic("API004", Severity.ERROR, "The version of API " + name + " is " + now.version()
                     + ", which is lower than the released version " + was.version(), compared.fallback()));
+        } else if (before.isPreRelease()) {
+            // Decision 61: against a released pre-release any change is allowed, as long as the version is higher.
+            boolean changed = set.impact() == Impact.BREAKING || set.impact() == Impact.COMPATIBLE;
+            if (changed && after.compareTo(before) == 0) {
+                int first = firstOf(compared, set.impact());
+                out.add(new Diagnostic("API004", Severity.ERROR, "API " + name + " has changes but its version is still the released pre-release "
+                        + was.version() + "; it must be higher", compared.positions().get(first)));
+            }
         } else if (set.impact() == Impact.BREAKING && !enough(before, after, true)) {
             int first = firstOf(compared, Impact.BREAKING);
             out.add(new Diagnostic("API002", Severity.ERROR, "API " + name + " has breaking changes but its version goes from " + was.version()

@@ -18,6 +18,11 @@ record Version(BigInteger major, BigInteger minor, BigInteger patch, String preR
         return new Version(new BigInteger(m.group(1)), new BigInteger(m.group(2)), new BigInteger(m.group(3)), m.group(4) == null ? "" : m.group(4));
     }
 
+    /** Whether the version has a pre-release part, such as {@code 2.0.0-rc.1}. */
+    boolean isPreRelease() {
+        return !preRelease.isEmpty();
+    }
+
     /** Whether the version is 1.0.0 or above, where the stable rules apply. */
     boolean isStable() {
         return major.signum() > 0;
