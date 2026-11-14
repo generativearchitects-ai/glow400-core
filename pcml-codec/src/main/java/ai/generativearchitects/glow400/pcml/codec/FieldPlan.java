@@ -197,6 +197,48 @@ final class FieldPlan {
         return new WireValue.Struct(members);
     }
 
+    // ------------------------------------------------------------------ the shape of what a program returned
+
+    /**
+     * Checks the shape of a returned value against this field, at any depth: an array where there is an array, with the number
+     * of elements of a fixed count, a struct where there is a struct, with its members. A mismatch is a VAL101 and everything
+     * under it is left alone. Scalars are not looked at here: their own codec reads them. A {@link WireValue.Blank} fits any
+     * shape. Decoding, trimming and the error mapping rely on this having been done for the whole output.
+     */
+    void checkShape(WireValue value, Where where, Problems problems) {
+        if (value instanceof WireValue.Blank) {
+            return;
+        }
+        if (!isArray()) {
+            checkElementShape(value, where, problems);
+            return;
+        }
+        if (!(value instanceof WireValue.Array array)) {
+            problems.add("VAL101", where, "A list was expected");
+            return;
+        }
+        if (field.count() instanceof Count.Fixed fixed && array.elements().size() != fixed.value()) {
+            problems.add("VAL101", where, "The list does not have the number of elements of the field");
+            return;
+        }
+        for (int i = 0; i < array.elements().size(); i++) {
+            checkElementShape(array.elements().get(i), where.element(i), problems);
+        }
+    }
+
+    private void checkElementShape(WireValue value, Where where, Problems problems) {
+        if (!isStruct() || value instanceof WireValue.Blank) {
+            return;
+        }
+        if (!(value instanceof WireValue.Struct struct) || struct.members().size() != children.size()) {
+            problems.add("VAL101", where, "A struct with " + children.size() + " members was expected");
+            return;
+        }
+        for (int i = 0; i < children.size(); i++) {
+            children.get(i).checkShape(struct.members().get(i), children.get(i).where(where), problems);
+        }
+    }
+
     // ------------------------------------------------------------------ decoding
 
     /** Decodes a returned field; empty, after a problem was reported, if it cannot be read. */
@@ -208,15 +250,8 @@ final class FieldPlan {
     }
 
     private Optional<ApiValue> decodeArray(WireValue value, Where where, Problems problems, Scope scope) {
-        if (!(value instanceof WireValue.Array array)) {
-            problems.add("VAL101", where, "A list was expected");
-            return Optional.empty();
-        }
-        List<WireValue> elements = array.elements();
-        if (field.count() instanceof Count.Fixed fixed && elements.size() != fixed.value()) {
-            problems.add("VAL101", where, "The list does not have the number of elements of the field");
-            return Optional.empty();
-        }
+        // checkShape has seen that this is an array, and of the right size for a fixed count
+        List<WireValue> elements = ((WireValue.Array) value).elements();
         if (field.count() instanceof Count.Ref ref) {
             Optional<Integer> n = readCount(ref.field(), elements.size(), scope, false, where, problems);
             if (n.isEmpty()) {
@@ -261,10 +296,8 @@ final class FieldPlan {
         if (value instanceof WireValue.Blank) {
             return Optional.of(new ApiValue.Obj(Map.of()));
         }
-        if (!(value instanceof WireValue.Struct struct) || struct.members().size() != children.size()) {
-            problems.add("VAL101", where, "A struct with " + children.size() + " members was expected");
-            return Optional.empty();
-        }
+        // checkShape has seen that this is a struct with the members of the field
+        WireValue.Struct struct = (WireValue.Struct) value;
         Scope scope = new Scope(children, struct.members(), outer.top(), outer.top().program());
         Map<String, ApiValue> members = new LinkedHashMap<>();
         boolean ok = true;
@@ -289,9 +322,7 @@ final class FieldPlan {
             return true;
         }
         if (isStruct()) {
-            if (!(value instanceof WireValue.Struct struct) || struct.members().size() != children.size()) {
-                return false;
-            }
+            WireValue.Struct struct = (WireValue.Struct) value; // the shape has been checked
             for (int i = 0; i < children.size(); i++) {
                 if (!children.get(i).isBlankValue(struct.members().get(i))) {
                     return false;
@@ -319,7 +350,9 @@ final class FieldPlan {
     private Optional<Integer> readCount(String path, int size, Scope scope, boolean fromTop, Where where, Problems problems) {
         Found found = resolve(path, fromTop ? scope.top() : scope, scope);
         if (found == null) {
-            throw new IllegalStateException("The count field " + path + " cannot be found: see OperationCodec.check");
+            // check() has seen that the field is there; what is missing is its value, because a struct on the way is blank
+            problems.add("VAL101", where, "The field that holds the number of elements cannot be read: the output does not have its struct");
+            return Optional.empty();
         }
         Problems own = new Problems();
         Optional<ApiValue> read = found.value() instanceof WireValue.Blank ? Optional.empty()

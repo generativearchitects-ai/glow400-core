@@ -279,6 +279,12 @@ public final class OperationCodec {
             problems.add("VAL101", Where.ROOT, "The program returned " + programOutput.size() + " parameters instead of " + plans.size());
             return new DecodeResult(Optional.empty(), Optional.empty(), problems.list());
         }
+        for (int i = 0; i < plans.size(); i++) {
+            plans.get(i).checkShape(programOutput.get(i), plans.get(i).where(Where.ROOT), problems);
+        }
+        if (problems.any()) {
+            return new DecodeResult(Optional.empty(), Optional.empty(), problems.list());
+        }
         FieldPlan.Scope top = new FieldPlan.Scope(plans, programOutput, null, operation.program().name());
         if (operation.errorMapping().isPresent()) {
             ErrorMapping mapping = operation.errorMapping().get();
