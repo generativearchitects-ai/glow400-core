@@ -275,18 +275,18 @@ class OpenApiMappingTest {
         JsonNode packed = field(dir.resolve("a"), "type=\"packed\" length=\"9\" precision=\"2\"", "");
         assertThat(packed.get("type").asText()).isEqualTo("string");
         assertThat(packed.get("format").asText()).isEqualTo("decimal");
-        assertThat(packed.get("pattern").asText()).isEqualTo("^-?\\d{1,7}\\.\\d{2}$");
+        assertThat(packed.get("pattern").asText()).isEqualTo("^-?\\d{1,7}(\\.\\d{1,2})?$");
         assertThat(packed.has("minimum")).isFalse();
         assertThat(packed.has("maximum")).isFalse();
         assertThat(packed.get("description").asText()).isEqualTo("A decimal number with up to 9 digits, 2 of them after the decimal point.");
         assertThat(packed.at("/x-glow400-field/digits").asInt()).isEqualTo(9);
         assertThat(packed.at("/x-glow400-field/scale").asInt()).isEqualTo(2);
         JsonNode zoned = field(dir.resolve("b"), "type=\"zoned\" length=\"6\" precision=\"3\"", "");
-        assertThat(zoned.get("pattern").asText()).isEqualTo("^-?\\d{1,3}\\.\\d{3}$");
+        assertThat(zoned.get("pattern").asText()).isEqualTo("^-?\\d{1,3}(\\.\\d{1,3})?$");
         assertThat(zoned.at("/x-glow400-field/digits").asInt()).isEqualTo(6);
         assertThat(zoned.at("/x-glow400-field/scale").asInt()).isEqualTo(3);
         assertThat(zoned.at("/x-glow400-field/wire").asText()).isEqualTo("zoned(6,3)");
-        assertThat(field(dir.resolve("b1"), "type=\"packed\" length=\"5\" precision=\"5\"", "").get("pattern").asText()).isEqualTo("^-?0\\.\\d{5}$");
+        assertThat(field(dir.resolve("b1"), "type=\"packed\" length=\"5\" precision=\"5\"", "").get("pattern").asText()).isEqualTo("^-?0(\\.\\d{1,5})?$");
         assertThat(field(dir.resolve("b2"), "type=\"packed\" length=\"5\" precision=\"0\"", "").get("pattern").asText()).isEqualTo("^-?\\d{1,5}$");
         JsonNode text = field(dir.resolve("c"), "type=\"char\" length=\"8\"", ", type: decimal");
         assertThat(text.get("type").asText()).isEqualTo("string");
@@ -305,10 +305,10 @@ class OpenApiMappingTest {
     @Test
     void thePatternsAcceptWhatTheCodecWritesAndRefuseTheRest(@TempDir Path dir) {
         String packed = field(dir.resolve("a"), "type=\"packed\" length=\"9\" precision=\"2\"", "").get("pattern").asText();
-        for (String ok : List.of("0.00", "-1.50", "1234567.99", "-1234567.99")) {
+        for (String ok : List.of("0.00", "-1.50", "1234567.99", "-1234567.99", "1", "1.5", "-0.1", "0", "1234567")) {
             assertThat(java.util.regex.Pattern.matches(packed, ok)).as(ok).isTrue();
         }
-        for (String bad : List.of("1", "1.5", "1.500", "12345678.00", ".50", "+1.00", "1e2", "")) {
+        for (String bad : List.of("1.500", "12345678.00", "12345678", ".50", "+1.00", "1e2", "1.", "")) {
             assertThat(java.util.regex.Pattern.matches(packed, bad)).as(bad).isFalse();
         }
         String text = field(dir.resolve("b"), "type=\"char\" length=\"8\"", ", type: decimal").get("pattern").asText();
