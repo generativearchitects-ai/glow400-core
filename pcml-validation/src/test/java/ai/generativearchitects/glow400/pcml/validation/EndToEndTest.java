@@ -129,7 +129,11 @@ class EndToEndTest {
                 s(t("C1", 8), t("", 40)),
                 new WireValue.Array(List.of(t("a", 6), t("b", 6), t("", 6), t("", 6))),
                 t("", 10));
-        assertThat(decode(codec, s(t("C1", 8), t("", 40)), new WireValue.Array(List.of()), t("ORD1", 10))).containsExactly(Map.entry("orderNumber", text("ORD1")));
+        // the program returns every parameter, the request-only ones too, and each must have the shape of its field
+        WireValue tags = new WireValue.Array(List.of(t("", 6), t("", 6), t("", 6), t("", 6)));
+        assertThat(decode(codec, s(t("C1", 8), t("", 40)), tags, t("ORD1", 10))).containsExactly(Map.entry("orderNumber", text("ORD1")));
+        assertThat(codec.decode(List.of(s(t("C1", 8), t("", 40)), new WireValue.Array(List.of()), t("ORD1", 10))).problems())
+                .extracting(p -> p.code() + " " + p.fieldPath()).containsExactly("VAL101 P0TAGS");
         EncodeResult missing = codec.encode(map("header", new ApiValue.Obj(map("note", text("x")))), Map.of());
         assertThat(missing.problems()).extracting(p -> p.code() + " " + p.exposedPath()).containsExactly("VAL001 header.customerId");
     }
