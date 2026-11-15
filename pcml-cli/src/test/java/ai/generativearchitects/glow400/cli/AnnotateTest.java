@@ -313,15 +313,46 @@ class AnnotateTest {
     }
 
     @Test
-    void aRefusedFileIsNotWrittenAndTheRefusalIsAnError(@TempDir Path dir) {
+    void aRefusedEditIsNotWrittenAndIsReportedWithItsOperationAndParameter(@TempDir Path dir) {
         initialised(dir);
         java.util.Map<String, String> before = texts(dir);
         // P0ORDN as a response named p0stat clashes with P0STAT, which is a response
         Result result = Support.runWithInput(dir, "response\n\np0stat\n", "annotate", "--api", "ORDSTATUS");
-        assertThat(result.out()).contains("apis/ORDSTATUS/api.yaml:1:1: error SCF002: The edited file was refused and nothing was written: the new text gives a diagnostic that the old one did not (OVL014)");
+        assertThat(result.out()).contains("apis/ORDSTATUS/api.yaml:1:1: error SCF002: Operation 'ordstatus', parameter 'P0ORDN' was not edited: "
+                + "the edited file was refused: the new text gives a diagnostic that the old one did not (OVL014)\n");
         assertThat(result.err()).doesNotContain("->");
         assertThat(result.exit()).isEqualTo(1);
         assertThat(texts(dir)).isEqualTo(before);
+    }
+
+    @Test
+    void oneBadAnswerAmongGoodOnesCostsOnlyThatAnswer(@TempDir Path dir) {
+        initialised(dir);
+        // P0ORDN: response named p0stat (refused, it clashes with P0STAT); P0QTY: both (good)
+        Result result = Support.runWithInput(dir, "response\n\np0stat\nboth\n\n", "annotate", "--api", "ORDSTATUS");
+        assertThat(result.out()).contains("error SCF002: Operation 'ordstatus', parameter 'P0ORDN' was not edited").doesNotContain("P0QTY' was not");
+        assertThat(result.err()).contains("ORDSTATUS.P0QTY  inputoutput -> both\n").doesNotContain("P0ORDN  inputoutput ->");
+        assertThat(Support.read(dir.resolve(ORDSTATUS_API))).contains("P0QTY: { name: p0qty, direction: both }\n")
+                .contains("P0ORDN: { name: p0ordn }  # inputoutput:");
+        assertThat(result.exit()).isEqualTo(1);
+    }
+
+    @Test
+    void theEditsAreTriedInTheOrderTheyWereAnswered(@TempDir Path dir) {
+        initialised(dir);
+        // both parameters of GETBAL are requests named x: the first answer is kept, the second is the one that clashes
+        Result result = Support.runWithInput(dir, "request\nx\nrequest\nx\n", "annotate", "--api", "GETBAL");
+        assertThat(result.out()).contains("Operation 'getbal', parameter 'DAYS' was not edited").doesNotContain("parameter 'DET' was not");
+        assertThat(Support.read(dir.resolve("apis/GETBAL/api.yaml"))).contains("DET: { name: x, direction: request }").contains("DAYS: { name: days }  # inputoutput:");
+    }
+
+    @Test
+    void everyRefusedEditIsReportedOnce(@TempDir Path dir) {
+        initialised(dir);
+        // P0ORDN and P0QTY both ask for the response name of P0STAT
+        Result result = Support.runWithInput(dir, "response\n\np0stat\nresponse\np0stat\n", "annotate", "--api", "ORDSTATUS");
+        assertThat(result.out().lines().filter(l -> l.contains("error SCF002")).toList()).hasSize(2);
+        assertThat(result.out()).contains("parameter 'P0ORDN' was not edited").contains("parameter 'P0QTY' was not edited");
     }
 
     // ---- what is kept

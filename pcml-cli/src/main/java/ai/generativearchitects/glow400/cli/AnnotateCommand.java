@@ -86,7 +86,7 @@ final class AnnotateCommand implements Command {
             if (edits.isEmpty()) {
                 continue;
             }
-            EditResult result = OverlayEditor.apply(text, target.overlayPath(), target.pcml(), edits);
+            EditResult result = applyEach(text, target, edits);
             context.diagnostics.addAll(result.diagnostics());
             if (!dryRun && !result.applied().isEmpty() && result.text().isPresent() && changedSince(context, file, original)) {
                 context.warning("CLI005", "The file " + context.shown(file)
@@ -212,6 +212,37 @@ final class AnnotateCommand implements Command {
         return label(parameter) + "  " + usage(parameter.field()) + " -> "
                 + edit.direction().orElseThrow().name().toLowerCase(Locale.ROOT)
                 + edit.type().map(t -> ", " + t.name().toLowerCase(Locale.ROOT)).orElse("");
+    }
+
+    /**
+     * The edits of a file go to the editor together. If the safety check refuses the result, they are applied one at a time, in
+     * the order they were answered, and each one the check accepts is kept; every refused edit is reported (SCF002) with its
+     * operation and its parameter, so that one bad answer does not discard the good ones.
+     */
+    private static EditResult applyEach(String text, AnnotationTarget target, List<ParameterEdit> edits) {
+        EditResult all = OverlayEditor.apply(text, target.overlayPath(), target.pcml(), edits);
+        if (all.text().isPresent()) {
+            return all;
+        }
+        String current = text;
+        List<ParameterEdit> applied = new ArrayList<>();
+        List<Diagnostic> diagnostics = new ArrayList<>();
+        for (ParameterEdit edit : edits) {
+            EditResult one = OverlayEditor.apply(current, target.overlayPath(), target.pcml(), List.of(edit));
+            if (one.text().isPresent()) {
+                current = one.text().get();
+                applied.addAll(one.applied());
+                diagnostics.addAll(one.diagnostics());
+                continue;
+            }
+            for (Diagnostic d : one.diagnostics()) {
+                diagnostics.add(d.code().equals("SCF002")
+                        ? new Diagnostic("SCF002", Severity.ERROR, "Operation '" + edit.operationId() + "', parameter '" + edit.parameter()
+                        + "' was not edited: the edited file was refused" + d.message().substring(d.message().indexOf(':')), d.location())
+                        : d);
+            }
+        }
+        return new EditResult(Optional.of(current), applied, diagnostics);
     }
 
     /** Whether the file is no longer what the questions were based on. A file that cannot be read counts as changed. */
