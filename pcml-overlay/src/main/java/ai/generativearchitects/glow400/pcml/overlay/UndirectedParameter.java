@@ -8,13 +8,15 @@ import java.util.Objects;
  * with the shared settings, gives no direction: the parameter that {@code OVL001} is about.
  *
  * @param operationId the id of the operation, as the loader derives it
+ * @param programName the program of the operation
  * @param field       the parameter in the PCML
  */
-public record UndirectedParameter(String operationId, FieldDef field) {
+public record UndirectedParameter(String operationId, String programName, FieldDef field) {
 
     /** @throws NullPointerException if an argument is {@code null} */
     public UndirectedParameter {
         Objects.requireNonNull(operationId, "operationId");
+        Objects.requireNonNull(programName, "programName");
         Objects.requireNonNull(field, "field");
     }
 }

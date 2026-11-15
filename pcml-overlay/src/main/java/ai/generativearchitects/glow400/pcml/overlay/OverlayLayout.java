@@ -45,11 +45,12 @@ public final class OverlayLayout {
      * One key of an entry.
      *
      * @param key        the key
+     * @param value      the value as the loader reads it, when it is a text; empty otherwise
      * @param valueStart offset of the first character of the value, quote included
      * @param valueEnd   offset after the last character of the value
      * @param simple     whether the value is a plain or quoted text on one line, with no anchor, so that it can be replaced
      */
-    public record Pair(String key, int valueStart, int valueEnd, boolean simple) {
+    public record Pair(String key, String value, int valueStart, int valueEnd, boolean simple) {
     }
 
     /**
@@ -255,7 +256,7 @@ public final class OverlayLayout {
                         && (s.getScalarStyle() == ScalarStyle.PLAIN || s.getScalarStyle() == ScalarStyle.SINGLE_QUOTED
                         || s.getScalarStyle() == ScalarStyle.DOUBLE_QUOTED)
                         && !oneLine(vs, ve).equals("");
-                pairs.add(new Pair(pairKey.getValue(), vs, ve, simple));
+                pairs.add(new Pair(pairKey.getValue(), v instanceof ScalarNode scalar ? scalar.getValue() : "", vs, ve, simple));
             }
             if (mapping.getFlowStyle() == FlowStyle.FLOW) {
                 int open = start(mapping);

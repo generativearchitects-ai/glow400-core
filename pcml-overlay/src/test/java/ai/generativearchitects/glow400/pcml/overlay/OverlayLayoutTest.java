@@ -32,6 +32,7 @@ class OverlayLayoutTest {
         assertThat(text.charAt(e.close())).isEqualTo('}');
         assertThat(e.pairs()).extracting(OverlayLayout.Pair::key).containsExactly("name", "direction");
         assertThat(e.pairs()).allMatch(OverlayLayout.Pair::simple);
+        assertThat(e.pairs()).extracting(OverlayLayout.Pair::value).containsExactly("x", "both");
         assertThat(text.substring(e.pairs().get(0).valueStart(), e.pairs().get(0).valueEnd())).isEqualTo("x");
         assertThat(text.substring(e.pairs().get(1).valueStart(), e.pairs().get(1).valueEnd())).isEqualTo("both");
     }
@@ -42,6 +43,7 @@ class OverlayLayoutTest {
         assertThat(entry(text, "A").shape()).isEqualTo(Shape.FLOW);
         assertThat(entry(text, "A").pairs()).isEmpty();
         Entry b = entry(text, "B");
+        assertThat(b.pairs()).extracting(OverlayLayout.Pair::value).containsExactly("q x", "integer");
         assertThat(text.substring(b.pairs().get(0).valueStart(), b.pairs().get(0).valueEnd())).isEqualTo("\"q x\"");
         assertThat(text.substring(b.pairs().get(1).valueStart(), b.pairs().get(1).valueEnd())).isEqualTo("'integer'");
     }

@@ -61,6 +61,7 @@ final class ApiBuilder {
     /** Where tolerant building records the parameters that have no direction; {@code null} when building strictly. */
     private final List<UndirectedParameter> undirected;
     private String operationId = "";
+    private String pcmlProgramName = "";
 
     ApiBuilder(GatewayDefaults defaults, PcmlDocument pcml, String overlayPath, String pcmlPath, List<Diagnostic> sink) {
         this(defaults, pcml, overlayPath, pcmlPath, sink, null);
@@ -104,6 +105,7 @@ final class ApiBuilder {
 
         String id = operation.id().map(Located::value).orElseGet(() -> program.name().toLowerCase(Locale.ROOT));
         operationId = id;
+        pcmlProgramName = program.name();
         if (operation.id().isEmpty() && !Vocabulary.ID.matcher(id).matches()) {
             error("OVL012", "The default id '" + id + "' (the program name in lower case) is not a valid id: set 'id'",
                     programName.at());
@@ -383,7 +385,7 @@ final class ApiBuilder {
                     yield Optional.of(overlay.get().value());
                 }
                 if (undirected != null) {
-                    undirected.add(new UndirectedParameter(operationId, parameter));
+                    undirected.add(new UndirectedParameter(operationId, pcmlProgramName, parameter));
                 }
                 String usage = parameter.usage() == ai.generativearchitects.glow400.pcml.model.Usage.INPUT_OUTPUT
                         ? "inputoutput" : "inherit";

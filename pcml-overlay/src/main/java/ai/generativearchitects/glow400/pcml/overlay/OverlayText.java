@@ -71,6 +71,12 @@ public final class OverlayText {
         return NameRules.exposedName(Objects.requireNonNull(rpgName, "rpgName"));
     }
 
+    /** The type the loader gives a field of this wire type when {@code type} is not set; empty for a struct. */
+    public static Optional<ai.generativearchitects.glow400.pcml.api.SemanticType> defaultType(
+            ai.generativearchitects.glow400.pcml.model.WireType wire) {
+        return NameRules.semanticType(Objects.requireNonNull(wire, "wire"));
+    }
+
     /**
      * Whether the loader accepts the text as an exposed name: it must not be blank, and (so that it can be written into a
      * file on one line) must not have leading or trailing white space or any control character. Clashes between names

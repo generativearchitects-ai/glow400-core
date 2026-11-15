@@ -14,6 +14,7 @@ import ai.generativearchitects.glow400.pcml.parser.PcmlParser;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -72,9 +73,9 @@ class AnnotationLoadTest {
         assertThat(loaded.operations()).extracting(ApiOperation::id).containsExactly("upd", "other");
         assertThat(loaded.operations().get(0).bindings()).filteredOn(b -> b.fieldPath().equals("QTY"))
                 .singleElement().satisfies(b -> assertThat(b.direction()).isEqualTo(Direction.INTERNAL));
-        assertThat(loaded.undirected()).extracting(UndirectedParameter::operationId, u -> u.field().name(), u -> u.field().usage())
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("upd", "QTY", Usage.INPUT_OUTPUT),
-                        org.assertj.core.groups.Tuple.tuple("upd", "NOTE", Usage.INHERIT));
+        assertThat(loaded.undirected()).extracting(UndirectedParameter::operationId, UndirectedParameter::programName, u -> u.field().name(), u -> u.field().usage())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("upd", "UPD", "QTY", Usage.INPUT_OUTPUT),
+                        org.assertj.core.groups.Tuple.tuple("upd", "UPD", "NOTE", Usage.INHERIT));
         assertThat(loaded.file()).isPresent();
     }
 
@@ -130,6 +131,14 @@ class AnnotationLoadTest {
                 java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.empty(), java.util.Optional.empty(),
                 java.util.Optional.empty(), java.util.Map.of(), java.util.Map.of(), java.util.Optional.empty(),
                 java.util.Optional.empty(), shared.operations().get(0).source()))).contains("upd");
+    }
+
+    @Test
+    void theDefaultTypeFollowsTheWireType() {
+        List<ai.generativearchitects.glow400.pcml.model.FieldDef> fields = pcml().programs().get(0).parameters();
+        assertThat(OverlayText.defaultType(fields.get(0).wire())).contains(ai.generativearchitects.glow400.pcml.api.SemanticType.STRING);
+        assertThat(OverlayText.defaultType(fields.get(1).wire())).contains(ai.generativearchitects.glow400.pcml.api.SemanticType.INTEGER);
+        assertThat(OverlayText.defaultType(new ai.generativearchitects.glow400.pcml.model.WireType.Struct("S"))).isEmpty();
     }
 
     @Test
