@@ -22,9 +22,14 @@ class PackagedJarIT {
     }
 
     private static Run java(Path workingDirectory, String... args) throws IOException, InterruptedException {
+        return javaWithInput(workingDirectory, "", args);
+    }
+
+    private static Run javaWithInput(Path workingDirectory, String input, String... args) throws IOException, InterruptedException {
         List<String> command = new java.util.ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-jar", JAR.toString()));
         command.addAll(List.of(args));
         Process process = new ProcessBuilder(command).directory(workingDirectory.toFile()).start();
+        process.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8));
         process.getOutputStream().close();
         byte[] out = process.getInputStream().readAllBytes();
         byte[] err = process.getErrorStream().readAllBytes();
@@ -51,6 +56,25 @@ class PackagedJarIT {
         assertThat(Support.names(dir.resolve("out"))).contains("descriptor.json", "openapi/ordstatus.yaml");
         Run usage = java(dir, "frobnicate");
         assertThat(usage.exit()).isEqualTo(2);
+    }
+
+    @Test
+    void theJarTakesAFolderOfPcmlToABundleWithInitAndAnnotate(@TempDir Path dir) throws Exception {
+        ScaffoldFixtures.pcmlOnly(dir.resolve("repo"));
+        Run init = java(dir, "init", "--repo", "repo");
+        assertThat(init.exit()).isZero();
+        assertThat(init.err()).contains("created repo/gateway.yaml").contains("found 2 PCML files, created 2 api.yaml");
+        Run failing = java(dir, "validate", "--repo", "repo");
+        assertThat(failing.exit()).isEqualTo(1);
+        assertThat(failing.out()).contains("error OVL001");
+        Run annotate = javaWithInput(dir, "request\n\nboth\n\nrequest\n\n\nresponse\n\n", "annotate", "--repo", "repo");
+        assertThat(annotate.exit()).isZero();
+        assertThat(annotate.err()).contains("GETBAL.DET  inputoutput -> request").contains("ORDSTATUS.P0QTY  inputoutput -> response");
+        assertThat(java(dir, "validate", "--repo", "repo").exit()).isZero();
+        Run bundle = java(dir, "bundle", "--repo", "repo", "--name", "orders", "--version", "1.0.0", "--out", "orders.rpgapi");
+        assertThat(bundle.exit()).isZero();
+        assertThat(dir.resolve("orders.rpgapi")).isRegularFile();
+        assertThat(javaWithInput(dir, "", "annotate", "--repo", "repo").err()).isEqualTo("nothing to annotate\n");
     }
 
     @Test
