@@ -99,6 +99,12 @@ class ReportTest {
     }
 
     @Test
+    void theLineDecidesBeforeTheColumn() {
+        List<Diagnostic> list = List.of(d("B", Severity.ERROR, "m", "f", 6, 1), d("A", Severity.ERROR, "m", "f", 5, 9));
+        assertThat(TextReport.render(new Report("c", BASE, list)).lines().toList().subList(0, 2)).containsExactly("f:5:9: error A: m", "f:6:1: error B: m");
+    }
+
+    @Test
     void aPathUnderTheBaseIsRelativeWithSlashesAndAnyOtherPathIsAsGiven() {
         Report report = report();
         assertThat(report.display("/work/repo/apis/ORDERS/api.yaml")).isEqualTo("apis/ORDERS/api.yaml");
@@ -249,7 +255,12 @@ class ReportTest {
         assertThat(((Map<String, Object>) result.get("message")).get("text")).isEqualTo(message);
         assertThat(((Map<String, Object>) physical(result).get("artifactLocation")).get("uri")).isEqualTo("a%20b%0A%23c%25d.yaml");
         assertThat(SarifReport.uri("x/é.yaml")).isEqualTo("x/%C3%A9.yaml");
-        assertThat(SarifReport.uri("C:x")).isNotBlank();
+        assertThat(SarifReport.uri("C:x/y")).isEqualTo("./C%3Ax/y");
+        assertThat(SarifReport.uri("/C:x")).isEqualTo("/C%3Ax");
+        assertThat(SarifReport.uri("a/b:c")).isEqualTo("a/b%3Ac");
+        assertThat(SarifReport.uri("plain-name_1.~/x")).isEqualTo("plain-name_1.~/x");
+        assertThat(SarifReport.uri("\u4e2d")).isEqualTo("%E4%B8%AD");
+        assertThat(SarifReport.uri("")).isEmpty();
         Map<String, Object> empty = ((List<Map<String, Object>>) json(SarifReport.render(new Report("c", BASE, List.of()))).get("runs")).get(0);
         assertThat((List<Object>) empty.get("results")).isEmpty();
         assertThat((List<Object>) ((Map<String, Object>) ((Map<String, Object>) empty.get("tool")).get("driver")).get("rules")).isEmpty();

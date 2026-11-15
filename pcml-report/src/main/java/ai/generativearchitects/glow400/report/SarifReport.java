@@ -4,8 +4,6 @@ import ai.generativearchitects.glow400.emit.descriptor.Json;
 import ai.generativearchitects.glow400.emit.descriptor.Tool;
 import ai.generativearchitects.glow400.pcml.diagnostics.Diagnostic;
 import ai.generativearchitects.glow400.pcml.diagnostics.Severity;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -90,13 +88,24 @@ public final class SarifReport {
         return location;
     }
 
-    /** A path as a URI reference: characters that a URI cannot hold are percent-encoded. */
+    /**
+     * A path as a URI reference: everything but letters, digits and {@code - . _ ~ /} is percent-encoded, as UTF-8. A relative
+     * path whose first segment holds a colon begins with {@code ./}, so that it is not read as a scheme.
+     */
     static String uri(String path) {
-        try {
-            return new URI(null, null, path, null).toASCIIString();
-        } catch (URISyntaxException e) {
-            return path.codePoints().mapToObj(cp -> cp < 0x80 && cp > 0x20 && cp != '%' ? String.valueOf((char) cp) : "%" + Integer.toHexString(cp).toUpperCase())
-                    .collect(java.util.stream.Collectors.joining());
+        StringBuilder out = new StringBuilder();
+        for (byte b : path.getBytes(java.nio.charset.StandardCharsets.UTF_8)) {
+            char c = (char) (b & 0xFF);
+            boolean plain = c < 0x80 && (Character.isLetterOrDigit(c) || "-._~/".indexOf(c) >= 0);
+            if (plain) {
+                out.append(c);
+            } else {
+                out.append('%').append(String.format("%02X", b & 0xFF));
+            }
         }
+        String encoded = out.toString();
+        int firstSlash = encoded.indexOf('/');
+        String firstSegment = firstSlash < 0 ? encoded : encoded.substring(0, firstSlash);
+        return !encoded.startsWith("/") && firstSegment.contains("%3A") ? "./" + encoded : encoded;
     }
 }
