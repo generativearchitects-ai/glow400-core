@@ -53,7 +53,7 @@ final class BundleCommand implements Command {
             }
             context.err.println("wrote " + context.shown(target));
         } catch (IOException e) {
-            context.error("CLI003", "The file " + context.shown(target) + " could not be written: " + Writing.reason(e), Context.GATEWAY);
+            context.error("CLI003", "The file " + context.shown(target) + " could not be written: " + Writing.reason(e), target);
             if (temporary != null) {
                 try {
                     Files.deleteIfExists(temporary);

@@ -41,7 +41,7 @@ final class GenerateCommand implements Command {
         Map<String, byte[]> files = new LinkedHashMap<>();
         for (EmittedFile file : emitted.get()) {
             if (files.putIfAbsent(file.path(), file.content()) != null) {
-                context.error("CLI002", "Two emitted files have the path " + file.path(), Context.GATEWAY);
+                context.error("CLI002", "Two emitted files have the path " + file.path(), context.workingDirectory.resolve(context.options.required("--out")).resolve(file.path()));
             }
         }
         Path out = context.workingDirectory.resolve(context.options.required("--out")).toAbsolutePath().normalize();
@@ -52,7 +52,7 @@ final class GenerateCommand implements Command {
         Path physicalOut = Writing.physical(out);
         for (String path : files.keySet()) {
             if (!inside(out.resolve(path), physicalOut)) {
-                context.error("CLI002", "The path " + path + " leads out of the output folder", Context.GATEWAY);
+                context.error("CLI002", "The path " + path + " leads out of the output folder", out.resolve(path));
             }
         }
         if (context.hasError()) {
@@ -78,19 +78,19 @@ final class GenerateCommand implements Command {
         try {
             target = Writing.physical(out);
         } catch (IOException e) {
-            context.error("CLI003", "The output folder " + shown + " cannot be written: " + Writing.reason(e), Context.GATEWAY);
+            context.error("CLI003", "The output folder " + shown + " cannot be written: " + Writing.reason(e), out);
             return;
         }
         if (target.equals(root)) {
-            context.error("CLI002", "The output folder " + shown + " is the repository root", Context.GATEWAY);
+            context.error("CLI002", "The output folder " + shown + " is the repository root", out);
             return;
         }
         if (target.startsWith(root.resolve("apis"))) {
-            context.error("CLI002", "The output folder " + shown + " is inside apis/", Context.GATEWAY);
+            context.error("CLI002", "The output folder " + shown + " is inside apis/", out);
             return;
         }
         if (Files.exists(target) && !Files.isDirectory(target)) {
-            context.error("CLI003", "The output folder " + shown + " cannot be written: not a folder", Context.GATEWAY);
+            context.error("CLI003", "The output folder " + shown + " cannot be written: not a folder", out);
             return;
         }
     }
@@ -104,7 +104,7 @@ final class GenerateCommand implements Command {
                 Files.write(target, file.getValue());
                 written.add(target);
             } catch (IOException e) {
-                context.error("CLI003", "The file " + context.shown(target) + " could not be written: " + Writing.reason(e), Context.GATEWAY);
+                context.error("CLI003", "The file " + context.shown(target) + " could not be written: " + Writing.reason(e), target);
                 return;
             }
         }

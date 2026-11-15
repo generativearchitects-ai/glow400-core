@@ -61,6 +61,11 @@ final class Context {
         diagnostics.add(new Diagnostic(code, Severity.ERROR, message, at));
     }
 
+    /** An error that is about a path: it points at that path, as shown to the person, at 1:1. */
+    void error(String code, String message, Path path) {
+        error(code, message, new SourceLocation(shown(path), 1, 1));
+    }
+
     /** The emitters that exist, by name. The first one found with a name is the one used. */
     static Map<String, Emitter> emitters() {
         Map<String, Emitter> found = new HashMap<>();

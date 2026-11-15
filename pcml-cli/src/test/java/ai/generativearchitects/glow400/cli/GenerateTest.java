@@ -120,7 +120,7 @@ class GenerateTest {
         Support.write(dir.resolve("repo/gateway.yaml"), "emitters: [descriptor, clash]\n");
         Result result = Support.run(dir, "generate", "--repo", "repo", "--out", "out");
         assertThat(result.exit()).isEqualTo(1);
-        assertThat(result.out()).contains("error CLI002: Two emitted files have the path descriptor.json");
+        assertThat(result.out()).contains("out/descriptor.json:1:1: error CLI002: Two emitted files have the path descriptor.json");
         assertThat(Files.exists(dir.resolve("out"))).isFalse();
     }
 
@@ -129,10 +129,10 @@ class GenerateTest {
         Path repo = Support.repo("minimal", dir.resolve("repo"));
         Result root = Support.run(dir, "generate", "--repo", "repo", "--out", "repo");
         assertThat(root.exit()).isEqualTo(1);
-        assertThat(root.out()).contains("error CLI002: The output folder repo is the repository root");
+        assertThat(root.out()).contains("repo:1:1: error CLI002: The output folder repo is the repository root");
         assertThat(Support.run(dir, "generate", "--repo", "repo", "--out", "repo/./x/..").out()).contains("is the repository root");
         Result apis = Support.run(dir, "generate", "--repo", "repo", "--out", "repo/apis");
-        assertThat(apis.out()).contains("error CLI002: The output folder repo/apis is inside apis/");
+        assertThat(apis.out()).contains("repo/apis:1:1: error CLI002: The output folder repo/apis is inside apis/");
         assertThat(Support.run(dir, "generate", "--repo", "repo", "--out", "repo/apis/ORDSTATUS/out").out()).contains("is inside apis/");
         assertThat(Support.run(dir, "generate", "--repo", "repo", "--out", "repo/apis/new").out()).contains("is inside apis/");
         // a link to the repository root is the repository root
@@ -152,7 +152,7 @@ class GenerateTest {
         Files.createSymbolicLink(dir.resolve("out/linked"), dir.resolve("elsewhere"));
         Result result = Support.run(dir, "generate", "--repo", "repo", "--out", "out");
         assertThat(result.exit()).isEqualTo(1);
-        assertThat(result.out()).contains("error CLI002: The path linked/inside.txt leads out of the output folder");
+        assertThat(result.out()).contains("out/linked/inside.txt:1:1: error CLI002: The path linked/inside.txt leads out of the output folder");
         assertThat(Support.names(dir.resolve("elsewhere"))).containsExactly("");
         assertThat(Files.exists(dir.resolve("out/descriptor.json"))).isFalse();
         // a link that stays inside the output folder is fine
@@ -175,7 +175,7 @@ class GenerateTest {
         Files.createSymbolicLink(dir.resolve("out"), dir.resolve("nowhere"));
         Result result = Support.run(dir, "generate", "--repo", "repo", "--out", "out");
         assertThat(result.exit()).isEqualTo(1);
-        assertThat(result.out()).containsPattern("error CLI003: The output folder out cannot be written: [a-z ]+");
+        assertThat(result.out()).containsPattern("out:1:1: error CLI003: The output folder out cannot be written: [a-z ]+");
         assertThat(Files.exists(dir.resolve("nowhere"))).isFalse();
     }
 
@@ -185,7 +185,7 @@ class GenerateTest {
         Support.write(dir.resolve("out"), "a file");
         Result result = Support.run(dir, "generate", "--repo", "repo", "--out", "out");
         assertThat(result.exit()).isEqualTo(1);
-        assertThat(result.out()).contains("error CLI003: The output folder out cannot be written: not a folder");
+        assertThat(result.out()).contains("out:1:1: error CLI003: The output folder out cannot be written: not a folder");
         assertThat(Support.read(dir.resolve("out"))).isEqualTo("a file");
     }
 
@@ -195,7 +195,7 @@ class GenerateTest {
         Support.write(dir.resolve("out/openapi"), "a file where a folder must be");
         Result result = Support.run(dir, "generate", "--repo", "repo", "--out", "out");
         assertThat(result.exit()).isEqualTo(1);
-        assertThat(result.out()).containsPattern("error CLI003: The file out/openapi/ordstatus.yaml could not be written: [a-z ]+");
+        assertThat(result.out()).containsPattern("out/openapi/ordstatus.yaml:1:1: error CLI003: The file out/openapi/ordstatus.yaml could not be written: [a-z ]+");
         assertThat(result.out()).doesNotContain("openapi: 3.1.0").doesNotContain(dir.toString());
     }
 
