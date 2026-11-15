@@ -10,6 +10,7 @@ import ai.generativearchitects.glow400.pcml.model.SourceLocation;
 import ai.generativearchitects.glow400.pcml.overlay.OverlayLoader;
 import ai.generativearchitects.glow400.pcml.overlay.RepositoryResult;
 import ai.generativearchitects.glow400.pcml.validation.Validator;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,15 +29,17 @@ final class Context {
 
     final Options options;
     final Path workingDirectory;
+    final InputStream in;
     final PrintStream out;
     final PrintStream err;
     final Path repo;
     final List<Diagnostic> diagnostics = new ArrayList<>();
     ApiRepositoryModel model;
 
-    Context(Options options, Path workingDirectory, PrintStream out, PrintStream err) {
+    Context(Options options, Path workingDirectory, InputStream in, PrintStream out, PrintStream err) {
         this.options = options;
         this.workingDirectory = workingDirectory;
+        this.in = in;
         this.out = out;
         this.err = err;
         this.repo = workingDirectory.resolve(options.value("--repo").orElse(".")).toAbsolutePath().normalize();

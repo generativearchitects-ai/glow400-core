@@ -89,6 +89,34 @@ class AnnotationLoadTest {
     }
 
     @Test
+    void anInOnAParameterWithoutADirectionIsNotAnotherErrorButOnADirectedInternalOneItIs() {
+        String undirected = OVERLAY.replace("ID: { name: id }", "ID: { name: id }\n      QTY: { in: query }");
+        assertThat(OverlayText.load("api.yaml", undirected, pcml(), failing()).diagnostics()).extracting(Diagnostic::code)
+                .containsExactly("OVL001", "OVL001");
+        String directed = OVERLAY.replace("ID: { name: id }", "ID: { name: id }\n      QTY: { in: query, direction: internal }");
+        assertThat(OverlayText.load("api.yaml", directed, pcml(), failing()).diagnostics()).extracting(Diagnostic::code)
+                .contains("OVL012");
+    }
+
+    @Test
+    void aRoutePlaceholderWaitsForTheParameterWithoutADirectionButWhatIsThereIsChecked() {
+        String text = "pcml: UPD.pcml\nversion: 1.0.0\nprogram: UPD\nroute: /upd/{qty}\nmethod: POST\nparameters:\n  QTY: { in: path, name: qty }\n";
+        assertThat(OverlayText.load("api.yaml", text, pcml(), failing()).diagnostics()).extracting(Diagnostic::code).containsExactly("OVL001", "OVL001");
+        String bound = text.replace("QTY: { in: path, name: qty }", "ID: { in: path, name: other }");
+        assertThat(OverlayText.load("api.yaml", bound, pcml(), failing()).diagnostics()).extracting(Diagnostic::code)
+                .containsExactlyInAnyOrder("OVL004", "OVL001", "OVL001"); // ID is bound to a placeholder that the route does not have
+        String directed = text.replace("QTY: { in: path, name: qty }", "QTY: { in: path, name: qty, direction: internal }");
+        assertThat(OverlayText.load("api.yaml", directed, pcml(), failing()).diagnostics()).extracting(Diagnostic::code).contains("OVL012");
+    }
+
+    @Test
+    void namesThatClashAreFoundWhileOtherParametersStillHaveNoDirection() {
+        String text = "pcml: UPD.pcml\nversion: 1.0.0\nprogram: UPD\nroute: /upd\nmethod: POST\nparameters:\n"
+                + "  ID: { name: same }\n  OUT: { name: same }\n  NOTE: { direction: request, name: same }\n";
+        assertThat(OverlayText.load("api.yaml", text, pcml(), failing()).diagnostics()).extracting(Diagnostic::code).contains("OVL014");
+    }
+
+    @Test
     void aParameterWithADirectionIsNotUndirected() {
         String text = OVERLAY.replace("ID: { name: id }", "ID: { name: id }\n      QTY: { direction: request }\n      NOTE: { direction: internal }");
         OverlayText.Loaded loaded = OverlayText.load("api.yaml", text, pcml(), failing());

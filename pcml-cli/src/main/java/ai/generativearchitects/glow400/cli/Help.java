@@ -31,6 +31,8 @@ final class Help {
                 + "       " + Tool.NAME + " --version\n"
                 + "\n"
                 + "Commands:\n"
+                + "  init       Write gateway.yaml and a first api.yaml for every PCML file that has none\n"
+                + "  annotate   Ask which way each inputoutput parameter goes and write the answers into api.yaml\n"
                 + "  validate   Load the repository, validate it and report\n"
                 + "  generate   Run the emitters named in gateway.yaml and write their files\n"
                 + "  bundle     Pack the descriptor, the OpenAPI documents and the sources into one bundle file\n"
@@ -40,6 +42,47 @@ final class Help {
                 + "\n"
                 + "The report goes to standard output or to --report; everything else goes to standard error.\n"
                 + "Run '" + Tool.NAME + " <command> --help' for the options of a command.\n";
+    }
+
+    static String init() {
+        return "Usage: " + Tool.NAME + " init [--dry-run] [options]\n"
+                + "\n"
+                + "Writes gateway.yaml, if there is none, and an api.yaml in every folder directly under apis/ that holds exactly one\n"
+                + "PCML file and no api.yaml or api.yml. Nothing that exists is overwritten or deleted: what is there is listed as kept.\n"
+                + "A folder with no PCML file, or more than one, is skipped (CLI004). The repository does not have to be valid.\n"
+                + "Every file is written to a temporary file and moved into place.\n"
+                + "\n"
+                + "The overlay has one operation per program, POST /<program>, and one line per parameter. A parameter that is\n"
+                + "inputoutput has no direction yet: run annotate, or add one by hand. gateway.yaml sets defaults.inputoutput to fail,\n"
+                + "so the repository does not validate until every such parameter has one.\n"
+                + "\n"
+                + "Options:\n"
+                + "  --dry-run                 Write nothing; say what would be created\n"
+                + "\n" + COMMON + "\n" + EXIT_CODES;
+    }
+
+    static String annotate() {
+        return "Usage: " + Tool.NAME + " annotate [--api <folder>] [--dry-run] [options]\n"
+                + "\n"
+                + "For every top-level parameter whose PCML usage is inputoutput and that has no direction in api.yaml, asks which way\n"
+                + "it goes, and writes the answers into api.yaml. Only the parameter entries are changed: comments, blank lines, key\n"
+                + "order, quoting, indentation and line endings are kept. An entry written in a way that cannot be edited safely is\n"
+                + "left alone and reported (SCF001); a file whose edited text does not pass the check is not written (SCF002).\n"
+                + "\n"
+                + "The questions go to standard error and the answers are read from standard input, one line each:\n"
+                + "  direction  request, response, both or internal; Enter skips the parameter\n"
+                + "  type       one of the types the wire type can carry; Enter keeps the default (not asked for a struct or internal)\n"
+                + "  name       the name in the API; Enter keeps the default (not asked for internal)\n"
+                + "An answer may be in any case and shortened to the beginning of one choice. The end of the input ends the\n"
+                + "questions; what was answered is kept.\n"
+                + "\n"
+                + "It stops before the first question, with the report, if the repository has an error other than OVL001. At the end\n"
+                + "the repository is loaded and validated again, so the command succeeds only when the repository validates.\n"
+                + "\n"
+                + "Options:\n"
+                + "  --api <folder>            Only the API in this folder under apis/\n"
+                + "  --dry-run                 Write nothing\n"
+                + "\n" + COMMON + "\n" + EXIT_CODES;
     }
 
     static String validate() {
@@ -88,6 +131,8 @@ final class Help {
 
     static String of(String command) {
         return switch (command) {
+            case "init" -> init();
+            case "annotate" -> annotate();
             case "validate" -> validate();
             case "generate" -> generate();
             case "bundle" -> bundle();

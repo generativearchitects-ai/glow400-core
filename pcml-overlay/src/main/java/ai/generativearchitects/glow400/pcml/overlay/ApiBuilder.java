@@ -61,6 +61,8 @@ final class ApiBuilder {
     /** Where tolerant building records the parameters that have no direction; {@code null} when building strictly. */
     private final List<UndirectedParameter> undirected;
     private String operationId = "";
+    /** How many parameters of the operation being built have been given the placeholder direction. */
+    private int placeholders;
     private String pcmlProgramName = "";
 
     ApiBuilder(GatewayDefaults defaults, PcmlDocument pcml, String overlayPath, String pcmlPath, List<Diagnostic> sink) {
@@ -105,6 +107,7 @@ final class ApiBuilder {
 
         String id = operation.id().map(Located::value).orElseGet(() -> program.name().toLowerCase(Locale.ROOT));
         operationId = id;
+        placeholders = 0;
         pcmlProgramName = program.name();
         if (operation.id().isEmpty() && !Vocabulary.ID.matcher(id).matches()) {
             error("OVL012", "The default id '" + id + "' (the program name in lower case) is not a valid id: set 'id'",
@@ -136,8 +139,10 @@ final class ApiBuilder {
         }
 
         if (errors == errorsBefore) {
-            // With a missing binding these checks would only repeat the real problem as a second error.
-            checkRoute(route, routeNames, bindings);
+            // With a missing binding these checks would only repeat the real problem as a second error. A parameter built as
+            // internal in place of its direction is a missing binding too (a strict load would not have built the operation),
+            // so the route is only checked for what is there: a placeholder may be waiting for that parameter.
+            checkRoute(route, routeNames, bindings, placeholders > 0);
             checkDuplicateNames(bindings, Collections.newSetFromMap(new IdentityHashMap<>()));
         }
 
@@ -231,6 +236,9 @@ final class ApiBuilder {
         if (direction.isEmpty()) {
             return Optional.empty();
         }
+        // Built as internal in place of a direction that is missing: a strict load reports OVL001 and nothing else about it,
+        // so 'in', which only a request field has, is not an error here either.
+        boolean placeholder = undirected != null && overlayDirection.isEmpty() && direction.get() == Direction.INTERNAL;
         String exposedName = last(layers, FieldSettings::name).map(Located::value)
                 .orElseGet(() -> NameRules.exposedName(parameter.name()));
 
@@ -257,7 +265,7 @@ final class ApiBuilder {
                 return Optional.empty();
             }
             location = Optional.of(chosen);
-        } else if (explicit.isPresent()) {
+        } else if (explicit.isPresent() && !placeholder) {
             error("OVL012", "'in' has no effect on parameter '" + path + "': its direction is "
                     + direction.get().name().toLowerCase(Locale.ROOT) + ", and only request fields have a location",
                     explicit.get().at());
@@ -399,6 +407,7 @@ final class ApiBuilder {
                     // Reported as an error, but the operation is still built (the parameter as internal).
                     sink.add(new Diagnostic("OVL001", Severity.ERROR, message,
                             source.file().equals(overlayPath) ? source : operationAt));
+                    placeholders++;
                     yield Optional.of(Direction.INTERNAL);
                 }
                 error("OVL001", message, source);
@@ -490,7 +499,7 @@ final class ApiBuilder {
     // ------------------------------------------------------------------ route, names
 
     /** {@code OVL004}: route placeholders and PATH bindings must correspond. */
-    private void checkRoute(Located<String> route, List<String> routeNames, List<FieldBinding> bindings) {
+    private void checkRoute(Located<String> route, List<String> routeNames, List<FieldBinding> bindings, boolean incomplete) {
         Set<String> pathNames = new HashSet<>();
         for (FieldBinding binding : bindings) {
             if (binding.location().isPresent() && binding.location().get() == Location.PATH) {
@@ -502,7 +511,7 @@ final class ApiBuilder {
             }
         }
         for (String name : routeNames) {
-            if (!pathNames.contains(name)) {
+            if (!incomplete && !pathNames.contains(name)) {
                 error("OVL004", "The route placeholder {" + name + "} has no binding with 'in: path'", route.at());
             }
         }

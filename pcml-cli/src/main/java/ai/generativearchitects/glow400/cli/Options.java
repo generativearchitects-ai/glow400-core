@@ -10,9 +10,11 @@ import java.util.Set;
 /** The command and the options of one command line, parsed by hand. */
 final class Options {
 
-    static final List<String> COMMANDS = List.of("validate", "generate", "bundle", "diff");
+    static final List<String> COMMANDS = List.of("init", "annotate", "validate", "generate", "bundle", "diff");
 
     private static final Set<String> FLAGS = Set.of("--help", "--stacktrace");
+    /** Flags of the commands that write files. */
+    private static final Set<String> WRITING_FLAGS = Set.of("--dry-run");
     private static final Set<String> COMMON = Set.of("--repo", "--format", "--report", "--fail-on");
 
     private final String command;
@@ -36,7 +38,12 @@ final class Options {
             case "generate" -> allowed.add("--out");
             case "bundle" -> allowed.addAll(Set.of("--name", "--version", "--out", "--source-repository", "--source-revision"));
             case "diff" -> allowed.add("--against");
+            case "annotate" -> allowed.add("--api");
             default -> { }
+        }
+        Set<String> flagNames = new java.util.HashSet<>(FLAGS);
+        if (command.equals("init") || command.equals("annotate")) {
+            flagNames.addAll(WRITING_FLAGS);
         }
         Map<String, String> values = new HashMap<>();
         Set<String> flags = new java.util.HashSet<>();
@@ -48,7 +55,7 @@ final class Options {
             String[] parts = token.split("=", 2);
             String name = parts[0];
             boolean hasValue = parts.length == 2;
-            if (FLAGS.contains(name)) {
+            if (flagNames.contains(name)) {
                 if (hasValue) {
                     throw new UsageException("The option " + name + " takes no value");
                 }
@@ -106,6 +113,10 @@ final class Options {
 
     boolean help() {
         return flags.contains("--help");
+    }
+
+    boolean flag(String name) {
+        return flags.contains(name);
     }
 
     Optional<String> value(String name) {

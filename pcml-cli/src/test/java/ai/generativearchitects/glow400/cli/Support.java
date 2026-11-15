@@ -20,9 +20,15 @@ final class Support {
     }
 
     static Result run(Path workingDirectory, String... args) {
+        return runWithInput(workingDirectory, "", args);
+    }
+
+    /** Runs with the given text as standard input. */
+    static Result runWithInput(Path workingDirectory, String input, String... args) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        int exit = Cli.run(args, workingDirectory, new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8));
+        int exit = Cli.run(args, workingDirectory, new java.io.ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)),
+                new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8));
         return new Result(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
 

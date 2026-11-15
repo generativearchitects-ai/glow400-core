@@ -1,8 +1,15 @@
 package ai.generativearchitects.glow400.cli;
 
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Set;
+import java.util.UUID;
 
 /** Where files may be written, and why a write failed, in words that name no content and no machine. */
 final class Writing {
@@ -27,5 +34,45 @@ final class Writing {
     /** A short reason for an I/O failure. */
     static String reason(IOException e) {
         return ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e);
+    }
+
+    /**
+     * Writes a file that does not exist yet: to a temporary file in the same folder, which is then moved into place, so that no
+     * reader sees half a file. Nothing is overwritten.
+     *
+     * @return {@code false} if something was already there; the file is then left alone
+     */
+    static boolean createNew(Path target, byte[] content) throws IOException {
+        Path temp = target.resolveSibling(".glow400-" + UUID.randomUUID() + ".tmp");
+        try {
+            Files.write(temp, content, StandardOpenOption.CREATE_NEW);
+            Files.move(temp, target); // without REPLACE_EXISTING: fails if the target has appeared in the meantime
+            return true;
+        } catch (FileAlreadyExistsException e) {
+            return false;
+        } finally {
+            Files.deleteIfExists(temp);
+        }
+    }
+
+    /** Replaces the content of a file that exists, through a temporary file and a move; the permissions of the file are kept. */
+    static void replace(Path target, byte[] content) throws IOException {
+        Path temp = target.resolveSibling(".glow400-" + UUID.randomUUID() + ".tmp");
+        try {
+            Files.write(temp, content, StandardOpenOption.CREATE_NEW);
+            try {
+                Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(target);
+                Files.setPosixFilePermissions(temp, permissions);
+            } catch (UnsupportedOperationException e) {
+                // not a POSIX file system: the permissions are what the system gives a new file
+            }
+            try {
+                Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(temp);
+        }
     }
 }
