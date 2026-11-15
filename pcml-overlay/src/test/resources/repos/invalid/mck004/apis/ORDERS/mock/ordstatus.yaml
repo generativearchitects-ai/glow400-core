@@ -1,4 +1,6 @@
 cases:
-  - returns: { P0STAT: TOOLONG }
-  - returns: { P0LINES: [ { QTY: 2.5 } ] }
+  - when: { P0ORDN: 1 }
+    returns: { P0STAT: TOOLONG }
+  - when: { P0ORDN: 2 }
+    returns: { P0LINES: [ { QTY: 2.5 } ] }
   - when: { P0ORDN: abc }

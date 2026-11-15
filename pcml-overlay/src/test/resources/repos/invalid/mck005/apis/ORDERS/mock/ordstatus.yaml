@@ -1,9 +1,9 @@
 cases:
-  - name: all
-  - name: never
+  - name: first
     when: { P0ORDN: 1 }
   - name: same
-    when: { P0ORDN: 2 }
+    when: { P0ORDN: 1 }
     returns: { P0STAT: S }
-  - name: twice
-    when: { P0ORDN: 2 }
+  - name: all
+  - name: never
+    when: { P0ORDN: 3 }

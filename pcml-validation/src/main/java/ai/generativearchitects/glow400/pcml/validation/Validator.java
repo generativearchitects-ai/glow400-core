@@ -1,10 +1,14 @@
 package ai.generativearchitects.glow400.pcml.validation;
 
+import ai.generativearchitects.glow400.pcml.api.ApiDefinition;
 import ai.generativearchitects.glow400.pcml.api.ApiOperation;
 import ai.generativearchitects.glow400.pcml.api.ApiRepositoryModel;
 import ai.generativearchitects.glow400.pcml.api.Direction;
 import ai.generativearchitects.glow400.pcml.api.FieldBinding;
+import ai.generativearchitects.glow400.pcml.api.MockDefinition;
 import ai.generativearchitects.glow400.pcml.codec.ConfigurationIssue;
+import ai.generativearchitects.glow400.pcml.codec.MockCodec;
+import ai.generativearchitects.glow400.pcml.codec.MockProblem;
 import ai.generativearchitects.glow400.pcml.codec.OperationCodec;
 import ai.generativearchitects.glow400.pcml.diagnostics.Diagnostic;
 import ai.generativearchitects.glow400.pcml.diagnostics.Severity;
@@ -26,6 +30,9 @@ import java.util.Optional;
  *   <li>{@code OVL005} (warning): a response array with a fixed count of {@code defaults.largeArrayThreshold} or more and
  *       no {@code trim}.</li>
  *   <li>{@code OVL006} (warning): an operation without an {@code error} mapping.</li>
+ *   <li>{@code MCK003} (error): a name in a mock that is not a parameter or member of the program, or is on the wrong side.</li>
+ *   <li>{@code MCK004} (error): a value in a mock that the codec cannot carry for its field.</li>
+ *   <li>{@code MCK005} (warning): a case of a mock that can never match.</li>
  * </ul>
  *
  * <p>Diagnostics are positioned at the binding's overlay position, or at the operation when the binding was derived from
@@ -62,6 +69,17 @@ public final class Validator {
                 diagnostics.add(new Diagnostic("OVL006", Severity.WARNING,
                         "Operation " + operation.id() + " has no error mapping: a business error reported by the program is returned as a success",
                         operation.source()));
+            }
+        }
+        for (ApiDefinition api : model.apis()) {
+            for (MockDefinition mock : api.mocks()) {
+                ApiOperation operation = api.operations().stream().filter(o -> o.id().equals(mock.operationId())).findFirst().orElseThrow();
+                if (!OperationCodec.check(operation).isEmpty()) {
+                    continue; // the operation is reported (OVL003); what a mock may say about it cannot be judged
+                }
+                for (MockProblem problem : MockCodec.of(operation).check(mock)) {
+                    diagnostics.add(new Diagnostic(problem.code(), problem.severity(), problem.message(), problem.at()));
+                }
             }
         }
         diagnostics.sort(Comparator
