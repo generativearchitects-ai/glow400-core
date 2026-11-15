@@ -93,11 +93,12 @@ final class AnnotateCommand implements Command {
                         + " was changed while the questions were asked, so nothing was written to it", file);
                 continue;
             }
-            for (ParameterEdit applied : result.applied()) {
-                context.err.println(progress(target, applied));
+            boolean written = !result.applied().isEmpty() && result.text().isPresent();
+            if (written && !dryRun && !write(context, file, result.text().get())) {
+                return; // the lines of what was not written are not printed
             }
-            if (!result.applied().isEmpty() && result.text().isPresent() && !dryRun && !write(context, file, result.text().get())) {
-                return;
+            for (ParameterEdit applied : result.applied()) {
+                context.err.println((dryRun ? "would set " : "") + progress(target, applied));
             }
         }
         context.loadAndValidate();

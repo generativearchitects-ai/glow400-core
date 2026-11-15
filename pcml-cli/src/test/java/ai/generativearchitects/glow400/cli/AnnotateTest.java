@@ -196,6 +196,14 @@ class AnnotateTest {
         assertThat(texts(dir)).isEqualTo(before);
     }
 
+    @Test
+    void theLinesOfAFileAreSaidAfterItIsWritten(@TempDir Path dir) {
+        initialised(dir);
+        Result result = Support.runWithInput(dir, "request\n\n\nboth\n\n", "annotate", "--api", "ORDSTATUS");
+        assertThat(result.err()).endsWith("ORDSTATUS.P0ORDN  inputoutput -> request\nORDSTATUS.P0QTY  inputoutput -> both\n");
+        assertThat(result.err()).doesNotContain("would set");
+    }
+
     // ---- --api, --dry-run
 
     @Test
@@ -224,7 +232,9 @@ class AnnotateTest {
         initialised(dir);
         java.util.Map<String, String> before = texts(dir);
         Result result = Support.runWithInput(dir, "request\n\nboth\n\nrequest\n\n\nresponse\n\n", "annotate", "--dry-run");
-        assertThat(result.err()).contains("GETBAL.DET  inputoutput -> request\n").contains("ORDSTATUS.P0QTY  inputoutput -> response\n");
+        assertThat(result.err()).contains("would set GETBAL.DET  inputoutput -> request\n").contains("would set ORDSTATUS.P0QTY  inputoutput -> response\n");
+        assertThat(result.err().lines().filter(l -> l.contains("->")).map(l -> l.substring(l.indexOf("would set ") < 0 ? 0 : l.indexOf("would set "))))
+                .isNotEmpty().allMatch(l -> l.startsWith("would set "));
         assertThat(texts(dir)).isEqualTo(before);
         assertThat(result.exit()).isEqualTo(1);
         assertThat(result.out()).contains("error OVL001");
@@ -485,7 +495,7 @@ class AnnotateTest {
             Result result = Support.runWithInput(dir, "request\n\nboth\n\n\nrequest\n\n\n", "annotate");
             assertThat(result.exit()).isEqualTo(1);
             assertThat(result.out()).startsWith("apis/GETBAL/api.yaml:1:1: error CLI003: The file apis/GETBAL/api.yaml could not be written: ");
-            assertThat(result.err()).doesNotContain("ORDSTATUS");
+            assertThat(result.err()).doesNotContain("ORDSTATUS").doesNotContain("->");
         } finally {
             Files.setPosixFilePermissions(folder, PosixFilePermissions.fromString("rwxr-xr-x"));
         }
@@ -506,6 +516,7 @@ class AnnotateTest {
         Result result = Support.runWithInput(dir, "request\n\n", "annotate", "--api", "GETBAL", "--repo", "repo");
         assertThat(result.exit()).isEqualTo(1);
         assertThat(result.out()).startsWith("repo/apis/GETBAL/api.yaml:1:1: error CLI003: The file repo/apis/GETBAL/api.yaml could not be written: it leads out of the repository\n");
+        assertThat(result.err()).doesNotContain("->");
         assertThat(Support.read(outside)).isEqualTo(before);
         assertThat(Files.isSymbolicLink(api)).isTrue();
     }
