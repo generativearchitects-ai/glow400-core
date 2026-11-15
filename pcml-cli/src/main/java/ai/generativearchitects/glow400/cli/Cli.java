@@ -81,8 +81,8 @@ public final class Cli {
             return OK;
         }
         if (!Options.COMMANDS.contains(first)) {
-            throw new UsageException(first.startsWith("-") ? "Unknown option '" + TextReport.escape(first) + "'"
-                    : "Unknown command '" + TextReport.escape(first.length() > 60 ? first.substring(0, 60) + "..." : first) + "'");
+            throw new UsageException(first.startsWith("-") ? "Unknown option '" + Options.shown(first) + "'"
+                    : "Unknown command '" + Options.shown(first) + "'");
         }
         Options options = Options.parse(first, args.subList(1, args.size()));
         if (options.help()) {

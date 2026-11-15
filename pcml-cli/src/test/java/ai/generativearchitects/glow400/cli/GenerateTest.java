@@ -170,6 +170,16 @@ class GenerateTest {
     }
 
     @Test
+    void anOutputFolderThatIsALinkToNowhereIsCli003(@TempDir Path dir) throws IOException {
+        Support.repo("minimal", dir.resolve("repo"));
+        Files.createSymbolicLink(dir.resolve("out"), dir.resolve("nowhere"));
+        Result result = Support.run(dir, "generate", "--repo", "repo", "--out", "out");
+        assertThat(result.exit()).isEqualTo(1);
+        assertThat(result.out()).containsPattern("error CLI003: The output folder out cannot be written: [a-z ]+");
+        assertThat(Files.exists(dir.resolve("nowhere"))).isFalse();
+    }
+
+    @Test
     void anOutputFolderThatIsAFileIsCli003(@TempDir Path dir) {
         Support.repo("minimal", dir.resolve("repo"));
         Support.write(dir.resolve("out"), "a file");

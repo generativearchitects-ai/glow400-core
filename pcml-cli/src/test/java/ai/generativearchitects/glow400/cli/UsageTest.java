@@ -68,6 +68,10 @@ class UsageTest {
         assertThat(hostile.err()).isEqualTo(Tool.NAME + ": Unknown command 'bad\\u001b[2J\\u000acommand'. Try '" + Tool.NAME + " --help'.\n");
         Result longName = Support.run(dir, "x".repeat(100));
         assertThat(longName.err()).contains("Unknown command '" + "x".repeat(60) + "...'");
+        assertThat(Support.run(dir, "x".repeat(60)).err()).contains("Unknown command '" + "x".repeat(60) + "'");
+        assertThat(Support.run(dir, "x".repeat(61)).err()).contains("Unknown command '" + "x".repeat(60) + "...'");
+        assertThat(Support.run(dir, "validate", "--" + "y".repeat(61)).err()).contains("Unknown option '--" + "y".repeat(58) + "...' for validate");
+        assertThat(Support.run(dir, "--" + "z".repeat(70)).err()).contains("Unknown option '--" + "z".repeat(58) + "...'");
         assertThat(Support.run(dir, "validate", "--bad\u001b").err()).contains("Unknown option '--bad\\u001b' for validate");
     }
 
@@ -108,6 +112,26 @@ class UsageTest {
         Result trace = Support.run(dir, "validate", "--repo", "bad\0path", "--stacktrace");
         assertThat(trace.exit()).isEqualTo(3);
         assertThat(trace.err()).contains("\tat ").startsWith(Tool.NAME + ": unexpected failure: ");
+    }
+
+    @Test
+    void whatIsWrittenIsFlushed(@TempDir Path dir) {
+        Support.repo("minimal", dir.resolve("repo"));
+        for (String[] args : List.of(new String[] {"--help"}, new String[] {"--version"}, new String[] {"validate", "--repo", "repo"})) {
+            int[] flushes = {0};
+            java.io.OutputStream counting = new java.io.OutputStream() {
+                @Override
+                public void write(int b) { }
+
+                @Override
+                public void flush() {
+                    flushes[0]++;
+                }
+            };
+            int exit = Cli.run(args, dir, new java.io.PrintStream(counting, false), new java.io.PrintStream(counting, false));
+            assertThat(exit).isZero();
+            assertThat(flushes[0]).as(String.join(" ", args)).isGreaterThan(0);
+        }
     }
 
     @Test

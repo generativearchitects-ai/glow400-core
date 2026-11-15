@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.ServiceLoader;
 
@@ -76,7 +77,7 @@ final class Context {
     Optional<List<EmittedFile>> emit(List<String> names, Map<String, Emitter> available) {
         List<EmittedFile> files = new ArrayList<>();
         for (String name : names) {
-            EmitResult result = available.get(name).emit(model);
+            EmitResult result = Objects.requireNonNull(available.get(name), "The emitter " + name + " is not available").emit(model);
             diagnostics.addAll(result.diagnostics());
             files.addAll(result.files());
         }

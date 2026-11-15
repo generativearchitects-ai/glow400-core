@@ -45,7 +45,8 @@ final class GenerateCommand implements Command {
             }
         }
         Path out = context.workingDirectory.resolve(context.options.required("--out")).toAbsolutePath().normalize();
-        if (!allowed(context, out) || context.hasError()) {
+        checkOutputFolder(context, out);
+        if (context.hasError()) {
             return;
         }
         Path physicalOut = Writing.physical(out);
@@ -70,7 +71,7 @@ final class GenerateCommand implements Command {
     }
 
     /** The output folder cannot be the repository root, nor inside {@code apis/}, nor a file. */
-    private static boolean allowed(Context context, Path out) throws IOException {
+    private static void checkOutputFolder(Context context, Path out) throws IOException {
         Path root = Writing.physical(context.repo);
         String shown = context.shown(out);
         Path target;
@@ -78,21 +79,20 @@ final class GenerateCommand implements Command {
             target = Writing.physical(out);
         } catch (IOException e) {
             context.error("CLI003", "The output folder " + shown + " cannot be written: " + Writing.reason(e), Context.GATEWAY);
-            return false;
+            return;
         }
         if (target.equals(root)) {
             context.error("CLI002", "The output folder " + shown + " is the repository root", Context.GATEWAY);
-            return false;
+            return;
         }
         if (target.startsWith(root.resolve("apis"))) {
             context.error("CLI002", "The output folder " + shown + " is inside apis/", Context.GATEWAY);
-            return false;
+            return;
         }
         if (Files.exists(target) && !Files.isDirectory(target)) {
             context.error("CLI003", "The output folder " + shown + " cannot be written: not a folder", Context.GATEWAY);
-            return false;
+            return;
         }
-        return true;
     }
 
     private static void write(Context context, Path out, Map<String, byte[]> files) {

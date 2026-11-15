@@ -163,6 +163,7 @@ class ReportTest {
         assertThat(text.chars().filter(c -> c == '\n').count()).isEqualTo(2);
         assertThat(TextReport.escape("\u0085\u007f\u0000")).isEqualTo("\\u0085\\u007f\\u0000");
         assertThat(TextReport.escape("󠀁")).isEqualTo("\\u{e0001}");
+        assertThat(TextReport.escape("\uffff")).isEqualTo("\\uffff");
         assertThat(TextReport.escape("plain ASCII ~ and ü€中")).isEqualTo("plain ASCII ~ and ü€中");
     }
 

@@ -45,10 +45,11 @@ final class Options {
             if (!token.startsWith("--")) {
                 throw new UsageException("Unexpected argument '" + shown(token) + "'");
             }
-            int equals = token.indexOf('=');
-            String name = equals < 0 ? token : token.substring(0, equals);
+            String[] parts = token.split("=", 2);
+            String name = parts[0];
+            boolean hasValue = parts.length == 2;
             if (FLAGS.contains(name)) {
-                if (equals >= 0) {
+                if (hasValue) {
                     throw new UsageException("The option " + name + " takes no value");
                 }
                 flags.add(name);
@@ -58,8 +59,8 @@ final class Options {
                 throw new UsageException("Unknown option '" + shown(name) + "' for " + command);
             }
             String value;
-            if (equals >= 0) {
-                value = token.substring(equals + 1);
+            if (hasValue) {
+                value = parts[1];
             } else if (i + 1 < args.size() && !args.get(i + 1).startsWith("--")) {
                 value = args.get(++i);
             } else {
@@ -103,16 +104,8 @@ final class Options {
         }
     }
 
-    String command() {
-        return command;
-    }
-
     boolean help() {
         return flags.contains("--help");
-    }
-
-    boolean stacktrace() {
-        return flags.contains("--stacktrace");
     }
 
     Optional<String> value(String name) {
@@ -132,7 +125,8 @@ final class Options {
         return values.getOrDefault("--fail-on", "error").equals("warning") ? Severity.WARNING : Severity.ERROR;
     }
 
-    private static String shown(String text) {
+    /** A name from the command line for a message: escaped, and cut at 60 characters. */
+    static String shown(String text) {
         return ai.generativearchitects.glow400.report.TextReport.escape(text.length() > 60 ? text.substring(0, 60) + "..." : text);
     }
 }

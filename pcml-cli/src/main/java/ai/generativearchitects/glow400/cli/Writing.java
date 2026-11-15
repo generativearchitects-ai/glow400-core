@@ -24,11 +24,8 @@ final class Writing {
     static Path physical(Path path) throws IOException {
         Path absolute = path.toAbsolutePath().normalize();
         Path existing = absolute;
-        while (existing != null && !Files.exists(existing, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
-            existing = existing.getParent();
-        }
-        if (existing == null) {
-            return absolute;
+        while (!Files.exists(existing, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+            existing = existing.getParent(); // the root of the file system is always there, so this ends
         }
         return existing.toRealPath().resolve(existing.relativize(absolute)).normalize();
     }

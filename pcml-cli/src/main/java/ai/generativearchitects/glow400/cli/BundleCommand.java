@@ -22,15 +22,8 @@ final class BundleCommand implements Command {
         if (!context.loadAndValidate()) {
             return;
         }
+        // the two emitters are in this jar; if they are not, the packaging is broken and the command fails as an unexpected failure
         Map<String, Emitter> available = Context.emitters();
-        for (String name : EMITTERS) {
-            if (!available.containsKey(name)) {
-                context.error("CLI001", "The emitter '" + name + "' that a bundle needs is not available", Context.GATEWAY);
-            }
-        }
-        if (context.hasError()) {
-            return;
-        }
         var emitted = context.emit(EMITTERS, available);
         if (emitted.isEmpty()) {
             return;
