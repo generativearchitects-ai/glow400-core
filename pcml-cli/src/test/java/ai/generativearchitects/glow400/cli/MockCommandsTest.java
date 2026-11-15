@@ -90,6 +90,22 @@ class MockCommandsTest {
     }
 
     @Test
+    void theDescriptorAndTheOpenApiDocumentAreTheSameBytesWithOrWithoutTheMockFiles(@TempDir Path dir) throws IOException {
+        Support.repo("mocked", dir.resolve("with"));
+        Support.repo("mocked", dir.resolve("without"));
+        try (var files = Files.walk(dir.resolve("without/apis/ORDERS/mock"))) {
+            for (Path file : files.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                Files.delete(file);
+            }
+        }
+        assertThat(Support.run(dir, "generate", "--repo", "with", "--out", "a").exit()).isZero();
+        assertThat(Support.run(dir, "generate", "--repo", "without", "--out", "b").exit()).isZero();
+        assertThat(Support.bytes(dir.resolve("a/descriptor.json"))).isEqualTo(Support.bytes(dir.resolve("b/descriptor.json")));
+        assertThat(Support.bytes(dir.resolve("a/openapi/orders.yaml"))).isEqualTo(Support.bytes(dir.resolve("b/openapi/orders.yaml")));
+        assertThat(Support.names(dir.resolve("b"))).doesNotContain("mock");
+    }
+
+    @Test
     void generateIsTheSameBytesTwice(@TempDir Path dir) {
         Support.repo("mocked", dir.resolve("repo"));
         Support.run(dir, "generate", "--repo", "repo", "--out", "one");
