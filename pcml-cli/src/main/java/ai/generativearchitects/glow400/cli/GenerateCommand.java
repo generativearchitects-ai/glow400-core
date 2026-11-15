@@ -50,7 +50,7 @@ final class GenerateCommand implements Command {
         }
         Path physicalOut = Writing.physical(out);
         for (String path : files.keySet()) {
-            if (!Writing.physical(out.resolve(path)).startsWith(physicalOut)) {
+            if (!inside(out.resolve(path), physicalOut)) {
                 context.error("CLI002", "The path " + path + " leads out of the output folder", Context.GATEWAY);
             }
         }
@@ -60,11 +60,26 @@ final class GenerateCommand implements Command {
         write(context, out, files);
     }
 
+    /** Whether a file would be written inside the output folder, through any symbolic links on the way. */
+    private static boolean inside(Path file, Path physicalOut) {
+        try {
+            return Writing.physical(file).startsWith(physicalOut);
+        } catch (IOException e) {
+            return false; // a link that leads nowhere
+        }
+    }
+
     /** The output folder cannot be the repository root, nor inside {@code apis/}, nor a file. */
     private static boolean allowed(Context context, Path out) throws IOException {
         Path root = Writing.physical(context.repo);
-        Path target = Writing.physical(out);
         String shown = context.shown(out);
+        Path target;
+        try {
+            target = Writing.physical(out);
+        } catch (IOException e) {
+            context.error("CLI003", "The output folder " + shown + " cannot be written: " + Writing.reason(e), Context.GATEWAY);
+            return false;
+        }
         if (target.equals(root)) {
             context.error("CLI002", "The output folder " + shown + " is the repository root", Context.GATEWAY);
             return false;

@@ -18,12 +18,13 @@ final class Writing {
 
     /**
      * The path as it is on disk, for comparisons: the real path of the deepest part that exists, with the part that does not
-     * exist yet added unchanged. Symbolic links on the way are followed.
+     * exist yet added unchanged. Symbolic links on the way are followed; a link that leads nowhere is an
+     * {@link java.nio.file.NoSuchFileException}, since writing through it would create a file at a place nobody looked at.
      */
     static Path physical(Path path) throws IOException {
         Path absolute = path.toAbsolutePath().normalize();
         Path existing = absolute;
-        while (existing != null && !Files.exists(existing)) {
+        while (existing != null && !Files.exists(existing, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
             existing = existing.getParent();
         }
         if (existing == null) {

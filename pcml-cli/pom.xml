@@ -109,6 +109,10 @@
                   <addHeader>false</addHeader>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                  <resource>META-INF/NOTICE-glow400-core</resource>
+                  <file>${project.basedir}/../NOTICE</file>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
                   <resource>META-INF/LICENSE</resource>
                   <file>${project.basedir}/../LICENSE</file>
                 </transformer>
