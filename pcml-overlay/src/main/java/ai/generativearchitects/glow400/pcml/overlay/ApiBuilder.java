@@ -58,12 +58,27 @@ final class ApiBuilder {
     /** Where the operation being built starts in the overlay file; diagnostics fall back to it. */
     private SourceLocation operationAt;
 
+    /** Where tolerant building records the parameters that have no direction; {@code null} when building strictly. */
+    private final List<UndirectedParameter> undirected;
+    private String operationId = "";
+
     ApiBuilder(GatewayDefaults defaults, PcmlDocument pcml, String overlayPath, String pcmlPath, List<Diagnostic> sink) {
+        this(defaults, pcml, overlayPath, pcmlPath, sink, null);
+    }
+
+    /**
+     * @param undirected if not {@code null}, building is tolerant of {@code OVL001}: the diagnostic is still reported,
+     *                   but the parameter is built as {@code internal} instead of the operation being left out, and the
+     *                   parameter is added to this list
+     */
+    ApiBuilder(GatewayDefaults defaults, PcmlDocument pcml, String overlayPath, String pcmlPath, List<Diagnostic> sink,
+               List<UndirectedParameter> undirected) {
         this.defaults = defaults;
         this.pcml = pcml;
         this.overlayPath = overlayPath;
         this.pcmlPath = pcmlPath;
         this.sink = sink;
+        this.undirected = undirected;
     }
 
     /** Every diagnostic carries an overlay position: a position inside the PCML (a derived binding) becomes the operation's. */
@@ -88,6 +103,7 @@ final class ApiBuilder {
         OperationSettings shared = file.shared();
 
         String id = operation.id().map(Located::value).orElseGet(() -> program.name().toLowerCase(Locale.ROOT));
+        operationId = id;
         if (operation.id().isEmpty() && !Vocabulary.ID.matcher(id).matches()) {
             error("OVL012", "The default id '" + id + "' (the program name in lower case) is not a valid id: set 'id'",
                     programName.at());
@@ -366,6 +382,9 @@ final class ApiBuilder {
                 if (overlay.isPresent()) {
                     yield Optional.of(overlay.get().value());
                 }
+                if (undirected != null) {
+                    undirected.add(new UndirectedParameter(operationId, parameter));
+                }
                 String usage = parameter.usage() == ai.generativearchitects.glow400.pcml.model.Usage.INPUT_OUTPUT
                         ? "inputoutput" : "inherit";
                 String message = "Parameter '" + parameter.name() + "' has usage " + usage
@@ -373,6 +392,12 @@ final class ApiBuilder {
                 if (defaults.inputOutput() == InputOutputPolicy.BOTH) {
                     report("OVL001", Severity.WARNING, message + "; treated as 'both'", source);
                     yield Optional.of(Direction.BOTH);
+                }
+                if (undirected != null) {
+                    // Reported as an error, but the operation is still built (the parameter as internal).
+                    sink.add(new Diagnostic("OVL001", Severity.ERROR, message,
+                            source.file().equals(overlayPath) ? source : operationAt));
+                    yield Optional.of(Direction.INTERNAL);
                 }
                 error("OVL001", message, source);
                 yield Optional.empty();
