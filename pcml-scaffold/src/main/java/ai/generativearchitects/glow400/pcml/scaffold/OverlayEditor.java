@@ -139,7 +139,7 @@ public final class OverlayEditor {
 
     // ------------------------------------------------------------------ the safety check
 
-    private static Optional<String> refusal(OverlayText.Loaded before, OverlayText.Loaded after, List<ParameterEdit> applied) {
+    static Optional<String> refusal(OverlayText.Loaded before, OverlayText.Loaded after, List<ParameterEdit> applied) {
         Map<String, Integer> expected = new HashMap<>();
         for (Diagnostic d : before.diagnostics()) {
             expected.merge(key(d), 1, Integer::sum);
@@ -205,7 +205,7 @@ public final class OverlayEditor {
     // ------------------------------------------------------------------ planning the text changes
 
     /** A change to the text: the characters from {@code start} to {@code end} become {@code text}. */
-    private record Change(int start, int end, String text, int order) {
+    private record Change(int start, int end, String text, int rank) {
     }
 
     private static final class Planner {
@@ -216,7 +216,6 @@ public final class OverlayEditor {
         private final OverlayLayout layout;
         private final List<Change> changes = new ArrayList<>();
         private final List<Diagnostic> diagnostics = new ArrayList<>();
-        private int order;
 
         Planner(String text, String sourceName, PcmlDocument pcml, OverlayFile file, OverlayLayout layout) {
             this.text = text;
@@ -315,24 +314,24 @@ public final class OverlayEditor {
                 } else if (!pair.get().simple()) {
                     return Optional.of("the value of '" + want.getKey() + "' is not a plain or quoted text on one line");
                 } else if (!pair.get().value().equals(want.getValue()[0])) {
-                    mine.add(new Change(pair.get().valueStart(), pair.get().valueEnd(), want.getValue()[1], order++));
+                    mine.add(new Change(pair.get().valueStart(), pair.get().valueEnd(), want.getValue()[1], 0));
                 }
             }
             if (!missing.isEmpty()) {
                 if (entry.pairs().isEmpty()) {
-                    mine.add(new Change(entry.open(), entry.close() + 1, "{ " + String.join(", ", missing) + " }", order++));
+                    mine.add(new Change(entry.open(), entry.close() + 1, "{ " + String.join(", ", missing) + " }", 0));
                 } else {
                     OverlayLayout.Pair last = entry.pairs().get(entry.pairs().size() - 1);
                     if (last.valueEnd() <= last.valueStart()) {
                         return Optional.of("the last key of the entry has no value");
                     }
-                    mine.add(new Change(last.valueEnd(), last.valueEnd(), ", " + String.join(", ", missing), order++));
+                    mine.add(new Change(last.valueEnd(), last.valueEnd(), ", " + String.join(", ", missing), 0));
                 }
             }
             if (edit.direction().isPresent()) {
                 int lineEnd = lineEnd(entry.close() + 1);
                 if (INPUTOUTPUT_COMMENT.matcher(text.substring(entry.close() + 1, lineEnd)).matches()) {
-                    mine.add(new Change(entry.close() + 1, lineEnd, "", order++));
+                    mine.add(new Change(entry.close() + 1, lineEnd, "", 0));
                 }
             }
             changes.addAll(mine);
@@ -350,7 +349,7 @@ public final class OverlayEditor {
                 } else if (!pair.get().simple()) {
                     return Optional.of("the value of '" + want.getKey() + "' is not a plain or quoted text on one line");
                 } else if (!pair.get().value().equals(want.getValue()[0])) {
-                    mine.add(new Change(pair.get().valueStart(), pair.get().valueEnd(), want.getValue()[1], order++));
+                    mine.add(new Change(pair.get().valueStart(), pair.get().valueEnd(), want.getValue()[1], 0));
                 }
             }
             changes.addAll(mine);
@@ -381,13 +380,13 @@ public final class OverlayEditor {
                     block.append(pad).append(line).append(terminator);
                 }
                 int at = end + terminator.length();
-                changes.add(new Change(at, at, block.toString(), rank + order++));
+                changes.add(new Change(at, at, block.toString(), rank));
             } else {
                 String terminator = firstTerminator();
                 for (String line : lines) {
                     block.append(terminator).append(pad).append(line);
                 }
-                changes.add(new Change(end, end, block.toString(), rank + order++));
+                changes.add(new Change(end, end, block.toString(), rank));
             }
         }
 
@@ -403,9 +402,12 @@ public final class OverlayEditor {
         /** The text with every planned change made. */
         String result() {
             StringBuilder out = new StringBuilder(text);
-            // From the end of the text to its start; at one position the later change goes first, so the earlier ends up first.
-            changes.sort(Comparator.comparingInt(Change::start).thenComparingInt(Change::order).reversed());
-            for (Change change : changes) {
+            // From the end of the text to its start. At one place the changes are made in the reverse of the order they were planned
+            // in (the sort is stable), so that the one planned first ends up first; a change with a higher rank ends up after.
+            List<Change> ordered = new ArrayList<>(changes);
+            java.util.Collections.reverse(ordered);
+            ordered.sort(Comparator.comparingInt(Change::start).thenComparingInt(Change::rank).reversed());
+            for (Change change : ordered) {
                 out.replace(change.start(), change.end(), change.text());
             }
             return out.toString();
