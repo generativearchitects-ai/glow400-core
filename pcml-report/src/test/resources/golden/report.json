@@ -1,0 +1,63 @@
+{
+  "reportSchemaVersion": 1,
+  "tool": {
+    "name": "glow400-core",
+    "version": "@VERSION@"
+  },
+  "command": "validate",
+  "summary": {
+    "errors": 4,
+    "warnings": 1,
+    "notes": 1
+  },
+  "diagnostics": [
+    {
+      "code": "BDL003",
+      "severity": "error",
+      "message": "The bundle has no manifest.json",
+      "file": "/elsewhere/old.rpgapi",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "code": "OVL010",
+      "severity": "error",
+      "message": "Cannot read file as UTF-8 text",
+      "file": "apis/A B/api.yaml",
+      "line": 0,
+      "column": 0
+    },
+    {
+      "code": "API003",
+      "severity": "note",
+      "message": "API orders: compatible (1 compatible), version 1.0.0 to 1.1.0",
+      "file": "apis/ORDERS/api.yaml",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "code": "OVL006",
+      "severity": "warning",
+      "message": "Operation orders has no error mapping",
+      "file": "apis/ORDERS/api.yaml",
+      "line": 1,
+      "column": 1
+    },
+    {
+      "code": "OVL004",
+      "severity": "error",
+      "message": "A message with \"quotes\" and a tab\there",
+      "file": "apis/ORDERS/api.yaml",
+      "line": 12,
+      "column": 5
+    },
+    {
+      "code": "OVL012",
+      "severity": "error",
+      "message": "'route' must start with /",
+      "file": "apis/ORDERS/api.yaml",
+      "line": 12,
+      "column": 5
+    }
+  ]
+}

@@ -32,6 +32,8 @@
     <module>pcml-emit-descriptor</module>
     <module>pcml-emit-openapi</module>
     <module>pcml-bundle</module>
+    <module>pcml-report</module>
+    <module>pcml-cli</module>
   </modules>
 
   <properties>
@@ -87,6 +89,11 @@
       <dependency>
         <groupId>ai.generativearchitects.glow400</groupId>
         <artifactId>pcml-bundle</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.glow400</groupId>
+        <artifactId>pcml-report</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
