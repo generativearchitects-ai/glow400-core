@@ -1,14 +1,10 @@
 package ai.generativearchitects.glow400.bundle;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Properties;
 import java.util.regex.Pattern;
 
 /** What the writer and the reader agree on: the layout, the limits and the checksums. */
@@ -123,17 +119,8 @@ final class BundleFormat {
         return "sha256:" + sha256(lines.toString().getBytes(StandardCharsets.UTF_8));
     }
 
-    /** The version of this generator, from a resource filled in by the build. */
+    /** The version of this generator, the one the descriptor names too. */
     static String generatorVersion() {
-        Properties properties = new Properties();
-        try (InputStream in = BundleFormat.class.getResourceAsStream("generator.properties")) {
-            if (in == null) {
-                throw new IllegalStateException("generator.properties is missing from the class path");
-            }
-            properties.load(in);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        return properties.getProperty("version");
+        return ai.generativearchitects.glow400.emit.descriptor.Tool.version();
     }
 }

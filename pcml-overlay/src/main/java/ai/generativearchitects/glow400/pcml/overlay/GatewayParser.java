@@ -4,6 +4,7 @@ import ai.generativearchitects.glow400.pcml.api.CodecSettings;
 import ai.generativearchitects.glow400.pcml.api.GatewayDefaults;
 import ai.generativearchitects.glow400.pcml.api.InputOutputPolicy;
 import ai.generativearchitects.glow400.pcml.api.Pad;
+import ai.generativearchitects.glow400.pcml.model.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +40,7 @@ final class GatewayParser {
         CodecSettings charCodec = standard.charCodec();
         InputOutputPolicy policy = standard.inputOutput();
         List<String> emitters = standard.emitters();
+        List<SourceLocation> emitterSources = standard.emitterSources();
         int largeArrayThreshold = standard.largeArrayThreshold();
 
         Optional<YamlReader.Entry> defaults = yaml.find(top.get(), "defaults");
@@ -66,16 +68,21 @@ final class GatewayParser {
             Optional<List<Node>> items = yaml.sequence(emitterEntry.get().value(), "'emitters'");
             if (items.isPresent()) {
                 List<String> names = new ArrayList<>();
+                List<SourceLocation> at = new ArrayList<>();
                 for (Node item : items.get()) {
-                    yaml.scalarText(item, "an emitter name").ifPresent(name -> names.add(name.value()));
+                    yaml.scalarText(item, "an emitter name").ifPresent(name -> {
+                        names.add(name.value());
+                        at.add(name.at());
+                    });
                 }
                 emitters = names;
+                emitterSources = at;
             }
         }
         if (yaml.errorCount() > errorsBefore) {
             return Optional.empty();
         }
-        return Optional.of(new GatewayDefaults(charCodec, policy, emitters, largeArrayThreshold));
+        return Optional.of(new GatewayDefaults(charCodec, policy, emitters, largeArrayThreshold, emitterSources));
     }
 
     /** A whole number of at least 1. */

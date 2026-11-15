@@ -38,7 +38,7 @@ final class DescriptorWriter {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("schemaVersion", SCHEMA_VERSION);
         Map<String, Object> generator = new LinkedHashMap<>();
-        generator.put("name", "glow400-core");
+        generator.put("name", Tool.NAME);
         generator.put("version", generatorVersion);
         root.put("generator", generator);
         Map<String, Object> defaults = new LinkedHashMap<>();

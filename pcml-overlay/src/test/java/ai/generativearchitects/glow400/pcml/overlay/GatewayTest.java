@@ -40,7 +40,7 @@ class GatewayTest {
         GatewayDefaults standard = GatewayDefaults.standard();
         assertThat(standard.charCodec()).isEqualTo(new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty()));
         assertThat(standard.inputOutput()).isEqualTo(InputOutputPolicy.BOTH);
-        assertThat(standard.emitters()).containsExactly("descriptor", "openapi", "mock");
+        assertThat(standard.emitters()).containsExactly("descriptor", "openapi");
     }
 
     @Test
@@ -57,6 +57,18 @@ class GatewayTest {
         assertThat(result.charCodec()).isEqualTo(new CodecSettings(Pad.LEFT, '0', "-", Optional.empty()));
         assertThat(result.inputOutput()).isEqualTo(InputOutputPolicy.FAIL);
         assertThat(result.emitters()).containsExactly("openapi", "java", "3", "true");
+    }
+
+    @Test
+    void theEmitterNamesKeepTheirPositionsInTheFile(@TempDir Path dir) {
+        GatewayDefaults result = defaults(dir, "defaults:\n  inputoutput: fail\nemitters:\n  - openapi\n  - descriptor\n  - nothing\n");
+        assertThat(result.emitters()).containsExactly("openapi", "descriptor", "nothing");
+        assertThat(result.emitterSources()).extracting(l -> l.file() + ":" + l.line() + ":" + l.column())
+                .containsExactly("gateway.yaml:4:5", "gateway.yaml:5:5", "gateway.yaml:6:5");
+        assertThat(defaults(dir.resolve("flow"), "emitters: [a, b]\n").emitterSources()).extracting(l -> l.line() + ":" + l.column())
+                .containsExactly("1:12", "1:15");
+        assertThat(defaults(dir.resolve("none"), "").emitterSources()).isEmpty();
+        assertThat(GatewayDefaults.standard().emitterSources()).isEmpty();
     }
 
     @Test

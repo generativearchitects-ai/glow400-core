@@ -219,11 +219,7 @@ class CodecAgreementTest {
         assertThat(codec.encode(Map.of("unknown", new ApiValue.Decimal(BigDecimal.ONE)), Map.of("P0SRC", "web")).problems()).isNotEmpty();
     }
 
-    /**
-     * Decision 62: the schema of a decimal accepts what the codec accepts. One known difference is left out on purpose: the codec
-     * also accepts trailing zeros beyond the scale ({@code 1.500} for two decimals), because it compares the numbers, and the
-     * pattern of C119 does not.
-     */
+    /** Decision 62: the schema of a decimal accepts exactly what the codec accepts, trailing zeros beyond the scale included (C132). */
     @Test
     void theDecimalPatternAcceptsExactlyWhatTheCodecAccepts() {
         ApiRepositoryModel model = Repositories.model("kitchen-sink");
@@ -231,7 +227,7 @@ class CodecAgreementTest {
         JsonNode schema = document.at("/paths/~1items~1{code}~1search/post/requestBody/content/application~1json/schema/properties/amount");
         OperationCodec codec = OperationCodec.of(model.operations().get(0));
         for (String text : List.of("0", "1", "1.5", "1.50", "-1", "-0.1", "1234567", "1234567.99", "-1234567.99", "0.00", "12345678", "12345678.9",
-                "1.505", "0.001", "00001", "007.5")) {
+                "1.505", "0.001", "00001", "007.5", "1.500", "1.50000", "0.000", "-1.2300", "1234567.990000", "1.0050", "12345678.000")) {
             boolean schemaAccepts = OpenApiSchema.schemaOf(document, schema).validate(JSON.textNode(text)).isEmpty();
             EncodeResult encoded = codec.encode(Map.of("code", new ApiValue.Text("a"), "region", new ApiValue.Text("r"), "active", new ApiValue.Bool(true),
                             "when", new ApiValue.DateTime(LocalDateTime.of(2026, 1, 31, 10, 20, 30)), "amount", new ApiValue.Decimal(new BigDecimal(text))),

@@ -1,0 +1,161 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "glow400-core",
+          "version": "@VERSION@",
+          "informationUri": "https://github.com/generativearchitects-ai/glow400-core",
+          "rules": [
+            {
+              "id": "API003"
+            },
+            {
+              "id": "BDL003"
+            },
+            {
+              "id": "OVL004"
+            },
+            {
+              "id": "OVL006"
+            },
+            {
+              "id": "OVL010"
+            },
+            {
+              "id": "OVL012"
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "BDL003",
+          "level": "error",
+          "message": {
+            "text": "The bundle has no manifest.json"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "/elsewhere/old.rpgapi"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "OVL010",
+          "level": "error",
+          "message": {
+            "text": "Cannot read file as UTF-8 text"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "apis/A%20B/api.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "API003",
+          "level": "note",
+          "message": {
+            "text": "API orders: compatible (1 compatible), version 1.0.0 to 1.1.0"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "apis/ORDERS/api.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "OVL006",
+          "level": "warning",
+          "message": {
+            "text": "Operation orders has no error mapping"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "apis/ORDERS/api.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1,
+                  "startColumn": 1
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "OVL004",
+          "level": "error",
+          "message": {
+            "text": "A message with \"quotes\" and a tab\there"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "apis/ORDERS/api.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 12,
+                  "startColumn": 5
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "OVL012",
+          "level": "error",
+          "message": {
+            "text": "'route' must start with /"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "apis/ORDERS/api.yaml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 12,
+                  "startColumn": 5
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

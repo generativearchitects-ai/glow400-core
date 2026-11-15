@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>ai.generativearchitects.glow400</groupId>
+    <artifactId>glow400-core</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>pcml-cli</artifactId>
+  <name>pcml-cli</name>
+  <description>The command-line tool: validate, generate, bundle and diff. One runnable jar with its dependencies inside.</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-overlay</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-emit-descriptor</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-emit-openapi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-bundle</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-diff</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-report</artifactId>
+    </dependency>
+
+    <!-- Test scope only: the fixture repositories of kickoff 02 and the golden bundle of kickoff 06. -->
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-overlay</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-bundle</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <!--
+      The integration test starts the packaged jar and needs it to exist, which mutation analysis, run before packaging,
+      cannot give it: it is left out of the mutation run, and it runs in the verify phase of every build.
+    -->
+    <profile>
+      <id>mutation</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-maven</artifactId>
+            <configuration>
+              <excludedTestClasses>
+                <param>*IT</param>
+              </excludedTestClasses>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <build>
+    <plugins>
+      <!--
+        The runnable jar: this module and everything it needs in one file, started with java -jar. Merges the
+        META-INF/services files (the emitters are found with ServiceLoader), and keeps the licence and notice files of what
+        it bundles. maven-shade-plugin 3.6.2, Apache-2.0.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/versions/*/module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>ai.generativearchitects.glow400.cli.Main</mainClass>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+                  <addHeader>false</addHeader>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                  <resource>META-INF/NOTICE-glow400-core</resource>
+                  <file>${project.basedir}/../NOTICE</file>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                  <resource>META-INF/LICENSE</resource>
+                  <file>${project.basedir}/../LICENSE</file>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Runs the integration test that starts the packaged jar, in the verify phase. maven-failsafe-plugin, Apache-2.0, same version as surefire. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <systemPropertyVariables>
+            <cli.jar>${project.build.directory}/${project.build.finalName}.jar</cli.jar>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

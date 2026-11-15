@@ -104,7 +104,7 @@ public final class BundleWriter {
         entries.forEach((path, bytes) -> files.add(new Manifest.FileEntry(path, bytes.length, BundleFormat.sha256(bytes))));
         List<Manifest.ApiEntry> apis = new ArrayList<>();
         model.apis().forEach(api -> apis.add(new Manifest.ApiEntry(api.name(), api.title(), api.version())));
-        Manifest manifest = new Manifest(BundleFormat.SCHEMA_VERSION, info.name(), info.version(), "glow400-core", generatorVersion,
+        Manifest manifest = new Manifest(BundleFormat.SCHEMA_VERSION, info.name(), info.version(), ai.generativearchitects.glow400.emit.descriptor.Tool.NAME, generatorVersion,
                 BundleFormat.SCHEMA_VERSION, info.repository(), info.revision(), apis, files, BundleFormat.contentDigest(files));
 
         ByteArrayOutputStream zip = new ByteArrayOutputStream();
