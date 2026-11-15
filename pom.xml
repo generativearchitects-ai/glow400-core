@@ -31,6 +31,7 @@
     <module>pcml-diff</module>
     <module>pcml-emit-descriptor</module>
     <module>pcml-emit-openapi</module>
+    <module>pcml-mock</module>
     <module>pcml-bundle</module>
     <module>pcml-report</module>
     <module>pcml-scaffold</module>
@@ -100,6 +101,11 @@
       <dependency>
         <groupId>ai.generativearchitects.glow400</groupId>
         <artifactId>pcml-scaffold</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.glow400</groupId>
+        <artifactId>pcml-mock</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
