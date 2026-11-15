@@ -43,12 +43,12 @@ class DiffTest {
         Result breaking = Support.run(dir, "diff", "--repo", "repo", "--against", "released.rpgapi");
         assertThat(breaking.exit()).isEqualTo(1);
         assertThat(breaking.out()).contains("error API002: API ordstatus has breaking changes but its version goes from 1.0.0 to 1.0.0; the major version must increase.")
-                .contains("Response field status was removed").contains("info API003: API ordstatus: breaking");
+                .contains("Response field status was removed").contains("note API003: API ordstatus: breaking");
         assertThat(breaking.err()).isEmpty();
         edit(repo, "version: 1.0.0", "version: 2.0.0");
         Result raised = Support.run(dir, "diff", "--repo", "repo", "--against", "released.rpgapi");
         assertThat(raised.exit()).isZero();
-        assertThat(raised.out()).doesNotContain("API002").contains("info API003");
+        assertThat(raised.out()).doesNotContain("API002").contains("note API003");
     }
 
     @Test
@@ -73,7 +73,7 @@ class DiffTest {
         Support.write(repo.resolve(API), text.replace("version: 1.0.0", "version: 1.0.1") + "\n# documentation only\n");
         Files.writeString(repo.resolve(API), Files.readString(repo.resolve(API)).replace("P0ORDN: { name: orderNumber }", "P0ORDN: { name: orderNumber, description: A changed description }"));
         Result result = Support.run(dir, "diff", "--repo", "repo", "--against", "released.rpgapi", "--fail-on", "warning");
-        assertThat(result.out()).contains("info API003").doesNotContain(": warning ").doesNotContain(": error ");
+        assertThat(result.out()).contains("note API003").doesNotContain(": warning ").doesNotContain(": error ");
         assertThat(result.exit()).isZero();
     }
 
