@@ -29,7 +29,7 @@ import java.util.zip.ZipOutputStream;
 final class Support {
 
     static final List<String> FIXTURES = List.of("action-parameter", "body-struct", "dclcase", "defaults-both", "injected", "kitchen-sink",
-            "inputoutput", "minimal", "operations-list", "structs");
+            "inputoutput", "minimal", "mocked", "operations-list", "structs");
     static final BundleInfo INFO = new BundleInfo("orders", "2026.11.14-1", Optional.empty(), Optional.empty());
 
     private Support() {
@@ -65,6 +65,9 @@ final class Support {
     static List<EmittedFile> emitted(ApiRepositoryModel model) {
         List<EmittedFile> files = new ArrayList<>(new DescriptorEmitter().emit(model).files());
         files.addAll(new OpenApiEmitter().emit(model).files());
+        if (model.defaults().emitters().contains("mock")) {
+            files.addAll(new ai.generativearchitects.glow400.mock.MockEmitter().emit(model).files());
+        }
         return files;
     }
 

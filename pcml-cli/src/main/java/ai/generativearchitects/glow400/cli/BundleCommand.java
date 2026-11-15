@@ -12,19 +12,27 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
 
-/** {@code bundle}: the descriptor and OpenAPI emitters, then the bundle, written to a temporary file and moved into place. */
+/**
+ * {@code bundle}: the descriptor and OpenAPI emitters, and the mock emitter when the repository names it, then the bundle,
+ * written to a temporary file and moved into place.
+ */
 final class BundleCommand implements Command {
 
     private static final List<String> EMITTERS = List.of("descriptor", "openapi");
+    private static final String MOCK = "mock";
 
     @Override
     public void run(Context context) {
         if (!context.loadAndValidate()) {
             return;
         }
-        // the two emitters are in this jar; if they are not, the packaging is broken and the command fails as an unexpected failure
+        // the emitters are in this jar; if they are not, the packaging is broken and the command fails as an unexpected failure
         Map<String, Emitter> available = Context.emitters();
-        var emitted = context.emit(EMITTERS, available);
+        List<String> names = new java.util.ArrayList<>(EMITTERS);
+        if (context.model.defaults().emitters().contains(MOCK)) {
+            names.add(MOCK);
+        }
+        var emitted = context.emit(names, available);
         if (emitted.isEmpty()) {
             return;
         }

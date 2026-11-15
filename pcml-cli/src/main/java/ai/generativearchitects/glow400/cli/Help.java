@@ -95,7 +95,7 @@ final class Help {
     static String generate() {
         return "Usage: " + Tool.NAME + " generate --out <dir> [options]\n"
                 + "\n"
-                + "Runs the emitters named by 'emitters' in gateway.yaml (default: descriptor and openapi) and writes their files\n"
+                + "Runs the emitters named by 'emitters' in gateway.yaml (default: descriptor, openapi and mock) and writes their files\n"
                 + "under <dir>. Nothing is written if there is an error. Existing files are overwritten; nothing is deleted.\n"
                 + "\n"
                 + "Options:\n"
@@ -106,7 +106,8 @@ final class Help {
     static String bundle() {
         return "Usage: " + Tool.NAME + " bundle --name <name> --version <version> --out <file> [options]\n"
                 + "\n"
-                + "Runs the descriptor and OpenAPI emitters and packs their files with the PCML and overlay files into one bundle.\n"
+                + "Runs the descriptor and OpenAPI emitters, and the mock emitter if gateway.yaml names it (it does by default), and packs\n"
+                + "their files with the PCML and overlay files, and the mock files, into one bundle.\n"
                 + "The file is written to a temporary file and moved into place, so a failed run leaves no partial bundle.\n"
                 + "\n"
                 + "Options:\n"

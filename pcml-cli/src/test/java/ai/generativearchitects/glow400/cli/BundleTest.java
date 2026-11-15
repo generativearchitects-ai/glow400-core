@@ -117,9 +117,9 @@ class BundleTest {
     }
 
     @Test
-    void theEmittersNamedInGatewayYamlDoNotMatterAndAnExistingBundleIsReplaced(@TempDir Path dir) {
+    void theDescriptorAndOpenApiAreBundledWhateverGatewayYamlNamesAndAnExistingBundleIsReplaced(@TempDir Path dir) {
         Support.repo("minimal", dir.resolve("repo"));
-        Support.write(dir.resolve("repo/gateway.yaml"), "emitters: [mock]\n");
+        Support.write(dir.resolve("repo/gateway.yaml"), "emitters: [nothing]\n");
         Support.write(dir.resolve("out/orders.rpgapi"), "an old bundle");
         Result result = Support.run(dir, ARGS);
         assertThat(result.exit()).isZero();

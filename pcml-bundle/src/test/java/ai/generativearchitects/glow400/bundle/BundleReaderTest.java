@@ -207,7 +207,8 @@ class BundleReaderTest {
 
     @Test
     void anEntryThatTheLayoutDoesNotAllowIsBdl003(@TempDir Path dir) {
-        for (String name : List.of("extra.txt", "mock/a.json", "openapi/UPPER.yaml", "openapi/a/b.yaml", "apis/A/b.txt", "apis/A/b/c.pcml", "apis/.hidden/a.pcml",
+        for (String name : List.of("extra.txt", "mock/UPPER.json", "mock/a/b.json", "mock/a.yaml", "apis/A/mock/x.yml", "apis/A/mock/x/y.yaml", "apis/A/mock/x.json", "apis/A/mock/.yaml",
+                "openapi/UPPER.yaml", "openapi/a/b.yaml", "apis/A/b.txt", "apis/A/b/c.pcml", "apis/.hidden/a.pcml",
                 "tests/a.json", "Manifest.json", "gateway.yml", "apis/A/api.json", "x".repeat(300))) {
             BundleReadResult result = read(dir.resolve(String.valueOf(name.hashCode())), Support.zip(List.of(e(name))));
             Diagnostic d = only(result, "BDL003");
@@ -216,6 +217,9 @@ class BundleReaderTest {
         assertThat(BundleFormat.allowed("apis/A/api.yml")).isTrue();
         assertThat(BundleFormat.allowed("apis/ORDSTATUS/ORDSTATUS.pcml")).isTrue();
         assertThat(BundleFormat.allowed("openapi/orders.v2.yaml")).isTrue();
+        assertThat(BundleFormat.allowed("mock/orders.v2.json")).isTrue();
+        assertThat(BundleFormat.allowed("apis/ORDERS/mock/update-quantity.yaml")).isTrue();
+        assertThat(BundleFormat.allowed("apis/ORDERS/mock/ordstatus.yaml")).isTrue();
         assertThat(BundleFormat.allowed("x".repeat(255))).isFalse();
     }
 

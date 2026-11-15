@@ -95,10 +95,10 @@ class GenerateTest {
     @Test
     void aNamedEmitterThatIsNotAvailableIsCli001AtItsPositionAndNothingIsWritten(@TempDir Path dir) {
         Support.repo("minimal", dir.resolve("repo"));
-        Support.write(dir.resolve("repo/gateway.yaml"), "emitters:\n  - descriptor\n  - mock\n  - java\n");
+        Support.write(dir.resolve("repo/gateway.yaml"), "emitters:\n  - descriptor\n  - nothing\n  - java\n");
         Result result = Support.run(dir, "generate", "--repo", "repo", "--out", "out");
         assertThat(result.exit()).isEqualTo(1);
-        assertThat(result.out()).contains("gateway.yaml:3:5: error CLI001: The emitter 'mock' named in gateway.yaml is not available")
+        assertThat(result.out()).contains("gateway.yaml:3:5: error CLI001: The emitter 'nothing' named in gateway.yaml is not available")
                 .contains("gateway.yaml:4:5: error CLI001: The emitter 'java' named in gateway.yaml is not available").endsWith("2 errors, 1 warning, 0 notes\n");
         assertThat(Files.exists(dir.resolve("out"))).isFalse();
         assertThat(Support.run(dir, "generate", "--repo", "repo", "--out", "out", "--format", "sarif").out()).contains("\"ruleId\": \"CLI001\"");

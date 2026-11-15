@@ -52,12 +52,12 @@ public record GatewayDefaults(
         this(charCodec, inputOutput, emitters, DEFAULT_LARGE_ARRAY_THRESHOLD);
     }
 
-    /** The values that apply when there is no {@code gateway.yaml}: the emitters that exist, which are the descriptor and the OpenAPI document. */
+    /** The values that apply when there is no {@code gateway.yaml}: the emitters that exist, which are the descriptor, the OpenAPI document and the mock definitions. */
     public static GatewayDefaults standard() {
         return new GatewayDefaults(
                 new CodecSettings(Pad.RIGHT, ' ', "", java.util.Optional.empty()),
                 InputOutputPolicy.BOTH,
-                List.of("descriptor", "openapi"),
+                List.of("descriptor", "openapi", "mock"),
                 DEFAULT_LARGE_ARRAY_THRESHOLD);
     }
 }

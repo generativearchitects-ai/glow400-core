@@ -29,8 +29,9 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Packs a repository's outputs into one bundle: a zip file with a manifest, the descriptor, the OpenAPI documents, and the
- * PCML and overlay files at their repository paths. The same inputs give the same bytes: entries in a fixed order, stored
+ * Packs a repository's outputs into one bundle: a zip file with a manifest, the descriptor, the OpenAPI documents, the mock
+ * files, and the PCML, overlay and (when {@code mock} is among the emitters of the repository) mock source files at their
+ * repository paths. The same inputs give the same bytes: entries in a fixed order, stored
  * without compression, with one constant modification time and nothing else in the zip, and no timestamp, host or user name
  * anywhere.
  */
@@ -127,10 +128,15 @@ public final class BundleWriter {
     /** Adds the PCML and overlay files of every API, and the gateway file when there is one. */
     private static void sources(Path root, ApiRepositoryModel model, Map<String, byte[]> entries, List<Diagnostic> problems) {
         Set<String> paths = new LinkedHashSet<>();
+        // the mock source files travel with the generated mock files, when the repository asks for mocks
+        boolean mocked = model.defaults().emitters().contains(BundleFormat.MOCK_EMITTER);
         for (ApiDefinition api : model.apis()) {
             paths.add(api.overlayPath());
             for (ApiOperation operation : api.operations()) {
                 paths.add(operation.pcmlPath());
+            }
+            if (mocked) {
+                api.mocks().forEach(mock -> paths.add(mock.source().file()));
             }
         }
         Path real;

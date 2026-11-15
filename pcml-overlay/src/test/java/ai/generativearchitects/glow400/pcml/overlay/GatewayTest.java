@@ -40,7 +40,7 @@ class GatewayTest {
         GatewayDefaults standard = GatewayDefaults.standard();
         assertThat(standard.charCodec()).isEqualTo(new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty()));
         assertThat(standard.inputOutput()).isEqualTo(InputOutputPolicy.BOTH);
-        assertThat(standard.emitters()).containsExactly("descriptor", "openapi");
+        assertThat(standard.emitters()).containsExactly("descriptor", "openapi", "mock");
     }
 
     @Test

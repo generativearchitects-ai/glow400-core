@@ -9,3 +9,4 @@ defaults:
 emitters:
   - descriptor
   - openapi
+  - mock
