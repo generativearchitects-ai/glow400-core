@@ -39,8 +39,7 @@ final class TemporalCodec implements ScalarCodec {
 
     @Override
     public Optional<WireValue> encodeInjected(String text, Where where, Problems problems) {
-        problems.add("VAL002", where, "A date or time field cannot be injected");
-        return Optional.empty();
+        throw new UnsupportedOperationException("A date or time field cannot be injected: see supportsInjection");
     }
 
     @Override
@@ -64,6 +63,7 @@ final class TemporalCodec implements ScalarCodec {
 
     @Override
     public boolean isBlank(WireValue value) {
-        return value instanceof WireValue.Blank;
+        // A date, time or timestamp has no blank of its own: only WireValue.Blank stands for it, which the caller recognises first
+        return false;
     }
 }

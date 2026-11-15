@@ -16,9 +16,8 @@ final class NumberCodecs {
     private NumberCodecs() {
     }
 
-    private static Optional<WireValue> wrongKind(Where where, Problems problems, String expected) {
+    private static void wrongKind(Where where, Problems problems, String expected) {
         problems.add("VAL002", where, "The value is not " + expected);
-        return Optional.empty();
     }
 
     // ------------------------------------------------------------------ int
@@ -47,7 +46,8 @@ final class NumberCodecs {
         @Override
         public Optional<WireValue> encode(ApiValue value, Where where, Problems problems) {
             if (!(value instanceof ApiValue.Integer i)) {
-                return wrongKind(where, problems, "a whole number");
+                wrongKind(where, problems, "a whole number");
+                return Optional.empty();
             }
             return fit(i.value(), where, problems);
         }
@@ -123,7 +123,8 @@ final class NumberCodecs {
             } else if (semantic == SemanticType.DECIMAL && value instanceof ApiValue.Integer i) {
                 number = new BigDecimal(i.value());
             } else {
-                return wrongKind(where, problems, semantic == SemanticType.INTEGER ? "a whole number" : "a number");
+                wrongKind(where, problems, semantic == SemanticType.INTEGER ? "a whole number" : "a number");
+                return Optional.empty();
             }
             return fit(number, where, problems);
         }
@@ -208,7 +209,8 @@ final class NumberCodecs {
             } else if (value instanceof ApiValue.Integer i) {
                 number = new BigDecimal(i.value());
             } else {
-                return wrongKind(where, problems, "a number");
+                wrongKind(where, problems, "a number");
+                return Optional.empty();
             }
             return fit(number, where, problems);
         }

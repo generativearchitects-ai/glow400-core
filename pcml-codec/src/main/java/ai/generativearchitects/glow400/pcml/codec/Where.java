@@ -39,10 +39,6 @@ final class Problems {
         return !found.isEmpty();
     }
 
-    int count() {
-        return found.size();
-    }
-
     List<ValueProblem> list() {
         return List.copyOf(found);
     }

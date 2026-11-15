@@ -48,6 +48,13 @@ class VersionTest {
     }
 
     @Test
+    void aPreReleaseIsRecognised() {
+        assertThat(Version.parse("2.0.0-rc.1").isPreRelease()).isTrue();
+        assertThat(Version.parse("2.0.0").isPreRelease()).isFalse();
+        assertThat(Version.parse("2.0.0+build").isPreRelease()).isFalse();
+    }
+
+    @Test
     void majorMinorAndNumbersComparisons() {
         Version a = Version.parse("1.2.3");
         assertThat(a.compareMajorMinor(Version.parse("1.2.9"))).isZero();

@@ -14,6 +14,11 @@
   <name>pcml-contract</name>
   <description>The consumer-visible surface of an API, shared by the OpenAPI emitter and the comparison of releases.</description>
 
+  <properties>
+    <!-- Decision 63: a higher mutation threshold where an undetected fault costs most. -->
+    <mutation.threshold>95</mutation.threshold>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>ai.generativearchitects.glow400</groupId>

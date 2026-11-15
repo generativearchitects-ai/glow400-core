@@ -18,6 +18,7 @@ Licence: Apache-2.0.
 | `pcml-contract` | The consumer-visible surface of an API (fields, types, limits, statuses), shared by the OpenAPI emitter and the comparison of releases |
 | `pcml-diff` | Breaking-change detection between a released and a current repository (`API002` to `API006`) |
 | `pcml-emit-descriptor` | Writes `descriptor.json` (schema version 1), the file the gateway reads, and reads it back into the API model; uses the streaming API of Jackson (`jackson-core`) to read |
+| `pcml-bundle` | Packs the descriptor, the OpenAPI documents and the PCML and overlay files into one deterministic, checksummed `.rpgapi` zip file, and reads it back as untrusted input (`BDL001` to `BDL006`) |
 | `pcml-emit-openapi` | Writes one OpenAPI 3.1 document per API, `openapi/<api name>.yaml` |
 
 Emitters are discovered with `java.util.ServiceLoader` (`Emitter` in `pcml-model`). More modules (mock and Java emitters, bundle, CLI, Maven plugin) will follow, one increment at a time.

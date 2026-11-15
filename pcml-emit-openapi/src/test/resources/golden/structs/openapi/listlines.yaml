@@ -58,7 +58,7 @@ paths:
                               description: "A decimal number with up to 9 digits, 2 of them after the decimal point."
                               type: string
                               format: decimal
-                              pattern: "^-?\\d{1,7}\\.\\d{2}$"
+                              pattern: "^-?\\d{1,7}(\\.\\d{1,2})?$"
                               x-glow400-field:
                                 name: P0ROWS.PRICE.AMT
                                 wire: "packed(9,2)"

@@ -36,7 +36,7 @@ public record EmittedFile(String path, byte[] content) {
 
     @Override
     public int hashCode() {
-        return 31 * path.hashCode() + java.util.Arrays.hashCode(content);
+        return java.util.Objects.hash(path, java.util.Arrays.hashCode(content));
     }
 
     @Override

@@ -239,6 +239,7 @@ class ApiModelTest {
         assertThat(model.apis()).extracting(ApiDefinition::version).containsExactly("1.2.0", "0.1.0");
         assertThat(model.apis().get(0).operations()).containsExactly(a, b);
         assertThat(ApiRepositoryModel.apiName("api.yaml")).isEqualTo("api");
+        assertThat(ApiRepositoryModel.apiName("Ord/api.yaml")).isEqualTo("ord");
         assertThat(ApiRepositoryModel.apiName("apis/MiXed/api.yaml")).isEqualTo("mixed");
     }
 
@@ -258,6 +259,8 @@ class ApiModelTest {
         assertThat(file).isEqualTo(new EmittedFile("openapi/x.yaml", new byte[] {1, 2, 3})).hasSameHashCodeAs(new EmittedFile("openapi/x.yaml", new byte[] {1, 2, 3}));
         assertThat(file).isNotEqualTo(new EmittedFile("openapi/y.yaml", new byte[] {1, 2, 3})).isNotEqualTo(new EmittedFile("openapi/x.yaml", new byte[] {1}));
         assertThat(file.toString()).contains("openapi/x.yaml").contains("3 bytes");
+        assertThat(file.hashCode()).isNotZero().isNotEqualTo(new EmittedFile("openapi/y.yaml", new byte[] {1, 2, 3}).hashCode())
+                .isNotEqualTo(new EmittedFile("openapi/x.yaml", new byte[] {1}).hashCode());
         for (String bad : List.of("", "/abs", "a\\b", "../x", "a/../b")) {
             assertThatThrownBy(() -> new EmittedFile(bad, new byte[0])).as(bad).isInstanceOf(IllegalArgumentException.class);
         }
