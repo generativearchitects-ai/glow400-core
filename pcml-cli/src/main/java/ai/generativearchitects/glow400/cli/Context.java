@@ -64,6 +64,11 @@ final class Context {
         diagnostics.add(new Diagnostic(code, Severity.ERROR, message, at));
     }
 
+    /** A warning that is about a path: it points at that path, as shown to the person, at 1:1. */
+    void warning(String code, String message, Path path) {
+        diagnostics.add(new Diagnostic(code, Severity.WARNING, message, new SourceLocation(shown(path), 1, 1)));
+    }
+
     /** An error that is about a path: it points at that path, as shown to the person, at 1:1. */
     void error(String code, String message, Path path) {
         error(code, message, new SourceLocation(shown(path), 1, 1));

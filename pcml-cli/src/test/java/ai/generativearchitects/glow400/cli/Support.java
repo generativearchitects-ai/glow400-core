@@ -25,9 +25,54 @@ final class Support {
 
     /** Runs with the given text as standard input. */
     static Result runWithInput(Path workingDirectory, String input, String... args) {
+        return runWithStream(workingDirectory, new java.io.ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)), args);
+    }
+
+    /**
+     * Standard input that hands out one line at a time and runs an action just before the line with the given index (from 0)
+     * is read: what happens while a person is thinking about an answer.
+     */
+    static java.io.InputStream linesWithHook(String input, int beforeLine, Runnable action) {
+        String[] lines = input.split("(?<=\n)");
+        return new java.io.InputStream() {
+            private int line;
+            private byte[] current = new byte[0];
+            private int at;
+
+            @Override
+            public int read() {
+                byte[] one = new byte[1];
+                return read(one, 0, 1) < 0 ? -1 : one[0] & 0xff;
+            }
+
+            @Override
+            public int read(byte[] buffer, int off, int len) {
+                if (at >= current.length) {
+                    if (line >= lines.length) {
+                        return -1;
+                    }
+                    if (line == beforeLine) {
+                        action.run();
+                    }
+                    current = lines[line++].getBytes(StandardCharsets.UTF_8);
+                    at = 0;
+                }
+                int n = Math.min(len, current.length - at);
+                System.arraycopy(current, at, buffer, off, n);
+                at += n;
+                return n;
+            }
+        };
+    }
+
+    static Result runWithStream(Path workingDirectory, java.io.InputStream in, String... args) {
+        return runWith(workingDirectory, in, args);
+    }
+
+    private static Result runWith(Path workingDirectory, java.io.InputStream in, String... args) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        int exit = Cli.run(args, workingDirectory, new java.io.ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)),
+        int exit = Cli.run(args, workingDirectory, in,
                 new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8));
         return new Result(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }

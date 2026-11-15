@@ -399,6 +399,45 @@ class AnnotateTest {
         assertThat(Support.read(dir.resolve("report.txt"))).contains("OVL001");
     }
 
+    // ---- a file that changes while the questions are asked
+
+    @Test
+    void aFileChangedWhileTheQuestionsAreAskedIsNotWrittenAndCli005SaysSo(@TempDir Path dir) {
+        initialised(dir);
+        Path api = dir.resolve(ORDSTATUS_API);
+        // P0ORDN is answered (lines 0 to 2); before the direction of P0QTY is read, the file is changed from outside
+        java.io.InputStream in = Support.linesWithHook("request\n\n\nboth\n\n", 3,
+                () -> Support.write(api, Support.read(api) + "# written in an editor\n"));
+        String changed = Support.read(api) + "# written in an editor\n";
+        Result result = Support.runWithStream(dir, in, "annotate", "--api", "ORDSTATUS");
+        assertThat(result.exit()).isEqualTo(1);
+        assertThat(Support.read(api)).isEqualTo(changed);
+        assertThat(result.out()).contains("apis/ORDSTATUS/api.yaml:1:1: warning CLI005: The file apis/ORDSTATUS/api.yaml was changed while the questions were asked, so nothing was written to it\n");
+        assertThat(result.err()).doesNotContain("->");
+    }
+
+    @Test
+    void theNextFileIsStillWrittenWhenOneChanged(@TempDir Path dir) {
+        initialised(dir);
+        Path getbal = dir.resolve("apis/GETBAL/api.yaml");
+        // GETBAL.DET (lines 0, 1), GETBAL.DAYS (2, 3); ORDSTATUS follows. GETBAL changes before its second parameter.
+        java.io.InputStream in = Support.linesWithHook("request\n\nboth\n\nrequest\n\n\nboth\n\n", 2,
+                () -> Support.write(getbal, Support.read(getbal) + "# changed\n"));
+        Result result = Support.runWithStream(dir, in, "annotate");
+        assertThat(result.exit()).isEqualTo(1); // GETBAL still has parameters without a direction
+        assertThat(result.out()).contains("warning CLI005").contains("apis/GETBAL/api.yaml:").doesNotContain("apis/ORDSTATUS/api.yaml:10");
+        assertThat(Support.read(getbal)).contains("# changed").contains("# inputoutput:").doesNotContain(", direction");
+        assertThat(Support.read(dir.resolve(ORDSTATUS_API))).contains("direction: request").contains("direction: both");
+    }
+
+    @Test
+    void anUnchangedFileIsWrittenAsBefore(@TempDir Path dir) {
+        initialised(dir);
+        java.io.InputStream in = Support.linesWithHook("request\n\n\nboth\n\n", 3, () -> { });
+        assertThat(Support.runWithStream(dir, in, "annotate", "--api", "ORDSTATUS").out()).doesNotContain("CLI005");
+        assertThat(Support.read(dir.resolve(ORDSTATUS_API))).contains("direction: request").contains("direction: both");
+    }
+
     // ---- writing
 
     @Test

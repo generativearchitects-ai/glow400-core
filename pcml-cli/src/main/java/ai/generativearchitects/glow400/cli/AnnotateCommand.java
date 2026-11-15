@@ -72,9 +72,11 @@ final class AnnotateCommand implements Command {
                 break;
             }
             Path file = context.repo.resolve(target.overlayPath());
+            byte[] original;
             String text;
             try {
-                text = Files.readString(file, StandardCharsets.UTF_8);
+                original = Files.readAllBytes(file);
+                text = new String(original, StandardCharsets.UTF_8);
             } catch (IOException e) {
                 context.error("CLI003", "The file " + context.shown(file) + " could not be read: " + Writing.reason(e), file);
                 return;
@@ -86,6 +88,11 @@ final class AnnotateCommand implements Command {
             }
             EditResult result = OverlayEditor.apply(text, target.overlayPath(), target.pcml(), edits);
             context.diagnostics.addAll(result.diagnostics());
+            if (!dryRun && !result.applied().isEmpty() && result.text().isPresent() && changedSince(context, file, original)) {
+                context.warning("CLI005", "The file " + context.shown(file)
+                        + " was changed while the questions were asked, so nothing was written to it", file);
+                continue;
+            }
             for (ParameterEdit applied : result.applied()) {
                 context.err.println(progress(target, applied));
             }
@@ -205,6 +212,15 @@ final class AnnotateCommand implements Command {
         return label(parameter) + "  " + usage(parameter.field()) + " -> "
                 + edit.direction().orElseThrow().name().toLowerCase(Locale.ROOT)
                 + edit.type().map(t -> ", " + t.name().toLowerCase(Locale.ROOT)).orElse("");
+    }
+
+    /** Whether the file is no longer what the questions were based on. A file that cannot be read counts as changed. */
+    private static boolean changedSince(Context context, Path file, byte[] original) {
+        try {
+            return !java.util.Arrays.equals(Files.readAllBytes(file), original);
+        } catch (IOException e) {
+            return true;
+        }
     }
 
     private static boolean write(Context context, Path file, String text) {
