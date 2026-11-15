@@ -67,6 +67,29 @@
     </dependency>
   </dependencies>
 
+  <profiles>
+    <!--
+      The integration test starts the packaged jar and needs it to exist, which mutation analysis, run before packaging,
+      cannot give it: it is left out of the mutation run, and it runs in the verify phase of every build.
+    -->
+    <profile>
+      <id>mutation</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-maven</artifactId>
+            <configuration>
+              <excludedTestClasses>
+                <param>*IT</param>
+              </excludedTestClasses>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
   <build>
     <plugins>
       <!--

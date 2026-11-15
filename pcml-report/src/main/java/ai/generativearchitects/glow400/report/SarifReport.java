@@ -21,6 +21,9 @@ public final class SarifReport {
 
     private static final String SOURCE_ROOT = "%SRCROOT%";
 
+    /** The characters of a path that a URI reference keeps as they are. */
+    private static final String PLAIN = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~/";
+
     private SarifReport() {
     }
 
@@ -96,16 +99,14 @@ public final class SarifReport {
         StringBuilder out = new StringBuilder();
         for (byte b : path.getBytes(java.nio.charset.StandardCharsets.UTF_8)) {
             char c = (char) (b & 0xFF);
-            boolean plain = c < 0x80 && (Character.isLetterOrDigit(c) || "-._~/".indexOf(c) >= 0);
-            if (plain) {
+            if (PLAIN.indexOf(c) >= 0) {
                 out.append(c);
             } else {
                 out.append('%').append(String.format("%02X", b & 0xFF));
             }
         }
         String encoded = out.toString();
-        int firstSlash = encoded.indexOf('/');
-        String firstSegment = firstSlash < 0 ? encoded : encoded.substring(0, firstSlash);
+        String firstSegment = encoded.split("/", 2)[0];
         return !encoded.startsWith("/") && firstSegment.contains("%3A") ? "./" + encoded : encoded;
     }
 }

@@ -99,6 +99,12 @@ class ReportTest {
     }
 
     @Test
+    void theColumnDecidesBeforeTheCode() {
+        List<Diagnostic> list = List.of(d("A", Severity.ERROR, "m", "f", 5, 2), d("B", Severity.ERROR, "m", "f", 5, 1));
+        assertThat(TextReport.render(new Report("c", BASE, list)).lines().toList().subList(0, 2)).containsExactly("f:5:1: error B: m", "f:5:2: error A: m");
+    }
+
+    @Test
     void theLineDecidesBeforeTheColumn() {
         List<Diagnostic> list = List.of(d("B", Severity.ERROR, "m", "f", 6, 1), d("A", Severity.ERROR, "m", "f", 5, 9));
         assertThat(TextReport.render(new Report("c", BASE, list)).lines().toList().subList(0, 2)).containsExactly("f:5:9: error A: m", "f:6:1: error B: m");
@@ -261,6 +267,8 @@ class ReportTest {
         assertThat(SarifReport.uri("plain-name_1.~/x")).isEqualTo("plain-name_1.~/x");
         assertThat(SarifReport.uri("\u4e2d")).isEqualTo("%E4%B8%AD");
         assertThat(SarifReport.uri("")).isEmpty();
+        assertThat(SarifReport.uri("\u0080\u00ff")).isEqualTo("%C2%80%C3%BF");
+        assertThat(SarifReport.uri("a:b")).isEqualTo("./a%3Ab");
         Map<String, Object> empty = ((List<Map<String, Object>>) json(SarifReport.render(new Report("c", BASE, List.of()))).get("runs")).get(0);
         assertThat((List<Object>) empty.get("results")).isEmpty();
         assertThat((List<Object>) ((Map<String, Object>) ((Map<String, Object>) empty.get("tool")).get("driver")).get("rules")).isEmpty();
