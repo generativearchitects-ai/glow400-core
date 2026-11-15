@@ -35,6 +35,13 @@ class UsageTest {
                 Arguments.of(new String[] {"validate", "--repo", "a", "--repo", "b"}, "The option --repo is given more than once"),
                 Arguments.of(new String[] {"validate", "--stacktrace=yes"}, "The option --stacktrace takes no value"),
                 Arguments.of(new String[] {"validate", "--repo="}, "The value of --repo must not be empty"),
+                Arguments.of(new String[] {"validate", "--dry-run"}, "Unknown option '--dry-run' for validate"),
+                Arguments.of(new String[] {"generate", "--dry-run", "--out", "o"}, "Unknown option '--dry-run' for generate"),
+                Arguments.of(new String[] {"init", "--api", "x"}, "Unknown option '--api' for init"),
+                Arguments.of(new String[] {"init", "--dry-run=yes"}, "The option --dry-run takes no value"),
+                Arguments.of(new String[] {"annotate", "--out", "x"}, "Unknown option '--out' for annotate"),
+                Arguments.of(new String[] {"annotate", "--api"}, "The option --api needs a value"),
+                Arguments.of(new String[] {"annotate", "--api="}, "The value of --api must not be empty"),
                 Arguments.of(new String[] {"generate"}, "The command generate needs the option --out"),
                 Arguments.of(new String[] {"bundle", "--name", "n", "--version", "v"}, "The command bundle needs the option --out"),
                 Arguments.of(new String[] {"bundle", "--version", "v", "--out", "f"}, "The command bundle needs the option --name"),
@@ -89,7 +96,7 @@ class UsageTest {
         assertThat(general.exit()).isZero();
         assertThat(general.out()).isEqualTo(Help.general()).startsWith("Usage: " + Tool.NAME + " <command> [options]");
         assertThat(general.err()).isEmpty();
-        for (String command : List.of("validate", "generate", "bundle", "diff")) {
+        for (String command : List.of("init", "annotate", "validate", "generate", "bundle", "diff")) {
             Result help = Support.run(dir, command, "--help");
             assertThat(help.exit()).as(command).isZero();
             assertThat(help.out()).isEqualTo(Help.of(command)).startsWith("Usage: " + Tool.NAME + " " + command);
@@ -128,7 +135,7 @@ class UsageTest {
                     flushes[0]++;
                 }
             };
-            int exit = Cli.run(args, dir, new java.io.PrintStream(counting, false), new java.io.PrintStream(counting, false));
+            int exit = Cli.run(args, dir, System.in, new java.io.PrintStream(counting, false), new java.io.PrintStream(counting, false));
             assertThat(exit).isZero();
             assertThat(flushes[0]).as(String.join(" ", args)).isGreaterThan(0);
         }
@@ -136,10 +143,11 @@ class UsageTest {
 
     @Test
     void theArgumentsAreNotOptional() {
-        assertThatThrownBy(() -> Cli.run(null, Path.of("."), System.out, System.err)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> Cli.run(new String[0], null, System.out, System.err)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> Cli.run(new String[0], Path.of("."), null, System.err)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> Cli.run(new String[0], Path.of("."), System.out, null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> Cli.run(null, Path.of("."), System.in, System.out, System.err)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> Cli.run(new String[0], null, System.in, System.out, System.err)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> Cli.run(new String[0], Path.of("."), null, System.out, System.err)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> Cli.run(new String[0], Path.of("."), System.in, null, System.err)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> Cli.run(new String[0], Path.of("."), System.in, System.out, null)).isInstanceOf(NullPointerException.class);
         assertThat(List.of(Cli.OK, Cli.FAILED, Cli.USAGE, Cli.UNEXPECTED)).containsExactly(0, 1, 2, 3);
     }
 }

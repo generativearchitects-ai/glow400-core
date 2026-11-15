@@ -1,0 +1,12 @@
+pcml: UPDQTY.pcml
+version: 0.1.0
+title: UPDQTY
+operations:
+  - id: updqty
+    program: UPDQTY
+    route: /updqty
+    method: POST
+    parameters:
+      ITEMID: { name: itemid }  # inputoutput: run annotate, or add direction: request | response | both | internal
+      QTY: { name: qty }  # inputoutput: run annotate, or add direction: request | response | both | internal
+      STATUS: { name: status }  # inputoutput: run annotate, or add direction: request | response | both | internal

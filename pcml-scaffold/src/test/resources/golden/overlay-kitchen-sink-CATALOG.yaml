@@ -1,0 +1,41 @@
+pcml: CATALOG.pcml
+version: 0.1.0
+title: CATALOG
+operations:
+  - id: search
+    program: SEARCH
+    route: /search
+    method: POST
+    parameters:
+      P0CODE: { name: p0code }
+      P0REG: { name: p0reg }
+      P0QRY: { name: p0qry }
+      P0SRC: { name: p0src }
+      P0FLAG: { name: p0flag }
+      P0DATE: { name: p0date }
+      P0TIME: { name: p0time }
+      P0WHEN: { name: p0when }
+      P0QTY: { name: p0qty }
+      P0AMT: { name: p0amt }
+      P0ZON: { name: p0zon }
+      P0RATE: { name: p0rate }
+      P0BIN: { name: p0bin }
+      P0ECHO: { name: p0echo }  # inputoutput: run annotate, or add direction: request | response | both | internal
+      P0RC: { name: p0rc }
+      P0MSG: { name: p0msg }
+      P0LEN: { name: p0len }
+      P0DYN: { name: p0dyn }
+      P0CNT: { name: p0cnt }
+      P0HITS: { name: p0hits }
+      P0TAGS: { name: p0tags }
+      P0VAR: { name: p0var }
+      P0DAY: { name: p0day }
+      P0AT: { name: p0at }
+  - id: lookup
+    program: LOOKUP
+    route: /lookup
+    method: POST
+    parameters:
+      P0CODE: { name: p0code }
+      P0INFO: { name: p0info }
+      P0OK: { name: p0ok }

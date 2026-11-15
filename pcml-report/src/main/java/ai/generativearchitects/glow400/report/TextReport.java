@@ -5,7 +5,8 @@ import ai.generativearchitects.glow400.pcml.diagnostics.Severity;
 import java.util.Locale;
 
 /**
- * The report for people: one line per diagnostic, {@code file:line:column: severity CODE: message}, then one summary line.
+ * The report for people: one line per diagnostic, {@code file:line:column: severity CODE: message}, then one summary line. The lowest
+ * severity is written {@code note} here, as in the summary, the JSON report and SARIF.
  * Messages and names can come from files a pull request controls, so everything that is not a printable character is
  * written as an escape: no message can move the cursor, start another line or forge one.
  */
@@ -19,7 +20,7 @@ public final class TextReport {
         StringBuilder out = new StringBuilder();
         for (Diagnostic d : report.sorted()) {
             out.append(escape(report.display(d.location().file()))).append(':').append(d.location().line()).append(':')
-                    .append(d.location().column()).append(": ").append(d.severity().name().toLowerCase(Locale.ROOT)).append(' ')
+                    .append(d.location().column()).append(": ").append(d.severity() == Severity.INFO ? "note" : d.severity().name().toLowerCase(Locale.ROOT)).append(' ')
                     .append(escape(d.code())).append(": ").append(escape(d.message())).append('\n');
         }
         long errors = report.count(Severity.ERROR);

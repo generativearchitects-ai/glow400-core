@@ -8,6 +8,7 @@ import ai.generativearchitects.glow400.report.Report;
 import ai.generativearchitects.glow400.report.SarifReport;
 import ai.generativearchitects.glow400.report.TextReport;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,8 +18,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * The command line, as a function: arguments in, exit code out. It never exits the process, reads no input stream and reads
- * no environment variable. The report goes to the output stream or to the report file; everything else, usage, progress and
+ * The command line, as a function: arguments in, exit code out. It never exits the process and reads no environment
+ * variable. Only {@code annotate} reads the input stream. The report goes to the output stream or to the report file; everything else, usage, progress and
  * the files written, goes to the error stream, so that the output of a JSON or SARIF report is one document and nothing else.
  */
 public final class Cli {
@@ -32,8 +33,9 @@ public final class Cli {
     /** An unexpected failure. */
     public static final int UNEXPECTED = 3;
 
-    private static final Map<String, Command> COMMANDS = Map.of("validate", new ValidateCommand(), "generate", new GenerateCommand(),
-            "bundle", new BundleCommand(), "diff", new DiffCommand());
+    private static final Map<String, Command> COMMANDS = Map.of("init", new InitCommand(), "annotate", new AnnotateCommand(),
+            "validate", new ValidateCommand(), "generate", new GenerateCommand(), "bundle", new BundleCommand(),
+            "diff", new DiffCommand());
 
     private Cli() {
     }
@@ -43,18 +45,20 @@ public final class Cli {
      *
      * @param args             the arguments
      * @param workingDirectory what relative paths are relative to
+     * @param in               what {@code annotate} reads the answers from, one per line
      * @param out              where the report, or the help and the version, are written
      * @param err              where everything else is written
      * @return the exit code
      */
-    public static int run(String[] args, Path workingDirectory, PrintStream out, PrintStream err) {
+    public static int run(String[] args, Path workingDirectory, InputStream in, PrintStream out, PrintStream err) {
         Objects.requireNonNull(args, "args");
         Objects.requireNonNull(workingDirectory, "workingDirectory");
+        Objects.requireNonNull(in, "in");
         Objects.requireNonNull(out, "out");
         Objects.requireNonNull(err, "err");
         boolean stacktrace = List.of(args).contains("--stacktrace");
         try {
-            return dispatch(List.of(args), workingDirectory, out, err);
+            return dispatch(List.of(args), workingDirectory, in, out, err);
         } catch (UsageException e) {
             err.println(Tool.NAME + ": " + e.getMessage() + ". Try '" + Tool.NAME + " --help'.");
             return USAGE;
@@ -67,7 +71,7 @@ public final class Cli {
         }
     }
 
-    private static int dispatch(List<String> args, Path workingDirectory, PrintStream out, PrintStream err) throws Exception {
+    private static int dispatch(List<String> args, Path workingDirectory, InputStream in, PrintStream out, PrintStream err) throws Exception {
         if (args.isEmpty()) {
             throw new UsageException("No command given");
         }
@@ -89,7 +93,7 @@ public final class Cli {
             print(out, Help.of(first));
             return OK;
         }
-        Context context = new Context(options, workingDirectory, out, err);
+        Context context = new Context(options, workingDirectory, in, out, err);
         COMMANDS.get(first).run(context);
         return finish(context, first);
     }

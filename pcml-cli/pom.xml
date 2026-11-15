@@ -12,7 +12,7 @@
 
   <artifactId>pcml-cli</artifactId>
   <name>pcml-cli</name>
-  <description>The command-line tool: validate, generate, bundle and diff. One runnable jar with its dependencies inside.</description>
+  <description>The command-line tool: init, annotate, validate, generate, bundle and diff. One runnable jar with its dependencies inside.</description>
 
   <dependencies>
     <dependency>
@@ -23,6 +23,14 @@
       <groupId>ai.generativearchitects.glow400</groupId>
       <artifactId>pcml-overlay</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-parser</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-scaffold</artifactId>
     </dependency>
     <dependency>
       <groupId>ai.generativearchitects.glow400</groupId>

@@ -172,12 +172,12 @@ class BundleTest {
         Support.write(dir.resolve("out/orders.rpgapi/inside.txt"), "the target is a folder");
         Result result = Support.run(dir, ARGS);
         assertThat(result.exit()).isEqualTo(1);
-        assertThat(result.out()).containsPattern("error CLI003: The file out/orders.rpgapi could not be written: [a-z ]+");
+        assertThat(result.out()).containsPattern("out/orders.rpgapi:1:1: error CLI003: The file out/orders.rpgapi could not be written: [a-z ]+");
         assertThat(Support.names(dir.resolve("out"))).containsExactly("", "orders.rpgapi", "orders.rpgapi/inside.txt");
         Support.write(dir.resolve("blocker"), "a file");
         Result parent = Support.run(dir, "bundle", "--repo", "repo", "--name", "o", "--version", "1", "--out", "blocker/b.rpgapi");
         assertThat(parent.exit()).isEqualTo(1);
-        assertThat(parent.out()).contains("error CLI003: The file blocker/b.rpgapi could not be written: ");
+        assertThat(parent.out()).contains("blocker/b.rpgapi:1:1: error CLI003: The file blocker/b.rpgapi could not be written: ");
         assertThat(Support.read(dir.resolve("blocker"))).isEqualTo("a file");
     }
 

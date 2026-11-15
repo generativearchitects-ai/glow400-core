@@ -102,7 +102,7 @@ class ValidateAndStreamsTest {
         Result result = Support.run(dir, "validate", "--repo", "repo", "--report", "blocker/report.txt");
         assertThat(result.exit()).isEqualTo(1);
         assertThat(result.out()).isEmpty();
-        assertThat(result.err()).contains("error CLI003: The report file blocker/report.txt could not be written: ").endsWith("0 notes\n");
+        assertThat(result.err()).contains("blocker/report.txt:1:1: error CLI003: The report file blocker/report.txt could not be written: ").endsWith("0 notes\n");
     }
 
     @Test

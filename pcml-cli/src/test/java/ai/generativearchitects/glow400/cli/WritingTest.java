@@ -38,4 +38,83 @@ class WritingTest {
         Files.createSymbolicLink(dir.resolve("dangling"), dir.resolve("nowhere"));
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> Writing.physical(dir.resolve("dangling/x"))).isInstanceOf(NoSuchFileException.class);
     }
+
+    @Test
+    void theTemporaryFileHasANeutralNameAndIsTheOneWrittenFirst(@TempDir Path dir) throws Exception {
+        assertThat(Writing.TEMP_PREFIX).isEqualTo(".write-").doesNotContainIgnoringCase("glow");
+        // a folder cannot be replaced by a file: the move fails after the temporary file was written, and its name is the one seen here
+        Path target = Files.createDirectories(dir.resolve("folder"));
+        Files.writeString(target.resolve("inside"), "x");
+        java.util.List<String> seen = new java.util.ArrayList<>();
+        Thread watcher = new Thread(() -> {
+            try (var watch = dir.getFileSystem().newWatchService()) {
+                dir.register(watch, java.nio.file.StandardWatchEventKinds.ENTRY_CREATE);
+                var key = watch.poll(5, java.util.concurrent.TimeUnit.SECONDS);
+                if (key != null) {
+                    key.pollEvents().forEach(e -> seen.add(String.valueOf(e.context())));
+                }
+            } catch (IOException | InterruptedException e) {
+                // the test below reports an empty list
+            }
+        });
+        watcher.start();
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> {
+            Thread.sleep(300);
+            Writing.replace(target, new byte[0]);
+        }).isInstanceOf(IOException.class);
+        watcher.join();
+        assertThat(seen).isNotEmpty().allMatch(name -> name.startsWith(".write-") && name.endsWith(".tmp"));
+    }
+
+    @Test
+    void aNewFileIsWrittenThroughATemporaryFileThatIsNotLeftBehind(@TempDir Path dir) throws IOException {
+        Path target = dir.resolve("new.yaml");
+        assertThat(Writing.createNew(target, "abc".getBytes(java.nio.charset.StandardCharsets.UTF_8))).isTrue();
+        assertThat(Files.readString(target)).isEqualTo("abc");
+        try (var files = Files.list(dir)) {
+            assertThat(files.map(f -> f.getFileName().toString())).containsExactly("new.yaml");
+        }
+    }
+
+    @Test
+    void aNewFileNeverReplacesWhatIsThere(@TempDir Path dir) throws IOException {
+        Path target = Files.writeString(dir.resolve("a.yaml"), "mine");
+        assertThat(Writing.createNew(target, "other".getBytes(java.nio.charset.StandardCharsets.UTF_8))).isFalse();
+        assertThat(Files.readString(target)).isEqualTo("mine");
+        Files.createSymbolicLink(dir.resolve("link.yaml"), dir.resolve("nowhere.yaml"));
+        assertThat(Writing.createNew(dir.resolve("link.yaml"), new byte[0])).isFalse();
+        assertThat(dir.resolve("nowhere.yaml")).doesNotExist();
+        try (var files = Files.list(dir)) {
+            assertThat(files.map(f -> f.getFileName().toString())).containsExactlyInAnyOrder("a.yaml", "link.yaml");
+        }
+    }
+
+    @Test
+    void aNewFileThatCannotBeWrittenLeavesNothingBehind(@TempDir Path dir) {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Writing.createNew(dir.resolve("no/such/folder/a.yaml"), new byte[0]))
+                .isInstanceOf(IOException.class);
+    }
+
+    @Test
+    void aFileIsReplacedThroughATemporaryFileAndKeepsItsPermissions(@TempDir Path dir) throws IOException {
+        Path target = Files.writeString(dir.resolve("a.yaml"), "old");
+        Files.setPosixFilePermissions(target, java.nio.file.attribute.PosixFilePermissions.fromString("rw-r-----"));
+        Writing.replace(target, "new".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertThat(Files.readString(target)).isEqualTo("new");
+        assertThat(Files.getPosixFilePermissions(target)).isEqualTo(java.nio.file.attribute.PosixFilePermissions.fromString("rw-r-----"));
+        try (var files = Files.list(dir)) {
+            assertThat(files.map(f -> f.getFileName().toString())).containsExactly("a.yaml");
+        }
+    }
+
+    @Test
+    void aFileThatCannotBeReplacedIsLeftAsItWasAndNoTemporaryFileRemains(@TempDir Path dir) throws IOException {
+        Path target = Files.createDirectories(dir.resolve("folder"));
+        Files.writeString(target.resolve("inside"), "x");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Writing.replace(target, "new".getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .isInstanceOf(IOException.class);
+        try (var files = Files.list(dir)) {
+            assertThat(files.map(f -> f.getFileName().toString())).containsExactly("folder");
+        }
+    }
 }

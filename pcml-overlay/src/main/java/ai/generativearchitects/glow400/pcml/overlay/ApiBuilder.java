@@ -58,12 +58,30 @@ final class ApiBuilder {
     /** Where the operation being built starts in the overlay file; diagnostics fall back to it. */
     private SourceLocation operationAt;
 
+    /** Where tolerant building records the parameters that have no direction; {@code null} when building strictly. */
+    private final List<UndirectedParameter> undirected;
+    private String operationId = "";
+    /** How many parameters of the operation being built have been given the placeholder direction. */
+    private int placeholders;
+    private String pcmlProgramName = "";
+
     ApiBuilder(GatewayDefaults defaults, PcmlDocument pcml, String overlayPath, String pcmlPath, List<Diagnostic> sink) {
+        this(defaults, pcml, overlayPath, pcmlPath, sink, null);
+    }
+
+    /**
+     * @param undirected if not {@code null}, building is tolerant of {@code OVL001}: the diagnostic is still reported,
+     *                   but the parameter is built as {@code internal} instead of the operation being left out, and the
+     *                   parameter is added to this list
+     */
+    ApiBuilder(GatewayDefaults defaults, PcmlDocument pcml, String overlayPath, String pcmlPath, List<Diagnostic> sink,
+               List<UndirectedParameter> undirected) {
         this.defaults = defaults;
         this.pcml = pcml;
         this.overlayPath = overlayPath;
         this.pcmlPath = pcmlPath;
         this.sink = sink;
+        this.undirected = undirected;
     }
 
     /** Every diagnostic carries an overlay position: a position inside the PCML (a derived binding) becomes the operation's. */
@@ -88,6 +106,9 @@ final class ApiBuilder {
         OperationSettings shared = file.shared();
 
         String id = operation.id().map(Located::value).orElseGet(() -> program.name().toLowerCase(Locale.ROOT));
+        operationId = id;
+        placeholders = 0;
+        pcmlProgramName = program.name();
         if (operation.id().isEmpty() && !Vocabulary.ID.matcher(id).matches()) {
             error("OVL012", "The default id '" + id + "' (the program name in lower case) is not a valid id: set 'id'",
                     programName.at());
@@ -118,8 +139,10 @@ final class ApiBuilder {
         }
 
         if (errors == errorsBefore) {
-            // With a missing binding these checks would only repeat the real problem as a second error.
-            checkRoute(route, routeNames, bindings);
+            // With a missing binding these checks would only repeat the real problem as a second error. A parameter built as
+            // internal in place of its direction is a missing binding too (a strict load would not have built the operation),
+            // so the route is only checked for what is there: a placeholder may be waiting for that parameter.
+            checkRoute(route, routeNames, bindings, placeholders > 0);
             checkDuplicateNames(bindings, Collections.newSetFromMap(new IdentityHashMap<>()));
         }
 
@@ -213,6 +236,9 @@ final class ApiBuilder {
         if (direction.isEmpty()) {
             return Optional.empty();
         }
+        // Built as internal in place of a direction that is missing: a strict load reports OVL001 and nothing else about it,
+        // so 'in', which only a request field has, is not an error here either.
+        boolean placeholder = undirected != null && overlayDirection.isEmpty() && direction.get() == Direction.INTERNAL;
         String exposedName = last(layers, FieldSettings::name).map(Located::value)
                 .orElseGet(() -> NameRules.exposedName(parameter.name()));
 
@@ -239,7 +265,7 @@ final class ApiBuilder {
                 return Optional.empty();
             }
             location = Optional.of(chosen);
-        } else if (explicit.isPresent()) {
+        } else if (explicit.isPresent() && !placeholder) {
             error("OVL012", "'in' has no effect on parameter '" + path + "': its direction is "
                     + direction.get().name().toLowerCase(Locale.ROOT) + ", and only request fields have a location",
                     explicit.get().at());
@@ -366,6 +392,9 @@ final class ApiBuilder {
                 if (overlay.isPresent()) {
                     yield Optional.of(overlay.get().value());
                 }
+                if (undirected != null) {
+                    undirected.add(new UndirectedParameter(operationId, pcmlProgramName, parameter));
+                }
                 String usage = parameter.usage() == ai.generativearchitects.glow400.pcml.model.Usage.INPUT_OUTPUT
                         ? "inputoutput" : "inherit";
                 String message = "Parameter '" + parameter.name() + "' has usage " + usage
@@ -373,6 +402,13 @@ final class ApiBuilder {
                 if (defaults.inputOutput() == InputOutputPolicy.BOTH) {
                     report("OVL001", Severity.WARNING, message + "; treated as 'both'", source);
                     yield Optional.of(Direction.BOTH);
+                }
+                if (undirected != null) {
+                    // Reported as an error, but the operation is still built (the parameter as internal).
+                    sink.add(new Diagnostic("OVL001", Severity.ERROR, message,
+                            source.file().equals(overlayPath) ? source : operationAt));
+                    placeholders++;
+                    yield Optional.of(Direction.INTERNAL);
                 }
                 error("OVL001", message, source);
                 yield Optional.empty();
@@ -463,7 +499,7 @@ final class ApiBuilder {
     // ------------------------------------------------------------------ route, names
 
     /** {@code OVL004}: route placeholders and PATH bindings must correspond. */
-    private void checkRoute(Located<String> route, List<String> routeNames, List<FieldBinding> bindings) {
+    private void checkRoute(Located<String> route, List<String> routeNames, List<FieldBinding> bindings, boolean incomplete) {
         Set<String> pathNames = new HashSet<>();
         for (FieldBinding binding : bindings) {
             if (binding.location().isPresent() && binding.location().get() == Location.PATH) {
@@ -475,7 +511,7 @@ final class ApiBuilder {
             }
         }
         for (String name : routeNames) {
-            if (!pathNames.contains(name)) {
+            if (!incomplete && !pathNames.contains(name)) {
                 error("OVL004", "The route placeholder {" + name + "} has no binding with 'in: path'", route.at());
             }
         }

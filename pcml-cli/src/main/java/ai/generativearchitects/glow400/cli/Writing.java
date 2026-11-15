@@ -1,17 +1,21 @@
 package ai.generativearchitects.glow400.cli;
 
 import java.io.IOException;
-import java.nio.file.AccessDeniedException;
-import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.FileSystemException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Set;
+import java.util.UUID;
 
 /** Where files may be written, and why a write failed, in words that name no content and no machine. */
 final class Writing {
+
+    /** What the name of a temporary file starts with. Neutral on purpose: it carries no product name. */
+    static final String TEMP_PREFIX = ".write-";
 
     private Writing() {
     }
@@ -32,24 +36,46 @@ final class Writing {
 
     /** A short reason for an I/O failure. */
     static String reason(IOException e) {
-        if (e instanceof AccessDeniedException) {
-            return "access denied";
+        return ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e);
+    }
+
+    /**
+     * Writes a file that does not exist yet: to a temporary file in the same folder, which is then moved into place, so that no
+     * reader sees half a file. Nothing is overwritten.
+     *
+     * @return {@code false} if something was already there; the file is then left alone
+     */
+    static boolean createNew(Path target, byte[] content) throws IOException {
+        Path temp = target.resolveSibling(TEMP_PREFIX + UUID.randomUUID() + ".tmp");
+        try {
+            Files.write(temp, content, StandardOpenOption.CREATE_NEW);
+            Files.move(temp, target); // without REPLACE_EXISTING: fails if the target has appeared in the meantime
+            return true;
+        } catch (FileAlreadyExistsException e) {
+            return false;
+        } finally {
+            Files.deleteIfExists(temp);
         }
-        if (e instanceof NoSuchFileException) {
-            return "no such file or folder";
+    }
+
+    /** Replaces the content of a file that exists, through a temporary file and a move; the permissions of the file are kept. */
+    static void replace(Path target, byte[] content) throws IOException {
+        Path temp = target.resolveSibling(TEMP_PREFIX + UUID.randomUUID() + ".tmp");
+        try {
+            Files.write(temp, content, StandardOpenOption.CREATE_NEW);
+            try {
+                Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(target);
+                Files.setPosixFilePermissions(temp, permissions);
+            } catch (UnsupportedOperationException e) {
+                // not a POSIX file system: the permissions are what the system gives a new file
+            }
+            try {
+                Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(temp);
         }
-        if (e instanceof NotDirectoryException) {
-            return "not a folder";
-        }
-        if (e instanceof DirectoryNotEmptyException) {
-            return "folder is not empty";
-        }
-        if (e instanceof FileAlreadyExistsException) {
-            return "already exists";
-        }
-        if (e instanceof FileSystemException fse && fse.getReason() != null) {
-            return fse.getReason().toLowerCase(java.util.Locale.ROOT);
-        }
-        return e.getClass().getSimpleName();
     }
 }

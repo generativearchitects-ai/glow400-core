@@ -19,7 +19,8 @@ Licence: Apache-2.0.
 | `pcml-diff` | Breaking-change detection between a released and a current repository (`API002` to `API006`) |
 | `pcml-emit-descriptor` | Writes `descriptor.json` (schema version 1), the file the gateway reads, and reads it back into the API model; uses the streaming API of Jackson (`jackson-core`) to read |
 | `pcml-report` | Writes diagnostics as text for people, JSON for scripts (`reportSchemaVersion` 1) or SARIF 2.1.0 for pull-request annotations |
-| `pcml-cli` | The command-line tool: `validate`, `generate`, `bundle` and `diff`, in one runnable jar (`java -jar pcml-cli/target/pcml-cli-<version>.jar`) |
+| `pcml-scaffold` | Writes a first `api.yaml` from PCML and the `gateway.yaml` of `init`, and edits parameter entries of an `api.yaml` in place (`direction`, `type`, `name`) without rewriting the file, checking the result by loading it again (`SCF001` to `SCF003`). Text in, text out: no I/O |
+| `pcml-cli` | The command-line tool: `init`, `annotate`, `validate`, `generate`, `bundle` and `diff`, in one runnable jar (`java -jar pcml-cli/target/pcml-cli-<version>.jar`) |
 | `pcml-bundle` | Packs the descriptor, the OpenAPI documents and the PCML and overlay files into one deterministic, checksummed `.rpgapi` zip file, and reads it back as untrusted input (`BDL001` to `BDL006`) |
 | `pcml-emit-openapi` | Writes one OpenAPI 3.1 document per API, `openapi/<api name>.yaml` |
 
@@ -62,6 +63,17 @@ DecodeResult response = codec.decode(programOutput);                            
 The codec never alters data silently: nothing is truncated, rounded or clamped, and a value that does not fit is a problem
 whose message never contains the value. A char field's `length` counts bytes of the host encoding, so the codec supports
 single-byte CCSIDs only for now.
+
+From a folder of PCML files to a repository that validates, with the command-line tool:
+
+```
+java -jar pcml-cli-<version>.jar init        # gateway.yaml, and an api.yaml for every folder under apis/ that has PCML and no overlay
+java -jar pcml-cli-<version>.jar annotate    # asks which way each inputoutput parameter goes, and writes the answers into api.yaml
+java -jar pcml-cli-<version>.jar validate
+```
+
+`init` never overwrites or deletes a file. `annotate` changes only the parameter entries of an `api.yaml`: comments, blank
+lines, key order, quoting, indentation and line endings stay as they are.
 
 Operations with errors are left out of the model and reported. The JSON Schemas for editor completion are `api.schema.json` and `gateway.schema.json`, next to `OverlayLoader` in the `pcml-overlay` jar.
 

@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -40,9 +41,12 @@ public final class OverlayLoader {
     private final Path realRoot;
     private final List<Diagnostic> diagnostics = new ArrayList<>();
     private final Map<String, ParseResult> pcmlCache = new HashMap<>();
+    /** Non-null when loading for annotation: {@code OVL001} no longer leaves an operation out, and targets are collected. */
+    private final List<AnnotationTarget> targets;
 
-    private OverlayLoader(Path realRoot) {
+    private OverlayLoader(Path realRoot, List<AnnotationTarget> targets) {
         this.realRoot = realRoot;
+        this.targets = targets;
     }
 
     /**
@@ -52,6 +56,40 @@ public final class OverlayLoader {
      * @return the model, if at least {@code gateway.yaml} could be interpreted, and every diagnostic
      */
     public static RepositoryResult loadRepository(Path root) {
+        return load(root, null);
+    }
+
+    /**
+     * What {@link #loadRepositoryForAnnotation} returns.
+     *
+     * @param result  as {@link #loadRepository} would return it, except that an operation whose only errors are
+     *                {@code OVL001} is built, with each undirected parameter as {@code internal}; the {@code OVL001}
+     *                diagnostics are still in it
+     * @param targets the overlay files that have parameters without a direction, in model order
+     */
+    public record Annotation(RepositoryResult result, List<AnnotationTarget> targets) {
+
+        /** @throws NullPointerException if an argument is {@code null} */
+        public Annotation {
+            Objects.requireNonNull(result, "result");
+            targets = List.copyOf(targets);
+        }
+    }
+
+    /**
+     * Loads a customer repository for a tool that completes the overlays: the same diagnostics as
+     * {@link #loadRepository}, but with {@code defaults.inputoutput: fail} an operation is not left out because a
+     * parameter has no direction, so that the other errors in it, and the other operations of the file, are seen.
+     *
+     * @param root the repository root
+     * @return the result and the files to complete
+     */
+    public static Annotation loadRepositoryForAnnotation(Path root) {
+        List<AnnotationTarget> targets = new ArrayList<>();
+        return new Annotation(load(root, targets), targets);
+    }
+
+    private static RepositoryResult load(Path root, List<AnnotationTarget> targets) {
         Path real;
         try {
             real = root.toRealPath();
@@ -60,10 +98,10 @@ public final class OverlayLoader {
         }
         if (real == null || !Files.isDirectory(real)) {
             Diagnostic missing = new Diagnostic("OVL013", Severity.ERROR,
-                    "Repository root not found or not a directory: " + root, new SourceLocation(".", 0, 0));
+                    "Repository root not found or not a directory", new SourceLocation(".", 0, 0));
             return new RepositoryResult(Optional.empty(), List.of(missing));
         }
-        return new OverlayLoader(real).load();
+        return new OverlayLoader(real, targets).load();
     }
 
     private RepositoryResult load() {
@@ -159,7 +197,9 @@ public final class OverlayLoader {
             report("OVL013", Severity.ERROR, "The PCML file " + pcmlPath + " has errors", file.pcml().at());
             return Optional.empty();
         }
-        List<ApiOperation> operations = build(parsed.get(), pcml.document().get(), defaults, pcmlPath);
+        List<UndirectedParameter> undirected = targets == null ? null : new ArrayList<>();
+        List<ApiOperation> operations = buildOperations(parsed.get(), pcml.document().get(), defaults, pcmlPath, diagnostics,
+                undirected);
         String name = ApiRepositoryModel.apiName(overlayPath);
         if (!API_NAME.matcher(name).matches()) {
             report("OVL012", Severity.ERROR, "The API name '" + name + "' (the folder name, lower-cased) must match "
@@ -168,6 +208,9 @@ public final class OverlayLoader {
         }
         if (operations.isEmpty()) {
             return Optional.empty();
+        }
+        if (targets != null && !undirected.isEmpty()) {
+            targets.add(new AnnotationTarget(name, overlayPath, pcmlPath, pcml.document().get(), defaults, undirected));
         }
         String title = file.title().map(Located::value).orElse(name);
         return Optional.of(new Pending(name, title, file.version().value(), overlayPath, operations));
@@ -178,10 +221,10 @@ public final class OverlayLoader {
      * the overlay is not built, but its names are still checked against its program ({@code OVL002}), so that one run
      * shows everything that is wrong. Nothing is checked for an operation whose program cannot be found ({@code OVL013}).
      */
-    private List<ApiOperation> build(OverlayParser.Parsed parsed, PcmlDocument pcml, GatewayDefaults defaults,
-                                     String pcmlPath) {
+    static List<ApiOperation> buildOperations(OverlayParser.Parsed parsed, PcmlDocument pcml, GatewayDefaults defaults,
+                                              String pcmlPath, List<Diagnostic> sink, List<UndirectedParameter> undirected) {
         OverlayFile file = parsed.file();
-        ApiBuilder builder = new ApiBuilder(defaults, pcml, file.path(), pcmlPath, diagnostics);
+        ApiBuilder builder = new ApiBuilder(defaults, pcml, file.path(), pcmlPath, sink, undirected);
         List<ApiOperation> operations = new ArrayList<>();
         List<String> programNames = new ArrayList<>();
         boolean allResolved = true;
@@ -195,8 +238,8 @@ public final class OverlayLoader {
             Optional<ProgramDef> program = pcml.programs().stream()
                     .filter(p -> p.name().equals(programName.get().value())).findFirst();
             if (program.isEmpty()) {
-                report("OVL013", Severity.ERROR, "Program '" + programName.get().value() + "' is not in the PCML file "
-                        + pcmlPath, programName.get().at());
+                sink.add(new Diagnostic("OVL013", Severity.ERROR, "Program '" + programName.get().value()
+                        + "' is not in the PCML file " + pcmlPath, programName.get().at()));
                 allResolved = false;
                 continue;
             }
@@ -254,7 +297,7 @@ public final class OverlayLoader {
             result = PcmlParser.parse(name, in);
         } catch (IOException e) {
             result = new ParseResult(Optional.empty(), List.of(new Diagnostic("PCML001", Severity.ERROR,
-                    "Cannot read source: " + e.getMessage(), new SourceLocation(name, 0, 0))));
+                    "Cannot read source: " + ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e), new SourceLocation(name, 0, 0))));
         }
         diagnostics.addAll(result.diagnostics());
         return result;
@@ -291,7 +334,7 @@ public final class OverlayLoader {
         try {
             return Optional.of(Files.readString(file, StandardCharsets.UTF_8));
         } catch (IOException e) {
-            report("OVL010", Severity.ERROR, "Cannot read file as UTF-8 text: " + e.getMessage(), new SourceLocation(name, 0, 0));
+            report("OVL010", Severity.ERROR, "Cannot read file as UTF-8 text: " + ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e), new SourceLocation(name, 0, 0));
             return Optional.empty();
         }
     }

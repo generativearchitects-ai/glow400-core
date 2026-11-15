@@ -228,4 +228,34 @@ class LoaderTest {
         assertThat(codes(result)).containsExactly(Tuple.tuple("OVL010", "apis/A/api.yaml"));
         assertThat(result.model().orElseThrow().operations()).isEmpty();
     }
+
+    // ---- no absolute path of this machine in a message
+
+    @Test
+    void aRootThatIsNotThereIsReportedWithoutItsPath(@TempDir Path dir) throws IOException {
+        Path missing = dir.resolve("nope");
+        RepositoryResult result = OverlayLoader.loadRepository(missing);
+        assertThat(result.diagnostics()).hasSize(1);
+        assertThat(result.diagnostics().get(0).message()).isEqualTo("Repository root not found or not a directory");
+        Path file = Files.writeString(dir.resolve("a-file"), "x");
+        assertThat(OverlayLoader.loadRepository(file).diagnostics().get(0).message()).isEqualTo("Repository root not found or not a directory");
+    }
+
+    @Test
+    void aFileThatCannotBeReadIsReportedByItsReasonAndNeverByTheMessageOfTheException(@TempDir Path dir) throws IOException {
+        Path folder = Files.createDirectories(dir.resolve("apis/A"));
+        Files.writeString(folder.resolve("ORDSTATUS.pcml"), "<pcml version=\"6.0\"><program name=\"ORDSTATUS\"/></pcml>");
+        Path overlay = folder.resolve("api.yaml");
+        Files.write(overlay, new byte[] {'a', ':', ' ', (byte) 0xFF, (byte) 0xFE, '\n'});
+        RepositoryResult invalidText = OverlayLoader.loadRepository(dir);
+        assertThat(invalidText.diagnostics()).extracting(Diagnostic::message).containsExactly("Cannot read file as UTF-8 text: MalformedInputException");
+        Files.writeString(overlay, overlay("ORDSTATUS", "/a"));
+        java.nio.file.attribute.PosixFilePermissions.fromString("---------");
+        Path pcml = folder.resolve("ORDSTATUS.pcml");
+        Files.setPosixFilePermissions(pcml, java.nio.file.attribute.PosixFilePermissions.fromString("---------"));
+        org.junit.jupiter.api.Assumptions.assumeFalse(Files.isReadable(pcml), "the tests run as a user who can read anything");
+        RepositoryResult unreadable = OverlayLoader.loadRepository(dir);
+        assertThat(unreadable.diagnostics()).extracting(Diagnostic::message).anyMatch(m -> m.equals("Cannot read source: access denied"));
+        assertThat(unreadable.diagnostics()).extracting(Diagnostic::message).noneMatch(m -> m.contains(dir.toString()));
+    }
 }

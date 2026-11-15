@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>ai.generativearchitects.glow400</groupId>
+    <artifactId>glow400-core</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>pcml-scaffold</artifactId>
+  <name>pcml-scaffold</name>
+  <description>Writes a first overlay and gateway.yaml from PCML, and edits parameter entries of an overlay in place. Text in, text out: no I/O.</description>
+
+  <properties>
+    <!-- Kickoff 08: this module writes into files people authored by hand. -->
+    <mutation.threshold>95</mutation.threshold>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-parser</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-overlay</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- The rule of OVL003 for the types a wire type can carry: the codec's own check, not a second copy of it. -->
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-codec</artifactId>
+    </dependency>
+
+    <!-- Test scope only: the fixtures of kickoff 02 and the in-house generator for property tests. -->
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-overlay</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-codec</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

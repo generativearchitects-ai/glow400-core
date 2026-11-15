@@ -1,0 +1,11 @@
+defaults:
+  char:
+    pad: right
+    padChar: " "
+    nullAs: ""
+  # fail: a parameter that is inputoutput needs a direction. Run annotate to give one.
+  inputoutput: fail
+  largeArrayThreshold: 100
+emitters:
+  - descriptor
+  - openapi

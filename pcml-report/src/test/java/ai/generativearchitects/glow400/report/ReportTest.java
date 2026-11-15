@@ -143,6 +143,14 @@ class ReportTest {
     }
 
     @Test
+    void theLowestSeverityIsWrittenNoteInALineAsInTheSummaryTheJsonAndTheSarifReport() {
+        String line = TextReport.render(new Report("c", BASE, List.of(d("API003", Severity.INFO, "m", "f", 1, 1)))).lines().findFirst().orElseThrow();
+        assertThat(line).isEqualTo("f:1:1: note API003: m");
+        assertThat(new Diagnostic("API003", Severity.INFO, "m", new SourceLocation("f", 1, 1)).toString()).isEqualTo("f:1:1: info API003: m");
+        assertThat(TextReport.render(report())).doesNotContain(" info ");
+    }
+
+    @Test
     void theSummaryUsesTheSingularForOne() {
         assertThat(TextReport.render(new Report("c", BASE, List.of()))).isEqualTo("0 errors, 0 warnings, 0 notes\n");
         assertThat(TextReport.render(new Report("c", BASE, List.of(d("A", Severity.ERROR, "m", "f", 1, 1))))).endsWith("1 error, 0 warnings, 0 notes\n");

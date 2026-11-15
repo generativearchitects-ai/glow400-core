@@ -1,6 +1,6 @@
 /elsewhere/old.rpgapi:1:1: error BDL003: The bundle has no manifest.json
 apis/A B/api.yaml:0:0: error OVL010: Cannot read file as UTF-8 text
-apis/ORDERS/api.yaml:1:1: info API003: API orders: compatible (1 compatible), version 1.0.0 to 1.1.0
+apis/ORDERS/api.yaml:1:1: note API003: API orders: compatible (1 compatible), version 1.0.0 to 1.1.0
 apis/ORDERS/api.yaml:1:1: warning OVL006: Operation orders has no error mapping
 apis/ORDERS/api.yaml:12:5: error OVL004: A message with "quotes" and a tab\u0009here
 apis/ORDERS/api.yaml:12:5: error OVL012: 'route' must start with /
