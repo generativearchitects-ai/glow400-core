@@ -27,6 +27,15 @@ class JsonTest {
     }
 
     @Test
+    void aWholeNumberOfAnySizeIsWrittenAndReadBack() throws IOException {
+        java.math.BigInteger big = new java.math.BigInteger("123456789012345678901234567890");
+        String text = Json.write(List.of(big, java.math.BigInteger.valueOf(-5), 7L));
+        assertThat(text).isEqualTo("[\n  123456789012345678901234567890,\n  -5,\n  7\n]\n");
+        Object read = Json.read(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)));
+        assertThat(read).isEqualTo(List.of(big, -5, 7));
+    }
+
+    @Test
     void readingIsStrict() {
         assertThatThrownBy(() -> Json.read(new ByteArrayInputStream("{\"a\": 1, \"a\": 2}".getBytes(StandardCharsets.UTF_8)))).isInstanceOf(IOException.class);
         assertThatThrownBy(() -> Json.read(new ByteArrayInputStream("{} {}".getBytes(StandardCharsets.UTF_8)))).isInstanceOf(IOException.class);

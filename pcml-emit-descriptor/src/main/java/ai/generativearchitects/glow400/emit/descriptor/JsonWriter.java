@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * Writes a tree of {@link Map} (in iteration order), {@link List}, {@link String}, {@link Integer}, {@link Long},
- * {@link Boolean} and {@code null} as JSON: two-space indentation, LF line endings, a final newline, and nothing that
+ * {@link java.math.BigInteger}, {@link Boolean} and {@code null} as JSON: two-space indentation, LF line endings, a final newline, and nothing that
  * depends on the machine or the moment.
  */
 final class JsonWriter {
@@ -30,6 +30,7 @@ final class JsonWriter {
             case Boolean flag -> out.append(flag);
             case Integer number -> out.append(number);
             case Long number -> out.append(number);
+            case java.math.BigInteger number -> out.append(number);
             case Map<?, ?> map -> object(map, depth);
             case List<?> list -> array(list, depth);
             default -> throw new IllegalArgumentException("Not a JSON value: " + value.getClass().getName());
