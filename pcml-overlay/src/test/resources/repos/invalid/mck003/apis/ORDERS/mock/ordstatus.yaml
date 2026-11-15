@@ -1,0 +1,5 @@
+cases:
+  - when: { NOPE: 1 }
+  - when: { P0STAT: S }
+  - returns: { P0ORDN: 1 }
+  - returns: { P0LINES: [ { SKU: A, NOPE: B } ] }

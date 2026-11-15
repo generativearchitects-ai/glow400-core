@@ -1,0 +1,3 @@
+cases:
+  - name: x
+    retruns: { P0STAT: S }

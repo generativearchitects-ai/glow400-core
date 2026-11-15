@@ -1,0 +1,33 @@
+pcml: ORDERS.pcml
+version: 1.0.0
+title: Orders
+
+operations:
+  - id: ordstatus
+    program: ORDSTATUS
+    route: /orders/{orderNumber}/status
+    method: GET
+    parameters:
+      P0ORDN: { name: orderNumber, direction: request, in: path, type: integer }
+      P0STAT: { name: status, direction: response }
+      P0LINES:
+        name: lines
+        direction: response
+        trim: { dropBlank: true }
+        fields:
+          SKU: { name: sku }
+          QTY: { name: quantity }
+      P0ERR: { direction: internal }
+    error:
+      when: { field: P0ERR, notEquals: "" }
+      code: P0ERR
+      httpStatus: 409
+      statusByCode: { "404": 404 }
+  - id: update-quantity
+    program: UPDQTY
+    route: /items/{itemId}/quantity
+    method: PUT
+    parameters:
+      ITEMID: { name: itemId, direction: request, in: path }
+      QTY: { name: quantity, direction: both }
+      NOTE: { name: note, direction: both }

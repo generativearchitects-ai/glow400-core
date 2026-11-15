@@ -4,6 +4,8 @@ import ai.generativearchitects.glow400.pcml.api.ApiDefinition;
 import ai.generativearchitects.glow400.pcml.api.ApiOperation;
 import ai.generativearchitects.glow400.pcml.api.ApiRepositoryModel;
 import ai.generativearchitects.glow400.pcml.api.GatewayDefaults;
+import ai.generativearchitects.glow400.pcml.api.MockDefinition;
+import ai.generativearchitects.glow400.pcml.diagnostics.IoReason;
 import ai.generativearchitects.glow400.pcml.diagnostics.Diagnostic;
 import ai.generativearchitects.glow400.pcml.diagnostics.Severity;
 import ai.generativearchitects.glow400.pcml.model.PcmlDocument;
@@ -20,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -122,7 +125,10 @@ public final class OverlayLoader {
         for (Pending api : pending) {
             List<ApiOperation> surviving = api.operations().stream().filter(kept::contains).toList();
             if (!surviving.isEmpty()) {
-                definitions.add(new ApiDefinition(api.name(), api.title(), api.version(), api.overlayPath(), surviving));
+                Set<String> ids = new HashSet<>();
+                surviving.forEach(operation -> ids.add(operation.id()));
+                List<MockDefinition> mocks = api.mocks().stream().filter(m -> ids.contains(m.operationId())).toList();
+                definitions.add(new ApiDefinition(api.name(), api.title(), api.version(), api.overlayPath(), surviving, mocks));
             }
         }
 
@@ -152,7 +158,8 @@ public final class OverlayLoader {
     // ------------------------------------------------------------------ one folder under apis/
 
     /** The built operations of one overlay file, before duplicates across files are dropped. */
-    private record Pending(String name, String title, String version, String overlayPath, List<ApiOperation> operations) {
+    private record Pending(String name, String title, String version, String overlayPath, List<ApiOperation> operations,
+                           List<MockDefinition> mocks) {
     }
 
     private static final java.util.regex.Pattern API_NAME = java.util.regex.Pattern.compile("[a-z0-9][a-z0-9._-]*");
@@ -213,7 +220,63 @@ public final class OverlayLoader {
             targets.add(new AnnotationTarget(name, overlayPath, pcmlPath, pcml.document().get(), defaults, undirected));
         }
         String title = file.title().map(Located::value).orElse(name);
-        return Optional.of(new Pending(name, title, file.version().value(), overlayPath, operations));
+        return Optional.of(new Pending(name, title, file.version().value(), overlayPath, operations, loadMocks(folder, overlay, file)));
+    }
+
+    // ------------------------------------------------------------------ mock files
+
+    /**
+     * The mock files of one API: {@code mock/<operation id>.yaml} next to the overlay. A file whose name is not the id of an
+     * operation of the overlay is {@code MCK002}; one that is not valid is {@code MCK001}; neither is loaded.
+     */
+    private List<MockDefinition> loadMocks(Path folder, Path overlay, OverlayFile file) {
+        Path directory = folder.resolve("mock");
+        if (!Files.isDirectory(directory)) {
+            return List.of();
+        }
+        Set<String> ids = new LinkedHashSet<>();
+        for (OperationSettings operation : file.operations()) {
+            OverlayText.operationId(file, operation).ifPresent(ids::add);
+        }
+        List<MockDefinition> mocks = new ArrayList<>();
+        List<Path> files = sortedChildren(directory, p -> Files.isRegularFile(p) && isYamlName(p.getFileName().toString()));
+        for (Path mock : files) {
+            String name = mock.getFileName().toString();
+            String id = name.substring(0, name.lastIndexOf('.'));
+            String path = relative(mock);
+            if (!name.endsWith(".yaml") || !ids.contains(id)) {
+                report("MCK002", Severity.ERROR, "The mock file " + name + " is not named after an operation of this API: mock files are named "
+                        + "<operation id>.yaml, and the operations are " + ids, new SourceLocation(path, 1, 1));
+                continue;
+            }
+            readMock(mock, id, path).ifPresent(mocks::add);
+        }
+        return mocks;
+    }
+
+    private static boolean isYamlName(String name) {
+        String lower = name.toLowerCase(Locale.ROOT);
+        return lower.endsWith(".yaml") || lower.endsWith(".yml");
+    }
+
+    private Optional<MockDefinition> readMock(Path mock, String id, String path) {
+        SourceLocation at = new SourceLocation(path, 1, 1);
+        String text;
+        try {
+            if (!mock.toRealPath().startsWith(realRoot)) {
+                report("MCK001", Severity.ERROR, "The mock file must be inside the repository", at);
+                return Optional.empty();
+            }
+            if (Files.size(mock) > MockParser.MAX_BYTES) {
+                report("MCK001", Severity.ERROR, "A mock file has at most " + MockParser.MAX_BYTES + " bytes", at);
+                return Optional.empty();
+            }
+            text = Files.readString(mock, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            report("MCK001", Severity.ERROR, "Cannot read the mock file as UTF-8 text: " + IoReason.of(e), at);
+            return Optional.empty();
+        }
+        return new MockParser(path).parse(id, text, diagnostics);
     }
 
     /**
@@ -297,7 +360,7 @@ public final class OverlayLoader {
             result = PcmlParser.parse(name, in);
         } catch (IOException e) {
             result = new ParseResult(Optional.empty(), List.of(new Diagnostic("PCML001", Severity.ERROR,
-                    "Cannot read source: " + ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e), new SourceLocation(name, 0, 0))));
+                    "Cannot read source: " + IoReason.of(e), new SourceLocation(name, 0, 0))));
         }
         diagnostics.addAll(result.diagnostics());
         return result;
@@ -334,7 +397,7 @@ public final class OverlayLoader {
         try {
             return Optional.of(Files.readString(file, StandardCharsets.UTF_8));
         } catch (IOException e) {
-            report("OVL010", Severity.ERROR, "Cannot read file as UTF-8 text: " + ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e), new SourceLocation(name, 0, 0));
+            report("OVL010", Severity.ERROR, "Cannot read file as UTF-8 text: " + IoReason.of(e), new SourceLocation(name, 0, 0));
             return Optional.empty();
         }
     }
