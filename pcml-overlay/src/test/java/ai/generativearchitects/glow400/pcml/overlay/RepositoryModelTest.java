@@ -159,7 +159,7 @@ class RepositoryModelTest {
                         org.assertj.core.groups.Tuple.tuple("OVL001", Severity.WARNING));
         ApiRepositoryModel model = result.model().orElseThrow();
         assertThat(model.defaults()).isEqualTo(new GatewayDefaults(TEXT, InputOutputPolicy.BOTH,
-                List.of("descriptor", "openapi", "mock")));
+                List.of("descriptor", "openapi")));
         assertOperation(model.operations().get(0), new ApiOperation(
                 "getbal", "1.0.0", Optional.empty(), Optional.empty(), List.of(),
                 program("defaults-both", "GETBAL", "GETBAL.pcml", "GETBAL"),
