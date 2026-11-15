@@ -60,7 +60,7 @@ public final class OverlayLoader {
         }
         if (real == null || !Files.isDirectory(real)) {
             Diagnostic missing = new Diagnostic("OVL013", Severity.ERROR,
-                    "Repository root not found or not a directory: " + root, new SourceLocation(".", 0, 0));
+                    "Repository root not found or not a directory", new SourceLocation(".", 0, 0));
             return new RepositoryResult(Optional.empty(), List.of(missing));
         }
         return new OverlayLoader(real).load();
@@ -254,7 +254,7 @@ public final class OverlayLoader {
             result = PcmlParser.parse(name, in);
         } catch (IOException e) {
             result = new ParseResult(Optional.empty(), List.of(new Diagnostic("PCML001", Severity.ERROR,
-                    "Cannot read source: " + e.getMessage(), new SourceLocation(name, 0, 0))));
+                    "Cannot read source: " + ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e), new SourceLocation(name, 0, 0))));
         }
         diagnostics.addAll(result.diagnostics());
         return result;
@@ -291,7 +291,7 @@ public final class OverlayLoader {
         try {
             return Optional.of(Files.readString(file, StandardCharsets.UTF_8));
         } catch (IOException e) {
-            report("OVL010", Severity.ERROR, "Cannot read file as UTF-8 text: " + e.getMessage(), new SourceLocation(name, 0, 0));
+            report("OVL010", Severity.ERROR, "Cannot read file as UTF-8 text: " + ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e), new SourceLocation(name, 0, 0));
             return Optional.empty();
         }
     }

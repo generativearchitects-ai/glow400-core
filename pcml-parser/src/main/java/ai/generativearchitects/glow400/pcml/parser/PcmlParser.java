@@ -46,7 +46,7 @@ public final class PcmlParser {
         try (InputStream in = Files.newInputStream(file)) {
             return parse(name, in);
         } catch (IOException e) {
-            return failure(name, "Cannot read source: " + e.getMessage(), 0, 0);
+            return failure(name, "Cannot read source: " + ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e), 0, 0);
         }
     }
 
@@ -66,7 +66,7 @@ public final class PcmlParser {
         } catch (XmlReader.MalformedXmlException e) {
             return failure(sourceName, "Not well-formed XML: " + e.getMessage(), e.line(), e.column());
         } catch (IOException e) {
-            return failure(sourceName, "Cannot read source: " + e.getMessage(), 0, 0);
+            return failure(sourceName, "Cannot read source: " + ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e), 0, 0);
         }
         if (!root.name().equals("pcml")) {
             return failure(sourceName,

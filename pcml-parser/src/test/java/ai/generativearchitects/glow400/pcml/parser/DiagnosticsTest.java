@@ -135,4 +135,12 @@ class DiagnosticsTest {
         FieldDef field = result.document().orElseThrow().programs().get(0).parameters().get(0);
         assertThat(field.attributes()).containsEntry("ccsid", "CS");
     }
+
+    @org.junit.jupiter.api.Test
+    void aFileThatCannotBeReadIsReportedByItsReasonAndNeverByTheMessageOfTheException(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) {
+        ParseResult result = PcmlParser.parse(dir.resolve("missing.pcml"));
+        assertThat(result.diagnostics()).hasSize(1);
+        assertThat(result.diagnostics().get(0).code()).isEqualTo("PCML001");
+        assertThat(result.diagnostics().get(0).message()).isEqualTo("Cannot read source: no such file or folder");
+    }
 }
