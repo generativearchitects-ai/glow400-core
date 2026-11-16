@@ -101,7 +101,7 @@ final class AnnotateCommand implements Command {
                 context.err.println((dryRun ? "would set " : "") + progress(target, applied));
             }
         }
-        context.loadAndValidate();
+        context.diagnostics.addAll(context.tasks.validate(context.repo).diagnostics());
     }
 
     /** Asks the questions of one file; the edits are added in order. Returns whether the input has ended. */
