@@ -74,7 +74,7 @@ class ReportTest {
     }
 
     @Test
-    void theSummaryUsesTheSingularForOne() {
+    void theSummaryLineSaysOneErrorAndOneNote() {
         assertThat(TextReport.summary(new Report("c", BASE, List.of()))).isEqualTo("0 errors, 0 warnings, 0 notes");
         assertThat(TextReport.summary(new Report("c", BASE, List.of(d("X", Severity.ERROR, "m", "a", 1, 1), d("Y", Severity.INFO, "m", "a", 1, 1)))))
                 .isEqualTo("1 error, 0 warnings, 1 note");
@@ -173,7 +173,7 @@ class ReportTest {
     }
 
     @Test
-    void theSummaryLineOfAReportSaysOneErrorAndOneNote() {
+    void theSummaryUsesTheSingularForOne() {
         assertThat(TextReport.render(new Report("c", BASE, List.of()))).isEqualTo("0 errors, 0 warnings, 0 notes\n");
         assertThat(TextReport.render(new Report("c", BASE, List.of(d("A", Severity.ERROR, "m", "f", 1, 1))))).endsWith("1 error, 0 warnings, 0 notes\n");
         assertThat(TextReport.render(new Report("c", BASE, List.of(d("A", Severity.WARNING, "m", "f", 1, 1))))).endsWith("0 errors, 1 warning, 0 notes\n");
