@@ -59,6 +59,20 @@ class PackagedJarIT {
     }
 
     @Test
+    void theJarValidatesGeneratesAndBundlesAMockedRepository(@TempDir Path dir) throws Exception {
+        Support.repo("mocked", dir.resolve("repo"));
+        assertThat(java(dir, "validate", "--repo", "repo").exit()).isZero();
+        Run generate = java(dir, "generate", "--repo", "repo", "--out", "out");
+        assertThat(generate.exit()).isZero();
+        assertThat(Support.names(dir.resolve("out"))).contains("mock/orders.json", "descriptor.json", "openapi/orders.yaml");
+        Run bundle = java(dir, "bundle", "--repo", "repo", "--name", "orders", "--version", "1.0.0", "--out", "orders.rpgapi");
+        assertThat(bundle.exit()).isZero();
+        try (ZipFile zip = new ZipFile(dir.resolve("orders.rpgapi").toFile())) {
+            assertThat(zip.stream().map(ZipEntry::getName)).contains("mock/orders.json", "apis/ORDERS/mock/ordstatus.yaml");
+        }
+    }
+
+    @Test
     void theJarTakesAFolderOfPcmlToABundleWithInitAndAnnotate(@TempDir Path dir) throws Exception {
         ScaffoldFixtures.pcmlOnly(dir.resolve("repo"));
         Run init = java(dir, "init", "--repo", "repo");
@@ -88,7 +102,7 @@ class PackagedJarIT {
             assertThat(own).startsWith("glow400-core\nCopyright 2026 The glow400-core authors");
             assertThat(zip.stream().map(ZipEntry::getName)).contains("META-INF/FastDoubleParser-LICENSE", "META-INF/maven/org.snakeyaml/snakeyaml-engine/pom.properties");
             String emitters = new String(zip.getInputStream(zip.getEntry("META-INF/services/ai.generativearchitects.glow400.pcml.api.Emitter")).readAllBytes(), StandardCharsets.UTF_8);
-            assertThat(emitters).contains("DescriptorEmitter").contains("OpenApiEmitter").doesNotContain("TestEmitters");
+            assertThat(emitters).contains("DescriptorEmitter").contains("OpenApiEmitter").contains("MockEmitter").doesNotContain("TestEmitters");
         }
     }
 }

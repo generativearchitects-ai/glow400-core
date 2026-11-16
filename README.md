@@ -19,6 +19,7 @@ Licence: Apache-2.0.
 | `pcml-diff` | Breaking-change detection between a released and a current repository (`API002` to `API006`) |
 | `pcml-emit-descriptor` | Writes `descriptor.json` (schema version 1), the file the gateway reads, and reads it back into the API model; uses the streaming API of Jackson (`jackson-core`) to read |
 | `pcml-report` | Writes diagnostics as text for people, JSON for scripts (`reportSchemaVersion` 1) or SARIF 2.1.0 for pull-request annotations |
+| `pcml-mock` | Mock definitions (`apis/<FOLDER>/mock/<operation id>.yaml`): `MockProgram`, the evaluator that stands in for a program call between `encode` and `decode`; the `mock` emitter, which writes `mock/<api>.json` (`mockSchemaVersion` 1); and `MockReader`, which reads it back. No HTTP server and no sleeping: the delay is data |
 | `pcml-scaffold` | Writes a first `api.yaml` from PCML and the `gateway.yaml` of `init`, and edits parameter entries of an `api.yaml` in place (`direction`, `type`, `name`) without rewriting the file, checking the result by loading it again (`SCF001` to `SCF003`). Text in, text out: no I/O |
 | `pcml-cli` | The command-line tool: `init`, `annotate`, `validate`, `generate`, `bundle` and `diff`, in one runnable jar (`java -jar pcml-cli/target/pcml-cli-<version>.jar`) |
 | `pcml-bundle` | Packs the descriptor, the OpenAPI documents and the PCML and overlay files into one deterministic, checksummed `.rpgapi` zip file, and reads it back as untrusted input (`BDL001` to `BDL006`) |

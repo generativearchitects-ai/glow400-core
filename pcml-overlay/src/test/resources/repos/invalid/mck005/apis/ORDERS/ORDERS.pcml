@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="LINE">
+    <data name="SKU" type="char" length="4"/>
+    <data name="QTY" type="packed" length="7" precision="2"/>
+  </struct>
+  <program name="ORDSTATUS" path="/QSYS.LIB/DEMOLIB.LIB/ORDSTATUS.PGM">
+    <data name="P0ORDN" type="char" length="10" usage="input"/>
+    <data name="P0STAT" type="char" length="1" usage="output"/>
+    <data name="P0LINES" type="struct" struct="LINE" count="5" usage="output"/>
+    <data name="P0ERR" type="char" length="3" usage="output"/>
+  </program>
+  <program name="UPDQTY" path="/QSYS.LIB/DEMOLIB.LIB/UPDQTY.PGM">
+    <data name="ITEMID" type="char" length="6" usage="input"/>
+    <data name="QTY" type="int" length="4" usage="inputoutput"/>
+    <data name="NOTE" type="char" length="8" usage="inputoutput"/>
+  </program>
+</pcml>

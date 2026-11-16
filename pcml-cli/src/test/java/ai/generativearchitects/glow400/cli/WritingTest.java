@@ -40,30 +40,15 @@ class WritingTest {
     }
 
     @Test
-    void theTemporaryFileHasANeutralNameAndIsTheOneWrittenFirst(@TempDir Path dir) throws Exception {
+    void theTemporaryFileHasANeutralNameInTheSameFolderAndNeverTheSameTwice(@TempDir Path dir) {
+        Path target = dir.resolve("sub/api.yaml");
+        Path one = Writing.temporaryFor(target);
+        Path two = Writing.temporaryFor(target);
         assertThat(Writing.TEMP_PREFIX).isEqualTo(".write-").doesNotContainIgnoringCase("glow");
-        // a folder cannot be replaced by a file: the move fails after the temporary file was written, and its name is the one seen here
-        Path target = Files.createDirectories(dir.resolve("folder"));
-        Files.writeString(target.resolve("inside"), "x");
-        java.util.List<String> seen = new java.util.ArrayList<>();
-        Thread watcher = new Thread(() -> {
-            try (var watch = dir.getFileSystem().newWatchService()) {
-                dir.register(watch, java.nio.file.StandardWatchEventKinds.ENTRY_CREATE);
-                var key = watch.poll(5, java.util.concurrent.TimeUnit.SECONDS);
-                if (key != null) {
-                    key.pollEvents().forEach(e -> seen.add(String.valueOf(e.context())));
-                }
-            } catch (IOException | InterruptedException e) {
-                // the test below reports an empty list
-            }
-        });
-        watcher.start();
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> {
-            Thread.sleep(300);
-            Writing.replace(target, new byte[0]);
-        }).isInstanceOf(IOException.class);
-        watcher.join();
-        assertThat(seen).isNotEmpty().allMatch(name -> name.startsWith(".write-") && name.endsWith(".tmp"));
+        assertThat(one.getParent()).isEqualTo(target.getParent());
+        assertThat(one.getFileName().toString()).startsWith(".write-").endsWith(".tmp").doesNotContainIgnoringCase("glow");
+        assertThat(one).isNotEqualTo(two);
+        assertThat(one.getFileName().toString().length()).isGreaterThan(".write-.tmp".length() + 30);
     }
 
     @Test

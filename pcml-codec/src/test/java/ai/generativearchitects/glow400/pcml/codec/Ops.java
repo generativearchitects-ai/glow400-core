@@ -74,6 +74,7 @@ final class Ops {
         Optional<Trim> trim = Optional.empty();
         Optional<String> example = Optional.empty();
         Optional<String> injection = Optional.empty();
+        Usage usage;
         String exposed;
         final Map<String, String> attributes = new LinkedHashMap<>();
         final List<F> members = new ArrayList<>();
@@ -107,11 +108,12 @@ final class Ops {
         F trimBlank() { trim = Optional.of(new Trim.DropBlank()); return this; }
         F example(String e) { example = Optional.of(e); return this; }
         F inject(String text) { direction = Direction.INJECTED; injection = Optional.of(text); return this; }
+        F usage(Usage u) { usage = u; return this; }
         F attr(String key, String value) { attributes.put(key, value); return this; }
         F wire(WireType w) { wire = w; return this; }
 
         FieldDef fieldDef() {
-            return new FieldDef(name, wire, direction == Direction.RESPONSE ? Usage.OUTPUT : Usage.INPUT, count, attributes, AT);
+            return new FieldDef(name, wire, usage != null ? usage : direction == Direction.RESPONSE ? Usage.OUTPUT : Usage.INPUT, count, attributes, AT);
         }
 
         FieldBinding build() {

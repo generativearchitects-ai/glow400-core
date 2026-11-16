@@ -1,0 +1,49 @@
+{
+  "mockSchemaVersion": 1,
+  "api": "orders",
+  "operations": [
+    {
+      "id": "ordstatus",
+      "cases": [
+        {
+          "name": "shipped order",
+          "when": {
+            "P0ORDN": 1001
+          },
+          "returns": {
+            "P0STAT": "S",
+            "P0LINES": [
+              {
+                "SKU": "A1",
+                "QTY": "2.00"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unknown order",
+          "when": {
+            "P0ORDN": 9999
+          },
+          "returns": {
+            "P0ERR": "404"
+          }
+        },
+        {
+          "name": "slow",
+          "when": {
+            "P0ORDN": 5
+          },
+          "delayMs": 1500
+        },
+        {
+          "name": "host down",
+          "when": {
+            "P0ORDN": 6
+          },
+          "fails": "unavailable"
+        }
+      ]
+    }
+  ]
+}

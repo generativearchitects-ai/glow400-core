@@ -170,6 +170,68 @@ class BundleWriterTest {
         }
     }
 
+    // ---- mock files
+
+    @Test
+    void theMockFilesAndTheirSourcesAreInTheBundleWhenMockIsAmongTheEmitters(@TempDir Path dir) throws IOException {
+        Path root = Support.copy("mocked", dir);
+        byte[] bundle = Support.bundle(root, Support.INFO);
+        Map<String, byte[]> entries = Support.entries(bundle);
+        assertThat(entries.keySet()).contains("mock/orders.json", "apis/ORDERS/mock/ordstatus.yaml", "apis/ORDERS/api.yaml", "descriptor.json", "openapi/orders.yaml");
+        assertThat(new String(entries.get("mock/orders.json"), StandardCharsets.UTF_8)).startsWith("{\n  \"mockSchemaVersion\": 1,");
+        assertThat(entries.get("apis/ORDERS/mock/ordstatus.yaml")).isEqualTo(java.nio.file.Files.readAllBytes(root.resolve("apis/ORDERS/mock/ordstatus.yaml")));
+        BundleReadResult read = BundleReader.read(Support.file(dir.resolve("b"), bundle));
+        assertThat(read.diagnostics()).isEmpty();
+        assertThat(read.bundle().orElseThrow().manifest().files()).extracting(Manifest.FileEntry::path).contains("mock/orders.json", "apis/ORDERS/mock/ordstatus.yaml");
+    }
+
+    @Test
+    void withoutMockAmongTheEmittersTheBundleHasNoMockEntries(@TempDir Path dir) throws IOException {
+        Path root = Support.copy("mocked", dir);
+        Files.writeString(root.resolve("gateway.yaml"), "emitters: [descriptor, openapi]\n");
+        Map<String, byte[]> entries = Support.entries(Support.bundle(root, Support.INFO));
+        assertThat(entries.keySet()).noneMatch(name -> name.contains("mock"));
+        assertThat(entries.keySet()).contains("gateway.yaml", "descriptor.json");
+    }
+
+    @Test
+    void aRepositoryWithoutMockFilesGivesTheSameBundleWhetherOrNotMockIsAmongTheEmitters(@TempDir Path dir) throws IOException {
+        Path with = Support.copy("minimal", dir.resolve("with"));
+        Path without = Support.copy("minimal", dir.resolve("without"));
+        Files.writeString(without.resolve("gateway.yaml"), "emitters: [descriptor, openapi]\n");
+        Map<String, byte[]> a = Support.entries(Support.bundle(with, Support.INFO));
+        Map<String, byte[]> b = Support.entries(Support.bundle(without, Support.INFO));
+        assertThat(a.keySet()).containsAll(b.keySet().stream().filter(n -> !n.equals("gateway.yaml")).toList());
+        assertThat(a.keySet()).noneMatch(name -> name.contains("mock"));
+    }
+
+    @Test
+    void aGoldenBundleWithMockEntriesIsComparedByteForByte(@TempDir Path dir) throws IOException {
+        Path root = Support.copy("mocked", dir);
+        ApiRepositoryModel model = Support.model(root);
+        ByteArrayOutputStream first = new ByteArrayOutputStream();
+        BundleWriter.write(root, model, Support.emitted(model), Support.INFO, first, "0.0.0-golden");
+        Map<String, byte[]> entries = Support.entries(first.toByteArray());
+        String descriptor = new String(entries.get("descriptor.json"), StandardCharsets.UTF_8).replace(
+                "\"version\": \"" + BundleFormat.generatorVersion() + "\"", "\"version\": \"0.0.0-golden\"");
+        List<EmittedFile> pinned = new ArrayList<>();
+        for (EmittedFile file : Support.emitted(model)) {
+            pinned.add(file.path().equals("descriptor.json") ? new EmittedFile("descriptor.json", descriptor.getBytes(StandardCharsets.UTF_8)) : file);
+        }
+        ByteArrayOutputStream golden = new ByteArrayOutputStream();
+        BundleWriter.write(root, model, pinned, Support.INFO, golden, "0.0.0-golden");
+        if (Boolean.getBoolean("glow400.updateGolden")) {
+            Path file = Path.of("src/test/resources/golden/mocked.rpgapi");
+            Files.createDirectories(file.getParent());
+            Files.write(file, golden.toByteArray());
+            return;
+        }
+        try (java.io.InputStream in = BundleWriterTest.class.getResourceAsStream("/golden/mocked.rpgapi")) {
+            assertThat(in).as("write the golden bundle with -Dglow400.updateGolden=true").isNotNull();
+            assertThat(golden.toByteArray()).isEqualTo(in.readAllBytes());
+        }
+    }
+
     // ---- BDL006
 
     @Test
@@ -238,7 +300,7 @@ class BundleWriterTest {
     void anEmittedFileOutsideTheLayoutOrWithAnUnsafePathIsBdl006(@TempDir Path dir) {
         Path root = Support.copy("minimal", dir);
         ApiRepositoryModel model = Support.model(root);
-        for (String path : List.of("extra.txt", "mock/a.json", "openapi/UPPER.yaml", "openapi/a/b.yaml")) {
+        for (String path : List.of("extra.txt", "mock/UPPER.json", "mock/a/b.json", "mock/a.yaml", "openapi/UPPER.yaml", "openapi/a/b.yaml", "apis/A/mock/x.yml", "apis/A/mock/x/y.yaml", "apis/A/mock/x.json")) {
             List<EmittedFile> files = new ArrayList<>(Support.emitted(model));
             files.add(new EmittedFile(path, new byte[] {1}));
             assertThat(messages(write(root, model, files, Support.INFO, new ByteArrayOutputStream()))).as(path)

@@ -45,6 +45,11 @@
     </dependency>
     <dependency>
       <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-mock</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
       <artifactId>pcml-codec</artifactId>
       <scope>test</scope>
     </dependency>

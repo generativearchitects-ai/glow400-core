@@ -18,6 +18,8 @@ final class BundleFormat {
     static final String MANIFEST = "manifest.json";
     static final String DESCRIPTOR = "descriptor.json";
     static final String GATEWAY = "gateway.yaml";
+    /** The name of the emitter whose files, and the mock source files, a bundle carries when the repository names it. */
+    static final String MOCK_EMITTER = "mock";
 
     /** The most characters of an entry name. */
     static final int MAX_PATH_LENGTH = 255;
@@ -40,8 +42,10 @@ final class BundleFormat {
             Pattern.compile("descriptor\\.json"),
             Pattern.compile("gateway\\.yaml"),
             Pattern.compile("openapi/[a-z0-9][a-z0-9._-]*\\.yaml"),
+            Pattern.compile("mock/[a-z0-9][a-z0-9._-]*\\.json"),
             Pattern.compile("apis/[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*\\.pcml"),
-            Pattern.compile("apis/[A-Za-z0-9][A-Za-z0-9._-]*/api\\.ya?ml"));
+            Pattern.compile("apis/[A-Za-z0-9][A-Za-z0-9._-]*/api\\.ya?ml"),
+            Pattern.compile("apis/[A-Za-z0-9][A-Za-z0-9._-]*/mock/[A-Za-z0-9][A-Za-z0-9._-]*\\.yaml"));
 
     private BundleFormat() {
     }

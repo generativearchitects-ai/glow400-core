@@ -1,0 +1,7 @@
+cases:
+  - name: too many
+    when: { P0ORDN: A1 }
+    returns: { P0NROW: 814 }
+  - name: negative
+    when: { P0ORDN: A2 }
+    returns: { P0NROW: -1 }

@@ -98,6 +98,11 @@ final class FieldPlan {
         return blankElement();
     }
 
+    /** The blank of one element: a struct of blanks, or a blank scalar. */
+    WireValue blankElementValue() {
+        return blankElement();
+    }
+
     private WireValue blankElement() {
         if (isStruct()) {
             List<WireValue> members = new ArrayList<>();

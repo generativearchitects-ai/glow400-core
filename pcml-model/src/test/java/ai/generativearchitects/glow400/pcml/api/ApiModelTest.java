@@ -52,7 +52,7 @@ class ApiModelTest {
         assertThatThrownBy(() -> defaults.emitters().add("c")).isInstanceOf(UnsupportedOperationException.class);
         assertThat(GatewayDefaults.standard().charCodec()).isEqualTo(new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty()));
         assertThat(GatewayDefaults.standard().inputOutput()).isEqualTo(InputOutputPolicy.BOTH);
-        assertThat(GatewayDefaults.standard().emitters()).containsExactly("descriptor", "openapi");
+        assertThat(GatewayDefaults.standard().emitters()).containsExactly("descriptor", "openapi", "mock");
         assertThatThrownBy(() -> new GatewayDefaults(null, InputOutputPolicy.BOTH, List.of())).isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new GatewayDefaults(CodecSettings.none(), null, List.of())).isInstanceOf(NullPointerException.class);
     }

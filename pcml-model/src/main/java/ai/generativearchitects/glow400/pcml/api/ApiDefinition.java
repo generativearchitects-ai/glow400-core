@@ -11,8 +11,15 @@ import java.util.Objects;
  * @param version     the overlay's {@code version}
  * @param overlayPath the overlay file, relative to the repository root, with {@code /} separators
  * @param operations  the operations of the file, in file order; not empty
+ * @param mocks       the mock definitions of the operations that have a mock file, in operation order; at most one per operation
  */
-public record ApiDefinition(String name, String title, String version, String overlayPath, List<ApiOperation> operations) {
+public record ApiDefinition(String name, String title, String version, String overlayPath, List<ApiOperation> operations,
+                            List<MockDefinition> mocks) {
+
+    /** An API without mock files. */
+    public ApiDefinition(String name, String title, String version, String overlayPath, List<ApiOperation> operations) {
+        this(name, title, version, overlayPath, operations, List.of());
+    }
 
     /**
      * @throws NullPointerException     if an argument is {@code null}
@@ -26,6 +33,15 @@ public record ApiDefinition(String name, String title, String version, String ov
         operations = List.copyOf(operations);
         if (operations.isEmpty()) {
             throw new IllegalArgumentException("operations must not be empty");
+        }
+        mocks = List.copyOf(mocks);
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        operations.forEach(operation -> ids.add(operation.id()));
+        java.util.Set<String> mocked = new java.util.HashSet<>();
+        for (MockDefinition mock : mocks) {
+            if (!ids.contains(mock.operationId()) || !mocked.add(mock.operationId())) {
+                throw new IllegalArgumentException("mocks must be at most one for each operation of the API");
+            }
         }
     }
 

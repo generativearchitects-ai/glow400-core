@@ -15,7 +15,7 @@ public final class Json {
 
     /**
      * The JSON text of a tree: two-space indentation, LF line endings, a final newline, keys in the order of the maps. Maps,
-     * lists, strings, {@code Integer}, {@code Long}, {@code Boolean} and {@code null} are accepted.
+     * lists, strings, {@code Integer}, {@code Long}, {@code BigInteger}, {@code Boolean} and {@code null} are accepted.
      *
      * @throws IllegalArgumentException for any other value
      */
