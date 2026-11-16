@@ -173,7 +173,7 @@ class ReportTest {
     }
 
     @Test
-    void theSummaryUsesTheSingularForOne() {
+    void theSummaryLineOfAReportSaysOneErrorAndOneNote() {
         assertThat(TextReport.render(new Report("c", BASE, List.of()))).isEqualTo("0 errors, 0 warnings, 0 notes\n");
         assertThat(TextReport.render(new Report("c", BASE, List.of(d("A", Severity.ERROR, "m", "f", 1, 1))))).endsWith("1 error, 0 warnings, 0 notes\n");
         assertThat(TextReport.render(new Report("c", BASE, List.of(d("A", Severity.WARNING, "m", "f", 1, 1))))).endsWith("0 errors, 1 warning, 0 notes\n");
