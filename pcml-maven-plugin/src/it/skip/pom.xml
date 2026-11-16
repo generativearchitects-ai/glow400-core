@@ -12,7 +12,7 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>ai.generativearchitects.glow400</groupId>
+        <groupId>ai.generativearchitects.slay400</groupId>
         <artifactId>pcml-maven-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>

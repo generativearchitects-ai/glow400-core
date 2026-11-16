@@ -5,8 +5,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>ai.generativearchitects.glow400</groupId>
-    <artifactId>glow400-core</artifactId>
+    <groupId>ai.generativearchitects.slay400</groupId>
+    <artifactId>slay400-core</artifactId>
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
@@ -21,16 +21,16 @@
 
   <dependencies>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-model</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-codec</artifactId>
     </dependency>
     <!-- Json: the writer and the bounded reader of the descriptor, used for mock/<api>.json too. -->
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-emit-descriptor</artifactId>
     </dependency>
 
@@ -42,25 +42,25 @@
 
     <!-- Test scope only: the fixtures of kickoff 02, validation of the fixtures' mocks, and the in-house generator. -->
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-overlay</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-overlay</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-validation</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-codec</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>

@@ -5,8 +5,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>ai.generativearchitects.glow400</groupId>
-    <artifactId>glow400-core</artifactId>
+    <groupId>ai.generativearchitects.slay400</groupId>
+    <artifactId>slay400-core</artifactId>
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
@@ -16,66 +16,66 @@
 
   <dependencies>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-model</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-overlay</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-tasks</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-parser</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-scaffold</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-validation</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-emit-descriptor</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-emit-openapi</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-mock</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-bundle</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-diff</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-report</artifactId>
     </dependency>
 
     <!-- Test scope only: the fixture repositories of kickoff 02 and the golden bundle of kickoff 06. -->
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-overlay</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-bundle</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
@@ -140,7 +140,7 @@
               </filters>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>ai.generativearchitects.glow400.cli.Main</mainClass>
+                  <mainClass>ai.generativearchitects.slay400.cli.Main</mainClass>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
@@ -148,7 +148,7 @@
                   <addHeader>false</addHeader>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
-                  <resource>META-INF/NOTICE-glow400-core</resource>
+                  <resource>META-INF/NOTICE-slay400-core</resource>
                   <file>${project.basedir}/../NOTICE</file>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">

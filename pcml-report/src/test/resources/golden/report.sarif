@@ -4,9 +4,9 @@
     {
       "tool": {
         "driver": {
-          "name": "glow400-core",
+          "name": "slay400",
           "version": "@VERSION@",
-          "informationUri": "https://github.com/generativearchitects-ai/glow400-core",
+          "informationUri": "https://github.com/generativearchitects-ai/slay400-core",
           "rules": [
             {
               "id": "API003"

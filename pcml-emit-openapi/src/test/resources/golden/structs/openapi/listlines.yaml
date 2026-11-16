@@ -22,7 +22,7 @@ paths:
           schema:
             type: string
             maxLength: 10
-          x-glow400-field:
+          x-slay400-field:
             name: P0ORDN
             wire: "char(10)"
       responses:
@@ -41,14 +41,14 @@ paths:
                         itemCode:
                           type: string
                           maxLength: 10
-                          x-glow400-field:
+                          x-slay400-field:
                             name: P0ROWS.ITEMCD
                             wire: "char(10)"
                         quantity:
                           type: integer
                           minimum: 0
                           maximum: 99999
-                          x-glow400-field:
+                          x-slay400-field:
                             name: P0ROWS.QTY
                             wire: "char(5)"
                         price:
@@ -59,7 +59,7 @@ paths:
                               type: string
                               format: decimal
                               pattern: "^-?\\d{1,7}(\\.\\d{1,2}0*)?$"
-                              x-glow400-field:
+                              x-slay400-field:
                                 name: P0ROWS.PRICE.AMT
                                 wire: "packed(9,2)"
                                 digits: 9
@@ -67,16 +67,16 @@ paths:
                             currency:
                               type: string
                               maxLength: 3
-                              x-glow400-field:
+                              x-slay400-field:
                                 name: P0ROWS.PRICE.CUR
                                 wire: "char(3)"
                           additionalProperties: false
-                          x-glow400-field:
+                          x-slay400-field:
                             name: P0ROWS.PRICE
                             wire: "struct(LINE.PRICE)"
                       additionalProperties: false
                     maxItems: 500
-                    x-glow400-field:
+                    x-slay400-field:
                       name: P0ROWS
                       wire: "struct(LINE)"
                 additionalProperties: false
