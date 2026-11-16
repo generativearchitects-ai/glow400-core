@@ -39,6 +39,11 @@ final class Writing {
         return ai.generativearchitects.glow400.pcml.diagnostics.IoReason.of(e);
     }
 
+    /** The temporary file written before it is moved over {@code target}: a neutral name, in the same folder, never the same twice. */
+    static Path temporaryFor(Path target) {
+        return target.resolveSibling(TEMP_PREFIX + UUID.randomUUID() + ".tmp");
+    }
+
     /**
      * Writes a file that does not exist yet: to a temporary file in the same folder, which is then moved into place, so that no
      * reader sees half a file. Nothing is overwritten.
@@ -46,7 +51,7 @@ final class Writing {
      * @return {@code false} if something was already there; the file is then left alone
      */
     static boolean createNew(Path target, byte[] content) throws IOException {
-        Path temp = target.resolveSibling(TEMP_PREFIX + UUID.randomUUID() + ".tmp");
+        Path temp = temporaryFor(target);
         try {
             Files.write(temp, content, StandardOpenOption.CREATE_NEW);
             Files.move(temp, target); // without REPLACE_EXISTING: fails if the target has appeared in the meantime
@@ -60,7 +65,7 @@ final class Writing {
 
     /** Replaces the content of a file that exists, through a temporary file and a move; the permissions of the file are kept. */
     static void replace(Path target, byte[] content) throws IOException {
-        Path temp = target.resolveSibling(TEMP_PREFIX + UUID.randomUUID() + ".tmp");
+        Path temp = temporaryFor(target);
         try {
             Files.write(temp, content, StandardOpenOption.CREATE_NEW);
             try {
