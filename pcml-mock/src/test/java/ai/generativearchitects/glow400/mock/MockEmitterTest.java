@@ -86,6 +86,8 @@ class MockEmitterTest {
         values.put("A", new MockValue.Whole(big, at.at));
         values.put("B", new MockValue.Whole(BigInteger.valueOf(Long.MAX_VALUE), at.at));
         values.put("C", new MockValue.Whole(BigInteger.valueOf(Long.MIN_VALUE), at.at));
+        values.put("H", new MockValue.Whole(BigInteger.TWO.pow(63), at.at)); // one more than a long holds
+        values.put("I", new MockValue.Whole(BigInteger.TWO.pow(63).negate().subtract(BigInteger.ONE), at.at)); // one less than a long holds
         values.put("D", new MockValue.Bool(false, at.at));
         values.put("E", new MockValue.Text("a \"quoted\" é text\n", at.at));
         values.put("F", new MockValue.Array(List.of(new MockValue.Struct(Map.of("G", new MockValue.Whole(BigInteger.ZERO, at.at)), at.at)), at.at));
