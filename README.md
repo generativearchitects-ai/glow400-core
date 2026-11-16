@@ -1,6 +1,8 @@
-# glow400-core
+# slay400-core
 
-The generator behind glow400: it reads the PCML definition of an RPG program, merges a hand-written overlay, validates the result and emits API contracts (OpenAPI, runtime descriptor, mocks, MCP and more).
+The project was called glow400 until 2026-11-16.
+
+The generator behind slay400: it reads the PCML definition of an RPG program, merges a hand-written overlay, validates the result and emits API contracts (OpenAPI, runtime descriptor, mocks, MCP and more).
 
 **Status: early development.** The call model, the PCML parser, the overlay loader with the API model, the codec and the static validation exist so far. Nothing here is released.
 
