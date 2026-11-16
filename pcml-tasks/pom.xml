@@ -5,8 +5,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>ai.generativearchitects.glow400</groupId>
-    <artifactId>glow400-core</artifactId>
+    <groupId>ai.generativearchitects.slay400</groupId>
+    <artifactId>slay400-core</artifactId>
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
@@ -16,56 +16,56 @@
 
   <dependencies>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-model</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-overlay</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-validation</artifactId>
     </dependency>
     <!-- The emitters are found with ServiceLoader: they must be on the class path of whoever runs a task. -->
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-emit-descriptor</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-emit-openapi</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-mock</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-bundle</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-diff</artifactId>
     </dependency>
     <!-- TextReport.escape: names from the repository are escaped in every message. -->
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-report</artifactId>
     </dependency>
 
     <!-- Test scope only: the fixtures of kickoff 02 and 09. -->
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-overlay</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-bundle</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>

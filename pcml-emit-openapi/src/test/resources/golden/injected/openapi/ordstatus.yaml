@@ -22,7 +22,7 @@ paths:
           schema:
             type: string
             maxLength: 10
-          x-glow400-field:
+          x-slay400-field:
             name: P0ORDN
             wire: "char(10)"
       responses:
@@ -36,7 +36,7 @@ paths:
                   status:
                     type: string
                     maxLength: 1
-                    x-glow400-field:
+                    x-slay400-field:
                       name: P0STAT
                       wire: "char(1)"
                 additionalProperties: false

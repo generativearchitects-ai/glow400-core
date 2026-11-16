@@ -1,23 +1,25 @@
-# glow400-core
+# slay400-core
 
-Generator for glow400: PCML model, parser, overlay, validation, codec, emitters, CLI and Maven plugin. Licence: Apache-2.0.
+Generator for slay400: PCML model, parser, overlay, validation, codec, emitters, CLI and Maven plugin. Licence: Apache-2.0.
+
+Formerly `glow400-core`. The product name is slay400 (decision 84); see "Rename in progress" in the shared `CLAUDE.md` if your local folders still carry the old name.
 
 ## Context
 
-Shared rules, decisions, specs and kickoff briefs live in the `glow400-docs` repository. Clone it next to this repository (`../glow400-docs`) and read, in this order:
+Shared rules, decisions, specs and kickoff briefs live in the `slay400-docs` repository. Clone it next to this repository (`../slay400-docs`) and read, in this order:
 
-1. `../glow400-docs/CLAUDE.md`
-2. `../glow400-docs/decisions/decision-log.md`
-3. `../glow400-docs/specs/core-design.md`
-4. The current brief in `../glow400-docs/kickoff/`
+1. `../slay400-docs/CLAUDE.md`
+2. `../slay400-docs/decisions/decision-log.md`
+3. `../slay400-docs/specs/core-design.md`
+4. The current brief in `../slay400-docs/kickoff/`
 
-If `../glow400-docs` is not available, stop and ask for it.
+If `../slay400-docs` is not available, stop and ask for it.
 
 ## Keep the context current
 
-`glow400-docs` changes while you work. Pull it when the session starts, before each new task, before opening or updating a pull request, and at least once an hour during long work. Follow the section "Keeping this repository current" in `glow400-docs/CLAUDE.md`, and put `Context: glow400-docs@<short commit hash>` in every pull request description.
+`slay400-docs` changes while you work. Pull it when the session starts, before each new task, before opening or updating a pull request, and at least once an hour during long work. Follow the section "Keeping this repository current" in `slay400-docs/CLAUDE.md`, and put `Context: slay400-docs@<short commit hash>` in every pull request description.
 
-This file is a copy of `glow400-docs/repo-templates/glow400-core/CLAUDE.md`. When the template changes, update this copy in your next pull request.
+This file is a copy of `slay400-docs/repo-templates/slay400-core/CLAUDE.md`. When the template changes, update this copy in your next pull request.
 
 ## Modules (target)
 

@@ -5,8 +5,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>ai.generativearchitects.glow400</groupId>
-    <artifactId>glow400-core</artifactId>
+    <groupId>ai.generativearchitects.slay400</groupId>
+    <artifactId>slay400-core</artifactId>
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
@@ -31,15 +31,15 @@
 
   <dependencies>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-tasks</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-report</artifactId>
     </dependency>
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-model</artifactId>
     </dependency>
 
@@ -72,7 +72,7 @@
 
     <!-- Test scope only: the fixture repositories of kickoff 02 and 09. -->
     <dependency>
-      <groupId>ai.generativearchitects.glow400</groupId>
+      <groupId>ai.generativearchitects.slay400</groupId>
       <artifactId>pcml-overlay</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>

@@ -1,7 +1,7 @@
 {
   "reportSchemaVersion": 1,
   "tool": {
-    "name": "glow400-core",
+    "name": "slay400",
     "version": "@VERSION@"
   },
   "command": "validate",

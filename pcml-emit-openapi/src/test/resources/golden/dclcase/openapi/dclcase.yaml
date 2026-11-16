@@ -22,7 +22,7 @@ paths:
           schema:
             type: string
             maxLength: 10
-          x-glow400-field:
+          x-slay400-field:
             name: OrderNumber
             wire: "char(10)"
       responses:
@@ -36,19 +36,19 @@ paths:
                   orderDate:
                     type: string
                     maxLength: 8
-                    x-glow400-field:
+                    x-slay400-field:
                       name: ORDER_DATE
                       wire: "char(8)"
                   cust_Name:
                     type: string
                     maxLength: 30
-                    x-glow400-field:
+                    x-slay400-field:
                       name: Cust_Name
                       wire: "char(30)"
                   leadTrail:
                     type: string
                     maxLength: 2
-                    x-glow400-field:
+                    x-slay400-field:
                       name: _LEAD__TRAIL_
                       wire: "char(2)"
                 additionalProperties: false

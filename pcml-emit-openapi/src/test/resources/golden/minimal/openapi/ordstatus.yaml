@@ -30,7 +30,7 @@ paths:
             type: string
             maxLength: 10
           example: "1042"
-          x-glow400-field:
+          x-slay400-field:
             name: P0ORDN
             wire: "char(10)"
       responses:
@@ -44,13 +44,13 @@ paths:
                   status:
                     type: string
                     maxLength: 1
-                    x-glow400-field:
+                    x-slay400-field:
                       name: P0STAT
                       wire: "char(1)"
                   deliveryDate:
                     type: string
                     format: date
-                    x-glow400-field:
+                    x-slay400-field:
                       name: P0DATE
                       wire: "char(8)"
                 additionalProperties: false
