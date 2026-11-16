@@ -1,0 +1,13 @@
+program: ORDSTATUS
+pcml: ORDSTATUS.pcml
+route: /orders/{orderNumber}/status
+method: GET
+version: 1.0.0
+summary: Returns the status of a purchase order
+description: Looks up one order by number.
+tags: [orders]
+
+parameters:
+  P0ORDN: { name: orderNumber, description: Purchase order number, example: 1042 }
+  P0STAT: { name: status }
+  P0DATE: { name: deliveryDate, type: date, format: yyyyMMdd }

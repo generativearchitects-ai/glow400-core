@@ -58,6 +58,28 @@ class ReportTest {
         }
     }
 
+    // ---- one line and the count, for a front end that prints them one at a time
+
+    @Test
+    void aLineAndTheSummaryAreTheOnesTheTextReportIsMadeOf() {
+        Report report = report();
+        List<String> lines = new java.util.ArrayList<>();
+        for (Diagnostic diagnostic : report.sorted()) {
+            lines.add(TextReport.line(report, diagnostic));
+        }
+        assertThat(TextReport.render(report)).isEqualTo(String.join("\n", lines) + "\n" + TextReport.summary(report) + "\n");
+        assertThat(lines.get(0)).isEqualTo("/elsewhere/old.rpgapi:1:1: error BDL003: The bundle has no manifest.json");
+        assertThat(lines).contains("apis/ORDERS/api.yaml:12:5: error OVL004: A message with \"quotes\" and a tab\\u0009here");
+        assertThat(TextReport.summary(report)).isEqualTo("4 errors, 1 warning, 1 note");
+    }
+
+    @Test
+    void theSummaryLineSaysOneErrorAndOneNote() {
+        assertThat(TextReport.summary(new Report("c", BASE, List.of()))).isEqualTo("0 errors, 0 warnings, 0 notes");
+        assertThat(TextReport.summary(new Report("c", BASE, List.of(d("X", Severity.ERROR, "m", "a", 1, 1), d("Y", Severity.INFO, "m", "a", 1, 1)))))
+                .isEqualTo("1 error, 0 warnings, 1 note");
+    }
+
     // ---- golden files
 
     @Test

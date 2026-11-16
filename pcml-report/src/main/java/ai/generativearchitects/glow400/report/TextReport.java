@@ -19,16 +19,26 @@ public final class TextReport {
     public static String render(Report report) {
         StringBuilder out = new StringBuilder();
         for (Diagnostic d : report.sorted()) {
-            out.append(escape(report.display(d.location().file()))).append(':').append(d.location().line()).append(':')
-                    .append(d.location().column()).append(": ").append(d.severity() == Severity.INFO ? "note" : d.severity().name().toLowerCase(Locale.ROOT)).append(' ')
-                    .append(escape(d.code())).append(": ").append(escape(d.message())).append('\n');
+            out.append(line(report, d)).append('\n');
         }
+        out.append(summary(report)).append('\n');
+        return out.toString();
+    }
+
+    /** One diagnostic as a line, without the line feed: {@code file:line:column: severity CODE: message}, escaped. */
+    public static String line(Report report, Diagnostic d) {
+        return escape(report.display(d.location().file())) + ':' + d.location().line() + ':' + d.location().column() + ": "
+                + (d.severity() == Severity.INFO ? "note" : d.severity().name().toLowerCase(Locale.ROOT)) + ' ' + escape(d.code()) + ": "
+                + escape(d.message());
+    }
+
+    /** The count line, without the line feed: {@code 1 error, 0 warnings, 2 notes}. */
+    public static String summary(Report report) {
         long errors = report.count(Severity.ERROR);
         long warnings = report.count(Severity.WARNING);
         long notes = report.count(Severity.INFO);
-        out.append(errors).append(errors == 1 ? " error, " : " errors, ").append(warnings).append(warnings == 1 ? " warning, " : " warnings, ")
-                .append(notes).append(notes == 1 ? " note" : " notes").append('\n');
-        return out.toString();
+        return errors + (errors == 1 ? " error, " : " errors, ") + warnings + (warnings == 1 ? " warning, " : " warnings, ")
+                + notes + (notes == 1 ? " note" : " notes");
     }
 
     /**

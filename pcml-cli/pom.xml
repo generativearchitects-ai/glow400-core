@@ -26,6 +26,10 @@
     </dependency>
     <dependency>
       <groupId>ai.generativearchitects.glow400</groupId>
+      <artifactId>pcml-tasks</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.glow400</groupId>
       <artifactId>pcml-parser</artifactId>
     </dependency>
     <dependency>
