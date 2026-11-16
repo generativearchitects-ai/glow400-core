@@ -24,7 +24,7 @@ public record Report(String command, Path base, List<Diagnostic> diagnostics) {
     }
 
     /** The diagnostics in the order of the formats: by the file as shown, line, column, then code. */
-    List<Diagnostic> sorted() {
+    public List<Diagnostic> sorted() {
         return diagnostics.stream().sorted(Comparator.comparing((Diagnostic d) -> display(d.location().file()))
                 .thenComparing(d -> d.location().line()).thenComparing(d -> d.location().column()).thenComparing(Diagnostic::code)).toList();
     }

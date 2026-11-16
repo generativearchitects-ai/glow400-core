@@ -37,6 +37,7 @@
     <module>pcml-scaffold</module>
     <module>pcml-tasks</module>
     <module>pcml-cli</module>
+    <module>pcml-maven-plugin</module>
   </modules>
 
   <properties>
