@@ -369,7 +369,7 @@ class MojoTest {
     void theGoalsKeepNoStaticState() {
         for (Class<?> type : List.of(PcmlMojo.class, ValidateMojo.class, GenerateMojo.class, BundleMojo.class, DiffMojo.class)) {
             for (java.lang.reflect.Field field : type.getDeclaredFields()) {
-                if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+                if (!field.isSynthetic() && java.lang.reflect.Modifier.isStatic(field.getModifiers())) { // synthetic: added by coverage tools, not by us
                     assertThat(java.lang.reflect.Modifier.isFinal(field.getModifiers())).as(type.getSimpleName() + "." + field.getName()).isTrue();
                     assertThat(field.getType().isPrimitive() || field.getType() == String.class).as(type.getSimpleName() + "." + field.getName()).isTrue();
                 }
