@@ -36,10 +36,15 @@ class MockPropertiesTest {
         }
     }
 
+    /** The operations that return a list, which the properties about lists need to meet often. */
+    private static final List<ApiOperation> WITH_LISTS = OPERATIONS.stream().filter(o -> o.bindings().stream().anyMatch(b ->
+            (b.direction() == Direction.RESPONSE || b.direction() == Direction.BOTH) && !(b.field().count() instanceof Count.None))).toList();
+
     private static int accepted;
     private static int definitions;
     private static int matched;
     private static int compared;
+    private static int lists;
 
     @Test
     void theImplicitDefaultReturnsWhatDecodeAccepts() {
@@ -65,8 +70,9 @@ class MockPropertiesTest {
         definitions = 0;
         matched = 0;
         compared = 0;
+        lists = 0;
         Properties.check("accepted definitions", g -> {
-            ApiOperation operation = g.pick(OPERATIONS);
+            ApiOperation operation = g.bool() ? g.pick(WITH_LISTS) : g.pick(OPERATIONS);
             Map<String, ApiValue> request = MockGen.request(g, operation);
             Optional<List<WireValue>> input = MockGen.input(g, operation, request);
             if (input.isEmpty()) {
@@ -96,7 +102,11 @@ class MockPropertiesTest {
                 return;
             }
             matched++;
+            boolean deliberate = problems.stream().anyMatch(pr -> pr.code().equals("MCK006"));
             for (FieldBinding b : operation.bindings()) {
+                if (!deliberate) {
+                    listsFound(b, mockCase, decoded);
+                }
                 MockValue given = mockCase.returns().get(b.field().name());
                 boolean response = b.direction() == Direction.RESPONSE || b.direction() == Direction.BOTH;
                 boolean scalar = !(b.field().wire() instanceof WireType.Struct) && b.field().count() instanceof Count.None;
@@ -111,6 +121,37 @@ class MockPropertiesTest {
         assertThat(definitions).as("definitions that validation accepted").isGreaterThan(Properties.DEFAULT_CASES / 4);
         assertThat(matched).as("calls that matched a case and decoded to a response").isGreaterThan(20);
         assertThat(compared).as("given values that were looked for in a response").isGreaterThan(20);
+        assertThat(lists).as("given lists that were looked for in a response").isGreaterThan(10);
+    }
+
+    /** Every element given in {@code returns} for an exposed list is in the decoded response, with the members that were given. */
+    private static void listsFound(FieldBinding b, MockCase mockCase, DecodeResult decoded) {
+        MockValue given = mockCase.returns().get(b.field().name());
+        boolean response = b.direction() == Direction.RESPONSE || b.direction() == Direction.BOTH;
+        if (!(given instanceof MockValue.Array array) || !response || b.field().count() instanceof Count.None) {
+            return;
+        }
+        lists++;
+        ApiValue found = decoded.response().orElseThrow().get(b.exposedName());
+        assertThat(found).as("the list " + b.exposedName()).isInstanceOf(ApiValue.Arr.class);
+        List<ApiValue> elements = ((ApiValue.Arr) found).elements();
+        assertThat(elements.size()).as("elements of " + b.exposedName()).isGreaterThanOrEqualTo(array.elements().size());
+        for (int i = 0; i < array.elements().size(); i++) {
+            MockValue element = array.elements().get(i);
+            if (element instanceof MockValue.Struct struct) {
+                assertThat(elements.get(i)).isInstanceOf(ApiValue.Obj.class);
+                Map<String, ApiValue> members = ((ApiValue.Obj) elements.get(i)).members();
+                for (Map.Entry<String, MockValue> member : struct.members().entrySet()) {
+                    FieldBinding child = b.children().stream().filter(c -> c.field().name().equals(member.getKey())).findFirst().orElseThrow();
+                    if (!child.hidden() && !(child.field().wire() instanceof WireType.Struct) && child.field().count() instanceof Count.None) {
+                        assertThat(members.get(child.exposedName())).as(b.exposedName() + "[" + i + "]." + child.exposedName()).isNotNull();
+                        assertThat(same(members.get(child.exposedName()), member.getValue())).as(b.exposedName() + "[" + i + "]." + child.exposedName()).isTrue();
+                    }
+                }
+            } else if (!(element instanceof MockValue.Array)) {
+                assertThat(same(elements.get(i), element)).as(b.exposedName() + "[" + i + "]").isTrue();
+            }
+        }
     }
 
     private static MockCase firstMatchOrNull(ApiOperation operation, MockDefinition definition, List<WireValue> input) {

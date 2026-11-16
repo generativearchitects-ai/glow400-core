@@ -7,10 +7,10 @@ import java.util.Objects;
 /**
  * Something wrong with a mock definition, found by {@link MockCodec#check}: a name that is not what the program has
  * ({@code MCK003}), a value the codec cannot carry for its field ({@code MCK004}), a case that can never match
- * ({@code MCK005}). The message never contains a value, only where it is and what is wrong.
+ * ({@code MCK005}), a count field that is not the number of elements given ({@code MCK006}). The message never contains a value, only where it is and what is wrong.
  *
- * @param code     {@code MCK003}, {@code MCK004} or {@code MCK005}
- * @param severity {@link Severity#WARNING} for {@code MCK005}, otherwise {@link Severity#ERROR}
+ * @param code     {@code MCK003}, {@code MCK004}, {@code MCK005} or {@code MCK006}
+ * @param severity {@link Severity#WARNING} for {@code MCK005} and {@code MCK006}, otherwise {@link Severity#ERROR}
  * @param at       the position in the mock file
  * @param message  what is wrong
  */

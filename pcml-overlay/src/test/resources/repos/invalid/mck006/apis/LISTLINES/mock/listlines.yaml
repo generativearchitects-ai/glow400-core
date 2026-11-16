@@ -1,0 +1,20 @@
+cases:
+  - name: two of three
+    when: { P0ORDN: A1 }
+    returns:
+      P0ROWS:
+        - { ITEMCD: A }
+        - { ITEMCD: B }
+        - { ITEMCD: C }
+      P0NROW: 2
+  - name: as given
+    when: { P0ORDN: A2 }
+    returns:
+      P0ROWS:
+        - { ITEMCD: A }
+      P0NROW: 1
+  - name: not given
+    when: { P0ORDN: A3 }
+    returns:
+      P0ROWS:
+        - { ITEMCD: A }

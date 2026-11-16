@@ -5,6 +5,7 @@ import ai.generativearchitects.glow400.pcml.api.MockCase;
 import ai.generativearchitects.glow400.pcml.api.MockDefinition;
 import ai.generativearchitects.glow400.pcml.api.MockValue;
 import ai.generativearchitects.glow400.pcml.api.SemanticType;
+import ai.generativearchitects.glow400.pcml.api.Trim;
 import ai.generativearchitects.glow400.pcml.diagnostics.Severity;
 import ai.generativearchitects.glow400.pcml.model.Count;
 import ai.generativearchitects.glow400.pcml.model.SourceLocation;
@@ -18,10 +19,12 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -42,6 +45,11 @@ public final class MockCodec {
     private final ApiOperation operation;
     private final List<FieldPlan> plans = new ArrayList<>();
     private final Map<String, Integer> indexByName = new HashMap<>();
+    /** The top-level lists whose length is read from a top-level count field, with that field. */
+    private final List<Counted> counted = new ArrayList<>();
+
+    private record Counted(FieldPlan list, FieldPlan count) {
+    }
 
     private MockCodec(ApiOperation operation) {
         this.operation = operation;
@@ -49,6 +57,26 @@ public final class MockCodec {
             indexByName.put(binding.field().name(), plans.size());
             plans.add(FieldPlan.build(binding, new ArrayList<>()));
         });
+        for (FieldPlan plan : plans) {
+            if (!plan.isArray()) {
+                continue;
+            }
+            Set<String> names = new LinkedHashSet<>();
+            if (plan.field.count() instanceof Count.Ref ref) {
+                names.add(ref.field());
+            }
+            plan.binding.trim().ifPresent(trim -> {
+                if (trim instanceof Trim.CountField countField) {
+                    names.add(countField.path());
+                }
+            });
+            for (String name : names) {
+                Integer index = indexByName.get(name); // a count field inside a struct is not followed
+                if (index != null && !plans.get(index).isArray() && !plans.get(index).isStruct()) {
+                    counted.add(new Counted(plan, plans.get(index)));
+                }
+            }
+        }
     }
 
     /** The mock codec of an operation. */
@@ -61,7 +89,8 @@ public final class MockCodec {
     /**
      * Everything that is wrong with a definition, and every warning, in file order: a name that is not a parameter or member
      * of the program or is on the wrong side ({@code MCK003}), a value the codec cannot carry for its field ({@code MCK004},
-     * whose message carries the code of the codec's problem), a case that can never match ({@code MCK005}).
+     * whose message carries the code of the codec's problem), a case that can never match ({@code MCK005}), and a count field that is not the number of
+     * elements given for its list ({@code MCK006}) or that the list cannot hold ({@code MCK004}).
      */
     public List<MockProblem> check(MockDefinition definition) {
         Objects.requireNonNull(definition, "definition");
@@ -71,6 +100,7 @@ public final class MockCodec {
             String label = label(mockCase, i);
             checkWhen(mockCase, label, problems);
             checkReturns(mockCase, label, problems);
+            checkCounts(mockCase, label, problems);
         }
         shadowed(definition, problems);
         problems.sort(java.util.Comparator.comparing((MockProblem p) -> p.at().file()).thenComparingInt(p -> p.at().line())
@@ -108,6 +138,51 @@ public final class MockCodec {
                 convert(plan, value, label, problems);
             }
         });
+    }
+
+    /**
+     * The count field of a list that {@code returns} gives, or whose count {@code returns} gives: the count must be one the
+     * list can hold ({@code MCK004}), should be the number of elements given ({@code MCK006}), and when it is not given
+     * the evaluator writes it, so the number of elements must fit it ({@code MCK004}).
+     */
+    private void checkCounts(MockCase mockCase, String label, List<MockProblem> problems) {
+        for (Counted c : counted) {
+            if (c.list.field.usage() == Usage.INPUT || c.count.field.usage() == Usage.INPUT) {
+                continue;
+            }
+            MockValue list = mockCase.returns().get(c.list.field.name());
+            MockValue count = mockCase.returns().get(c.count.field.name());
+            if (list != null && !(list instanceof MockValue.Array)) {
+                continue; // reported as a value the field cannot carry
+            }
+            int given = list == null ? 0 : ((MockValue.Array) list).elements().size();
+            int capacity = c.list.field.count() instanceof Count.Fixed fixed ? fixed.value() : given;
+            if (count instanceof MockValue.Whole whole) {
+                if (whole.value().signum() < 0 || whole.value().compareTo(BigInteger.valueOf(capacity)) > 0) {
+                    problems.add(error("MCK004", count.source(), "In " + label + ": the value for " + c.count.binding.fieldPath()
+                            + " is not a count that the list " + c.list.binding.fieldPath() + " can hold: it is negative or more than the "
+                            + capacity + " elements it holds"));
+                } else if (!whole.value().equals(BigInteger.valueOf(given))) {
+                    problems.add(new MockProblem("MCK006", Severity.WARNING, count.source(), "In " + label + ": the count "
+                            + c.count.binding.fieldPath() + " is not the number of elements given for " + c.list.binding.fieldPath() + " ("
+                            + given + ")"));
+                }
+            } else if (count == null && list != null) {
+                Problems own = new Problems();
+                countValue(c, given, list.source(), own);
+                for (ValueProblem problem : own.list()) {
+                    problems.add(error("MCK004", list.source(), "In " + label + ": the number of elements given for " + c.list.binding.fieldPath()
+                            + " cannot be written to its count field " + c.count.binding.fieldPath() + " (" + problem.code() + ": " + problem.message() + ")"));
+                }
+            }
+        }
+    }
+
+    /** The value of a count field for a number of elements; problems are added when the field cannot hold it. */
+    private Optional<WireValue> countValue(Counted c, int elements, SourceLocation at, Problems problems) {
+        Where where = Where.ROOT.member(c.count.field.name(), c.count.exposedName());
+        Optional<WireValue> wire = c.count.scalar.encode(new ApiValue.Integer(BigInteger.valueOf(elements)), where, problems);
+        return problems.any() ? Optional.empty() : wire;
     }
 
     /** {@code MCK005}: a case after one that has no {@code when}, or the same {@code when}, is never reached. */
@@ -345,6 +420,14 @@ public final class MockCodec {
                 output.add(plan.blankValue());
             } else {
                 output.add(input.get(i));
+            }
+        }
+        // a list that is given, whose count field is not, has its count field set to the number of elements given
+        for (Counted c : counted) {
+            MockValue list = returns.get(c.list.field.name());
+            if (list instanceof MockValue.Array array && c.list.field.usage() != Usage.INPUT && c.count.field.usage() != Usage.INPUT
+                    && !returns.containsKey(c.count.field.name())) {
+                countValue(c, array.elements().size(), list.source(), new Problems()).ifPresent(v -> output.set(indexByName.get(c.count.field.name()), v));
             }
         }
         return output;

@@ -447,4 +447,146 @@ class MockCodecTest {
         MockCase fails = new MockCase(Optional.of("down"), map("ID", t("1")), Map.of(), Optional.of(100), Optional.of(MockFailure.UNAVAILABLE), next());
         assertThat(CODEC.check(def(fails))).isEmpty();
     }
+
+    // ---- a list and its count field (kickoff 09, review of PR 12)
+
+    /** CNT output int; LST output list of 3 trimmed by CNT; RCNT output int; RLST output list whose count is RCNT; ECHO input. */
+    private static ApiOperation countOperation() {
+        return Ops.op(
+                field("CNT", int4()).response().usage(Usage.OUTPUT),
+                field("LST", chr(2)).count(3).trimCount("CNT").response().usage(Usage.OUTPUT),
+                field("RCNT", int4()).response().usage(Usage.OUTPUT),
+                field("RLST", chr(2)).countRef("RCNT").response().usage(Usage.OUTPUT),
+                field("ID", chr(4)).usage(Usage.INPUT));
+    }
+
+    private static final ApiOperation COUNTS = countOperation();
+    private static final MockCodec COUNT_CODEC = MockCodec.of(COUNTS);
+
+    private static List<WireValue> blankInput() {
+        return List.of(new WireValue.Blank(), new WireValue.Blank(), new WireValue.Blank(), new WireValue.Blank(), new WireValue.Text("ab  "));
+    }
+
+    private static List<MockProblem> countCheck(Map<String, MockValue> returns) {
+        return COUNT_CODEC.check(def(c("c", Map.of(), returns)));
+    }
+
+    @Test
+    void aListThatIsGivenWithoutItsCountHasTheCountSetToTheNumberOfElements() {
+        List<WireValue> out = COUNT_CODEC.returned(map("LST", a(t("a"), t("b"))), blankInput());
+        assertThat(out.get(0)).isEqualTo(new WireValue.Integer(BigInteger.TWO));
+        assertThat(((WireValue.Array) out.get(1)).elements()).hasSize(3);
+        assertThat(out.get(2)).isEqualTo(new WireValue.Integer(BigInteger.ZERO));
+        List<WireValue> byRef = COUNT_CODEC.returned(map("RLST", a(t("a"), t("b"), t("c"), t("d"))), blankInput());
+        assertThat(byRef.get(2)).isEqualTo(new WireValue.Integer(BigInteger.valueOf(4)));
+        assertThat(((WireValue.Array) byRef.get(3)).elements()).hasSize(4);
+        assertThat(byRef.get(0)).isEqualTo(new WireValue.Integer(BigInteger.ZERO));
+    }
+
+    @Test
+    void anEmptyListSetsTheCountToZeroAndNoListLeavesTheCountAlone() {
+        List<WireValue> out = COUNT_CODEC.returned(map("LST", a()), blankInput());
+        assertThat(out.get(0)).isEqualTo(new WireValue.Integer(BigInteger.ZERO));
+        List<WireValue> none = COUNT_CODEC.returned(Map.of(), blankInput());
+        assertThat(none.get(0)).isEqualTo(new WireValue.Integer(BigInteger.ZERO));
+        assertThat(COUNT_CODEC.returned(map("CNT", w(2)), blankInput()).get(0)).isEqualTo(new WireValue.Integer(BigInteger.TWO));
+    }
+
+    @Test
+    void theCountIsDecodedToTheElementsGiven() {
+        OperationCodec codec = OperationCodec.of(COUNTS);
+        DecodeResult decoded = codec.decode(COUNT_CODEC.returned(map("LST", a(t("a"), t("b"))), blankInput()));
+        assertThat(decoded.problems()).isEmpty();
+        assertThat(((ApiValue.Arr) decoded.response().orElseThrow().get("lst")).elements()).extracting(e -> ((ApiValue.Text) e).value()).containsExactly("a", "b");
+        DecodeResult byRef = codec.decode(COUNT_CODEC.returned(map("RLST", a(t("x"), t("y"), t("z"))), blankInput()));
+        assertThat(byRef.problems()).isEmpty();
+        assertThat(((ApiValue.Arr) byRef.response().orElseThrow().get("rlst")).elements()).hasSize(3);
+    }
+
+    @Test
+    void aCountThatIsGivenIsUsedAsGiven() {
+        List<WireValue> out = COUNT_CODEC.returned(map("LST", a(t("a")), "CNT", w(3)), blankInput());
+        assertThat(out.get(0)).isEqualTo(new WireValue.Integer(BigInteger.valueOf(3)));
+        DecodeResult decoded = OperationCodec.of(COUNTS).decode(out);
+        assertThat(decoded.problems()).isEmpty();
+        assertThat(((ApiValue.Arr) decoded.response().orElseThrow().get("lst")).elements()).hasSize(3);
+    }
+
+    @Test
+    void aCountThatTheListCannotHoldIsMck004() {
+        MockValue negative = w(-1);
+        List<MockProblem> problems = countCheck(map("LST", a(t("a")), "CNT", negative));
+        assertThat(problems).hasSize(1);
+        assertThat(problems.get(0)).isEqualTo(new MockProblem("MCK004", Severity.ERROR, negative.source(),
+                "In case 'c': the value for CNT is not a count that the list LST can hold: it is negative or more than the 3 elements it holds"));
+        assertThat(countCheck(map("LST", a(t("a")), "CNT", w(4)))).extracting(MockProblem::code).containsExactly("MCK004");
+        assertThat(countCheck(map("LST", a(t("a")), "CNT", w(3)))).extracting(MockProblem::code).containsExactly("MCK006");
+        assertThat(countCheck(map("CNT", w(500)))).extracting(MockProblem::code).containsExactly("MCK004");
+        assertThat(countCheck(map("CNT", w(3)))).extracting(MockProblem::code).containsExactly("MCK006");
+    }
+
+    @Test
+    void aCountOfAListWithoutAFixedSizeCannotBeMoreThanTheElementsGiven() {
+        assertThat(countCheck(map("RLST", a(t("a")), "RCNT", w(2))).get(0).message())
+                .isEqualTo("In case 'c': the value for RCNT is not a count that the list RLST can hold: it is negative or more than the 1 elements it holds");
+        assertThat(countCheck(map("RCNT", w(1))).get(0).code()).isEqualTo("MCK004");
+        assertThat(countCheck(map("RCNT", w(0)))).isEmpty();
+        assertThat(countCheck(map("RLST", a(t("a"), t("b")), "RCNT", w(2)))).isEmpty();
+        assertThat(countCheck(map("RLST", a(t("a"), t("b")), "RCNT", w(1)))).extracting(MockProblem::code).containsExactly("MCK006");
+    }
+
+    @Test
+    void aCountThatDiffersFromTheElementsGivenButCanBeHeldIsMck006AndOnlyAWarning() {
+        MockValue count = w(2);
+        List<MockProblem> problems = countCheck(map("LST", a(t("a"), t("b"), t("c")), "CNT", count));
+        assertThat(problems).hasSize(1);
+        assertThat(problems.get(0)).isEqualTo(new MockProblem("MCK006", Severity.WARNING, count.source(),
+                "In case 'c': the count CNT is not the number of elements given for LST (3)"));
+        assertThat(problems.get(0).isError()).isFalse();
+        assertThat(countCheck(map("LST", a(t("a"), t("b")), "CNT", w(2)))).isEmpty();
+        assertThat(countCheck(map("LST", a(), "CNT", w(0)))).isEmpty();
+    }
+
+    @Test
+    void theNumberOfElementsMustFitTheCountFieldWhenItIsToBeWritten() {
+        ApiOperation op = Ops.op(field("CNT", chr(1)).type(SemanticType.INTEGER).response().usage(Usage.OUTPUT),
+                field("LST", chr(2)).count(12).trimCount("CNT").response().usage(Usage.OUTPUT));
+        MockCodec codec = MockCodec.of(op);
+        MockValue ten = a(t("a"), t("b"), t("c"), t("d"), t("e"), t("f"), t("g"), t("h"), t("i"), t("j"));
+        List<MockProblem> problems = codec.check(def(c("c", Map.of(), map("LST", ten))));
+        assertThat(problems).hasSize(1);
+        assertThat(problems.get(0).code()).isEqualTo("MCK004");
+        assertThat(problems.get(0).at()).isEqualTo(ten.source());
+        assertThat(problems.get(0).message()).startsWith("In case 'c': the number of elements given for LST cannot be written to its count field CNT (VAL003: ");
+        assertThat(codec.check(def(c("c", Map.of(), map("LST", a(t("a"), t("b")))))).stream().map(MockProblem::code)).isEmpty();
+        List<WireValue> out = codec.returned(map("LST", ten), List.of(new WireValue.Blank(), new WireValue.Blank()));
+        assertThat(out.get(0)).isEqualTo(new WireValue.Text(" "));
+    }
+
+    @Test
+    void aCountFieldThatTheProgramDoesNotReturnIsNotSetOrChecked() {
+        ApiOperation op = Ops.op(field("CNT", int4()).usage(Usage.INPUT), field("LST", chr(2)).count(3).trimCount("CNT").response().usage(Usage.OUTPUT));
+        MockCodec codec = MockCodec.of(op);
+        assertThat(codec.check(def(c("c", Map.of(), map("LST", a(t("a"), t("b"))))))).isEmpty();
+        List<WireValue> out = codec.returned(map("LST", a(t("a"))), List.of(new WireValue.Integer(BigInteger.valueOf(9)), new WireValue.Blank()));
+        assertThat(out.get(0)).isEqualTo(new WireValue.Integer(BigInteger.valueOf(9)));
+        ApiOperation inputList = Ops.op(field("CNT", int4()).response().usage(Usage.OUTPUT), field("LST", chr(2)).count(3).trimCount("CNT").usage(Usage.INPUT));
+        assertThat(MockCodec.of(inputList).check(def(c("c", Map.of(), map("CNT", w(7)))))).isEmpty();
+    }
+
+    @Test
+    void aCountFieldInsideAStructIsNotFollowed() {
+        ApiOperation op = Ops.op(struct("HDR", field("N", int4())).response().usage(Usage.OUTPUT),
+                field("LST", chr(2)).count(3).trimCount("HDR.N").response().usage(Usage.OUTPUT));
+        MockCodec codec = MockCodec.of(op);
+        assertThat(codec.check(def(c("c", Map.of(), map("LST", a(t("a"), t("b"))))))).isEmpty();
+        List<WireValue> out = codec.returned(map("LST", a(t("a"), t("b"))), List.of(new WireValue.Blank(), new WireValue.Blank()));
+        assertThat(out.get(0)).isInstanceOf(WireValue.Struct.class);
+        assertThat(((WireValue.Struct) out.get(0)).members()).containsExactly(new WireValue.Integer(BigInteger.ZERO));
+    }
+
+    @Test
+    void aWarningDoesNotMakeADefinitionUnusableButAnErrorDoes() {
+        assertThat(new MockProblem("MCK006", Severity.WARNING, AT, "m").isError()).isFalse();
+    }
 }

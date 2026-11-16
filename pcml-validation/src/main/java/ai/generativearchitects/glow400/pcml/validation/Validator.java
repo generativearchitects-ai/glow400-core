@@ -33,6 +33,7 @@ import java.util.Optional;
  *   <li>{@code MCK003} (error): a name in a mock that is not a parameter or member of the program, or is on the wrong side.</li>
  *   <li>{@code MCK004} (error): a value in a mock that the codec cannot carry for its field.</li>
  *   <li>{@code MCK005} (warning): a case of a mock that can never match.</li>
+ *   <li>{@code MCK006} (warning): a count field that a mock gives and that is not the number of elements it gives for the list.</li>
  * </ul>
  *
  * <p>Diagnostics are positioned at the binding's overlay position, or at the operation when the binding was derived from

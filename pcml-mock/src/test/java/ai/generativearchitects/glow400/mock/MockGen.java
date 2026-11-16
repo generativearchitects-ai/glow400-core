@@ -21,12 +21,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /** Random requests, mock definitions and program output for any operation, in the manner of the codec's property tests. */
 final class MockGen {
@@ -106,7 +104,7 @@ final class MockGen {
         int n = length(b);
         return switch (type) {
             case STRING -> new ApiValue.Text(g.text(Gen.LETTERS, 1, Math.max(1, Math.min(n, 4))));
-            case INTEGER -> new ApiValue.Integer(BigInteger.valueOf(g.intIn(0, Math.min(9, (int) Math.pow(10, Math.min(n, 1)) - 1))));
+            case INTEGER -> new ApiValue.Integer(BigInteger.valueOf(g.intIn(1, 9))); // never zero: zero is blank, and a trimmed list drops blank elements
             case DECIMAL -> new ApiValue.Decimal(decimal(g, b));
             case BOOLEAN -> new ApiValue.Bool(g.bool());
             case DATE -> new ApiValue.Date(g.date());
@@ -117,6 +115,11 @@ final class MockGen {
     }
 
     private static BigDecimal decimal(Gen g, FieldBinding b) {
+        BigDecimal value = decimalOf(g, b);
+        return value.signum() == 0 ? BigDecimal.ONE.movePointLeft(Math.max(0, value.scale())) : value;
+    }
+
+    private static BigDecimal decimalOf(Gen g, FieldBinding b) {
         return switch (b.field().wire()) {
             case WireType.Packed p -> g.decimal(Math.max(1, Math.min(p.length() - p.precision(), 3)) + p.precision(), p.precision());
             case WireType.Zoned z -> g.decimal(Math.max(1, Math.min(z.length() - z.precision(), 3)) + z.precision(), z.precision());
@@ -169,53 +172,30 @@ final class MockGen {
                     members.put(child.field().name(), value(g, child));
                 }
             }
+            if (members.isEmpty() && !b.children().isEmpty()) {
+                members.put(b.children().get(0).field().name(), value(g, b.children().get(0)));
+            }
             return new MockValue.Struct(members, AT);
         }
         return mock(scalar(g, b));
     }
 
-    /** Parameters that another field's count or trim reads: the values of those are not left to chance. */
-    static Set<String> countFields(ApiOperation operation) {
-        Set<String> names = new HashSet<>();
-        collect(operation.bindings(), names);
-        return names;
-    }
-
-    private static void collect(List<FieldBinding> bindings, Set<String> names) {
-        for (FieldBinding b : bindings) {
-            if (b.field().count() instanceof Count.Ref ref) {
-                names.add(first(ref.field()));
-            }
-            b.trim().ifPresent(trim -> {
-                if (trim instanceof ai.generativearchitects.glow400.pcml.api.Trim.CountField countField) {
-                    names.add(first(countField.path()));
-                }
-            });
-            collect(b.children(), names);
-        }
-    }
-
-    private static String first(String path) {
-        int dot = path.indexOf('.');
-        return dot < 0 ? path : path.substring(0, dot);
-    }
-
     /** A definition of one to four cases for the operation; a case may be left unusable, which validation is asked about. */
     static MockDefinition definition(Gen g, ApiOperation operation, Map<String, ApiValue> request) {
-        Set<String> skipped = countFields(operation);
         List<MockCase> cases = new ArrayList<>();
         int n = g.intIn(1, 4);
         for (int i = 0; i < n; i++) {
             Map<String, MockValue> when = new LinkedHashMap<>();
             Map<String, MockValue> returns = new LinkedHashMap<>();
+            boolean anyCall = g.bool(); // half of the cases say nothing about what the program receives, so that they match
             for (FieldBinding b : operation.bindings()) {
                 boolean composite = b.field().wire() instanceof WireType.Struct || !(b.field().count() instanceof Count.None);
-                if (b.field().usage() != Usage.OUTPUT && !composite && g.intIn(0, 3) == 0) {
+                if (!anyCall && b.field().usage() != Usage.OUTPUT && !composite && g.intIn(0, 3) == 0) {
                     ApiValue incoming = request.get(b.exposedName());
                     boolean useRequest = incoming != null && g.intIn(0, 2) > 0 && !(incoming instanceof ApiValue.Arr) && !(incoming instanceof ApiValue.Obj);
                     when.put(b.field().name(), useRequest ? mock(incoming) : mock(scalar(g, b)));
                 }
-                if (b.field().usage() != Usage.INPUT && !skipped.contains(b.field().name()) && g.bool()) {
+                if (b.field().usage() != Usage.INPUT && g.bool()) {
                     returns.put(b.field().name(), value(g, b));
                 }
             }

@@ -57,6 +57,20 @@ class MockCommandsTest {
     }
 
     @Test
+    void validateReportsAWrongCountAsMck004AndADifferingOneAsMck006(@TempDir Path dir) {
+        Support.repo("invalid/mck004-count", dir.resolve("f"));
+        Result four = Support.run(dir, "validate", "--repo", "f");
+        assertThat(four.exit()).isEqualTo(1);
+        assertThat(four.out()).contains("apis/LISTLINES/mock/listlines.yaml:4:24: error MCK004: In case 'too many': the value for P0NROW is not a count that the list P0ROWS can hold: "
+                + "it is negative or more than the 500 elements it holds\n");
+        Support.repo("invalid/mck006", dir.resolve("g"));
+        Result six = Support.run(dir, "validate", "--repo", "g");
+        assertThat(six.exit()).isZero();
+        assertThat(six.out()).contains("apis/LISTLINES/mock/listlines.yaml:9:15: warning MCK006: In case 'two of three': the count P0NROW is not the number of elements given for P0ROWS (3)\n");
+        assertThat(Support.run(dir, "validate", "--repo", "g", "--fail-on", "warning").exit()).isEqualTo(1);
+    }
+
+    @Test
     void theReportOfAMockProblemIsStillTheOnlyThingOnStandardOutputInEveryFormat(@TempDir Path dir) {
         Support.repo("invalid/mck003", dir.resolve("c"));
         Result json = Support.run(dir, "validate", "--repo", "c", "--format", "json");

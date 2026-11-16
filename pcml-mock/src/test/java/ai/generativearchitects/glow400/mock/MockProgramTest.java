@@ -206,4 +206,63 @@ class MockProgramTest {
         assertThat(MOCK.call(List.of())).isInstanceOf(MockOutcome.Returned.class);
         assertThat(MOCK.call(List.of(new WireValue.Blank()))).isInstanceOf(MockOutcome.Returned.class);
     }
+
+    // ---- a list trimmed by a count field (the review of PR 12)
+
+    private static final ApiRepositoryModel STRUCTS = Fixtures.model("structs");
+    private static final ApiOperation LISTLINES = Fixtures.operation(STRUCTS, "listlines");
+
+    private static MockDefinition listlines(Map<String, MockValue> returns) {
+        MockCase only = new MockCase(Optional.of("c"), Map.of(), returns, Optional.empty(), Optional.empty(), AT);
+        return new MockDefinition("listlines", List.of(only), AT);
+    }
+
+    private static MockValue.Array twoLines() {
+        return new MockValue.Array(List.of(
+                new MockValue.Struct(Map.of("ITEMCD", new MockValue.Text("A", AT)), AT), new MockValue.Struct(Map.of("ITEMCD", new MockValue.Text("B", AT)), AT)), AT);
+    }
+
+    private static ApiValue.Arr decodedLines(MockOutcome outcome) {
+        List<WireValue> input = OperationCodec.of(LISTLINES).encode(Map.of("orderNumber", new ApiValue.Text("1")), Map.of()).parameters().orElseThrow();
+        assertThat(input).hasSize(3);
+        DecodeResult decoded = OperationCodec.of(LISTLINES).decode(((MockOutcome.Returned) outcome).output());
+        assertThat(decoded.problems()).isEmpty();
+        return (ApiValue.Arr) decoded.response().orElseThrow().get("lines");
+    }
+
+    private static MockOutcome callListlines(Map<String, MockValue> returns) {
+        List<WireValue> input = OperationCodec.of(LISTLINES).encode(Map.of("orderNumber", new ApiValue.Text("1")), Map.of()).parameters().orElseThrow();
+        return MockProgram.of(LISTLINES, listlines(returns)).call(input);
+    }
+
+    @Test
+    void aTrimmedListGivenWithoutItsCountIsNotLost() {
+        ApiValue.Arr lines = decodedLines(callListlines(Map.of("P0ROWS", twoLines())));
+        assertThat(lines.elements()).hasSize(2);
+        assertThat(((ApiValue.Obj) lines.elements().get(1)).members()).containsEntry("itemCode", new ApiValue.Text("B"));
+    }
+
+    @Test
+    void aCountThatIsGivenAndEqualToTheElementsGivesTheSameResult() {
+        assertThat(decodedLines(callListlines(Map.of("P0ROWS", twoLines(), "P0NROW", new MockValue.Whole(BigInteger.TWO, AT)))).elements()).hasSize(2);
+    }
+
+    @Test
+    void aCountThatDiffersIsUsedAsGivenAndItsDefinitionIsOnlyWarnedAbout() {
+        ApiValue.Arr lines = decodedLines(callListlines(Map.of("P0ROWS", twoLines(), "P0NROW", new MockValue.Whole(BigInteger.valueOf(7), AT))));
+        assertThat(lines.elements()).hasSize(7);
+    }
+
+    @Test
+    void aCountThatTheListCannotHoldRefusesTheDefinition() {
+        assertThatThrownBy(() -> MockProgram.of(LISTLINES, listlines(Map.of("P0ROWS", twoLines(), "P0NROW", new MockValue.Whole(BigInteger.valueOf(814), AT)))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("MCK004").hasMessageContaining("is not a count that the list P0ROWS can hold");
+        assertThatThrownBy(() -> MockProgram.of(LISTLINES, listlines(Map.of("P0NROW", new MockValue.Whole(BigInteger.valueOf(-1), AT)))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("MCK004");
+    }
+
+    @Test
+    void theImplicitDefaultOfAListOperationHasNoLines() {
+        assertThat(decodedLines(callListlines(Map.of())).elements()).isEmpty();
+    }
 }

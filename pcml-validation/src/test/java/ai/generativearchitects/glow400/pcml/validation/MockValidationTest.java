@@ -59,6 +59,23 @@ class MockValidationTest {
                 Tuple.tuple("MCK005", Severity.WARNING, FILE, 8, 5, "The case 'never' can never match: the case 'all' before it has no 'when'"));
     }
 
+    private static final String LISTLINES = "apis/LISTLINES/mock/listlines.yaml";
+
+    @Test
+    void aCountThatIsNotTheNumberOfElementsGivenIsMck006AndOnlyAWarning() {
+        assertThat(found(mockDiagnostics("invalid/mck006"))).containsExactly(Tuple.tuple("MCK006", Severity.WARNING, LISTLINES, 9, 15,
+                "In case 'two of three': the count P0NROW is not the number of elements given for P0ROWS (3)"));
+    }
+
+    @Test
+    void aCountTheListCannotHoldIsMck004() {
+        assertThat(found(mockDiagnostics("invalid/mck004-count"))).containsExactly(
+                Tuple.tuple("MCK004", Severity.ERROR, LISTLINES, 4, 24, "In case 'too many': the value for P0NROW is not a count that the list P0ROWS can hold: "
+                        + "it is negative or more than the 500 elements it holds"),
+                Tuple.tuple("MCK004", Severity.ERROR, LISTLINES, 7, 24, "In case 'negative': the value for P0NROW is not a count that the list P0ROWS can hold: "
+                        + "it is negative or more than the 500 elements it holds"));
+    }
+
     @Test
     void theDiagnosticsAreOrderedWithTheOthersByFileLineAndColumn() {
         List<Diagnostic> all = Validator.validate(Fixtures.model("invalid/mck005"));
