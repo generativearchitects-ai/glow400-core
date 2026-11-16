@@ -129,6 +129,19 @@ class GenerateTaskTest {
     }
 
     @Test
+    void theBaseFolderItselfIsShownAsADotNeverAsAnAbsolutePath(@TempDir Path dir) throws IOException {
+        Path repo = Support.repo("minimal", dir.resolve("repo"));
+        Tasks tasks = new Tasks(repo);
+        assertThat(tasks.shown(repo)).isEqualTo(".");
+        assertThat(tasks.shown(repo.resolve("./x/.."))).isEqualTo(".");
+        assertThat(tasks.shown(repo.resolve("apis"))).isEqualTo("apis");
+        assertThat(tasks.shown(dir)).isEqualTo(dir.toAbsolutePath().normalize().toString().replace(java.io.File.separatorChar, '/'));
+        TaskResult result = tasks.generate(repo, repo);
+        assertThat(Support.lines(result.diagnostics())).contains(".:1:1: CLI002: The output folder . is the repository root");
+        assertThat(result.written()).isEmpty();
+    }
+
+    @Test
     void aFolderInsideTheOutputThatLeadsOutsideIsCli002AndNothingIsWritten(@TempDir Path dir) throws IOException {
         Path repo = Support.repo("minimal", dir.resolve("repo"));
         Support.write(repo.resolve("gateway.yaml"), "emitters: [descriptor, linked]\n");
