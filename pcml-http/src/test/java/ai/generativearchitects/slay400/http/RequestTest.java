@@ -32,6 +32,7 @@ class RequestTest {
     private static HttpBinding query;
     private static HttpBinding body;
     private static ai.generativearchitects.slay400.pcml.api.ApiOperation bodyOperation;
+    private static HttpBinding mixed;
 
     @BeforeAll
     static void bindings(@TempDir Path dir) throws IOException {
@@ -59,6 +60,9 @@ class RequestTest {
                 + "  ROWS: { name: rows, fields: { X: { name: x, required: true }, Y: { name: y }, H: { name: h } } }\n";
         bodyOperation = Repos.operation(Files.createDirectories(dir.resolve("body")), bodyPcml, bodyOverlay);
         body = HttpBinding.of(bodyOperation);
+        mixed = HttpBinding.of(Repos.operation(Files.createDirectories(dir.resolve("mixed")), Repos.data("I", "type=\"char\" length=\"7\"", "input")
+                + Repos.data("S", "type=\"char\" length=\"10\"", "input"), Repos.header("/m/{id}", "POST")
+                + "parameters:\n  I: { name: id, in: path, type: integer }\n  S: { name: s, in: body }\n"));
     }
 
     // ---- helpers
@@ -276,6 +280,13 @@ class RequestTest {
         assertThat(problems(tooBig)).containsExactly("REQ004 ");
         assertThat(tooBig.problems().get(0).message()).isEqualTo("The body is larger than 40 bytes");
         assertThat(small.readRequest(new RequestParts(Map.of(), Map.of(), Map.of(), Optional.of("application/json"), "{\"s\":\"a\"}".getBytes(StandardCharsets.UTF_8))).problems()).isEmpty();
+        byte[] exactly = ("{\"s\":\"" + "x".repeat(32) + "\"}").getBytes(StandardCharsets.UTF_8); // 40 bytes: the limit itself is allowed
+        assertThat(exactly).hasSize(40);
+        assertThat(small.readRequest(new RequestParts(Map.of(), Map.of(), Map.of(), Optional.of("application/json"), exactly)).problems()).isEmpty();
+        // a property that is named like a path or query field of the operation is still not a property of the body
+        assertThat(problems(mixed.readRequest(new RequestParts(Map.of("id", "1"), Map.of(), Map.of(), Optional.of("application/json"), "{\"s\":\"a\",\"id\":5}".getBytes(StandardCharsets.UTF_8)))))
+                .containsExactly("REQ006 id");
+        assertThat(mixed.readRequest(new RequestParts(Map.of("id", "1"), Map.of(), Map.of(), Optional.of("application/json"), "{\"s\":\"a\"}".getBytes(StandardCharsets.UTF_8))).problems()).isEmpty();
         RequestResult deep = small.readRequest(new RequestParts(Map.of(), Map.of(), Map.of(), Optional.of("application/json"), "{\"s\":[[[1]]]}".getBytes(StandardCharsets.UTF_8)));
         assertThat(problems(deep)).containsExactly("REQ004 ");
         assertThat(deep.problems().get(0).message()).isEqualTo("The body is more complex than the limits allow: at most 3 levels and 6 values, and numbers of at most 40 characters");
@@ -346,6 +357,8 @@ class RequestTest {
     @Test
     void theRequestTypesRefuseWhatIsNotValidAndNeverShowTheirValues() {
         assertThat(ReadLimits.defaults()).isEqualTo(new ReadLimits(1_048_576, 32, 100_000));
+        assertThat(new ReadLimits(1, 1, 1).maxValues()).isEqualTo(1);
+        assertThat(new ReadLimits(1, 2, 3)).isEqualTo(new ReadLimits(1, 2, 3));
         for (int[] bad : new int[][] {{0, 1, 1}, {1, 0, 1}, {1, 1, 0}, {-1, 1, 1}}) {
             assertThatThrownBy(() -> new ReadLimits(bad[0], bad[1], bad[2])).isInstanceOf(IllegalArgumentException.class);
         }

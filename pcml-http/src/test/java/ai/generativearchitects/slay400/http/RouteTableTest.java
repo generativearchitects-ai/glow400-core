@@ -121,6 +121,30 @@ class RouteTableTest {
     }
 
     @Test
+    void hexadecimalDigitsAreAsciiAndAtTheEdgesOfTheirRanges() {
+        String[] routes = {"GET /v/{x}"};
+        for (String[] c : new String[][] {{"%2a", "*"}, {"%2A", "*"}, {"%6f", "o"}, {"%6F", "o"}, {"%39", "9"}, {"%30", "0"}, {"%3a", ":"}, {"%7e", "~"}, {"%20", " "}, {"%2e%2e%2e", "..."}}) {
+            assertThat(parameters(get("/v/" + c[0], routes))).as(c[0]).containsEntry("x", c[1]);
+        }
+        for (String bad : new String[] {"%2G", "%2g", "%2z", "%G2", "%2/", "%2:", "%2@", "%2`", "%2[", "%/2", "%:2", "%g0", "%2 "}) {
+            assertThat(get("/v/" + bad, routes)).as(bad).isInstanceOf(RouteMatch.NotFound.class);
+        }
+    }
+
+    @Test
+    void ofTwoPatternsTheOneWithMoreLiteralTextWinsWhereverTheTextIs() {
+        assertThat(id(get("/p/1-xx2", "GET /p/{a}-{b}", "GET /p/{a}-xx{b}"))).isEqualTo("op1");
+        assertThat(id(get("/p/1-xx2", "GET /p/{a}-xx{b}", "GET /p/{a}-{b}"))).isEqualTo("op0");
+        assertThat(id(get("/p/axyz", "GET /p/{a}x", "GET /p/{a}xyz"))).isEqualTo("op1");
+        assertThat(id(get("/p/axyz", "GET /p/{a}xyz", "GET /p/{a}x"))).isEqualTo("op0");
+        assertThat(id(get("/p/bx", "GET /p/{a}xyz", "GET /p/{a}x"))).isEqualTo("op1");
+        assertThat(id(get("/p/1-2-3-4", "GET /p/{a}-{b}-{c}-{d}"))).isEqualTo("op0");
+        assertThat(parameters(get("/p/1-2-3-4", "GET /p/{a}-{b}-{c}-{d}"))).containsExactly(Map.entry("a", "1"), Map.entry("b", "2"), Map.entry("c", "3"), Map.entry("d", "4"));
+        assertThat(parameters(get("/p/xy1z", "GET /p/x{a}z"))).containsExactly(Map.entry("a", "y1"));
+        assertThat(get("/p/xz", "GET /p/x{a}z")).isInstanceOf(RouteMatch.NotFound.class);
+    }
+
+    @Test
     void aSegmentThatDoesNotDecodeOrDecodesToASlashOrAControlCharacterMatchesNothing() {
         String[] routes = {"GET /orders/{n}", "GET /orders/{a}/{b}"};
         for (String bad : new String[] {"%2F", "%2f", "a%2Fb", "%00", "%0A", "%0D", "%1F", "%7F", "%80", "%C2%85", "%zz", "%1", "%", "a%", "%1G", "%G1",

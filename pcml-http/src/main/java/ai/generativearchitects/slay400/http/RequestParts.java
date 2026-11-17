@@ -69,11 +69,9 @@ public record RequestParts(Map<String, String> pathParameters, Map<String, List<
     @Override
     public int hashCode() {
         // header names are equal without regard to case, so they are hashed in lower case
-        int headerHash = 0;
-        for (Map.Entry<String, List<String>> header : headers.entrySet()) {
-            headerHash += header.getKey().toLowerCase(java.util.Locale.ROOT).hashCode() ^ header.getValue().hashCode();
-        }
-        return Objects.hash(pathParameters, query, headerHash, contentType) * 31 + Arrays.hashCode(body);
+        Map<String, List<String>> lowerCased = new java.util.HashMap<>();
+        headers.forEach((name, values) -> lowerCased.put(name.toLowerCase(java.util.Locale.ROOT), values));
+        return Objects.hash(pathParameters, query, lowerCased, contentType, Arrays.hashCode(body));
     }
 
     /** Only the sizes: a request carries values that must not end up in a log. */

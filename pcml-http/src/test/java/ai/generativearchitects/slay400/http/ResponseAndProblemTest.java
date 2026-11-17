@@ -223,6 +223,15 @@ class ResponseAndProblemTest {
     }
 
     @Test
+    void theInstanceKeepsTheUnreservedCharactersAndEncodesTheOnesRightNextToThem() {
+        ProblemDetails base = ProblemDetails.of(ProblemKind.NOT_FOUND, "d");
+        assertThat(base.withContext("t", "e", "@AZ[`az{/09:").instance()).contains("urn:slay400:request:%40AZ%5B%60az%7B%2F09%3A");
+        assertThat(base.withContext("t", "e", "-._~").instance()).contains("urn:slay400:request:-._~");
+        assertThat(base.withContext("t", "e", " !\"+,").instance()).contains("urn:slay400:request:%20%21%22%2B%2C");
+        assertThat(base.withContext("t", "e", "\u007f\u0080\u00ff").instance()).contains("urn:slay400:request:%7F%C2%80%C3%BF");
+    }
+
+    @Test
     void aProblemNeverCarriesWhatTheCallerSentOrTheProgramReturnedBesidesItsOwnCodeAndMessage() {
         String secret = "SENTINEL-4711";
         List<ValueProblem> problems = List.of(new ValueProblem("REQ007", "P0A", "a", "Body field must be a string"));
