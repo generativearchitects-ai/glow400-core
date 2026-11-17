@@ -229,6 +229,16 @@ class ApiBuilderTest {
         }
     }
 
+    @Test
+    void twoPlaceholdersWithNoTextBetweenThemAreOvl021AtTheRoute(@TempDir Path dir) {
+        for (String route : List.of("/x/{a}{b}", "/x/pre-{a}{b}", "/x/{a}-{b}{c}.json")) {
+            RepositoryResult result = load(dir.resolve(String.valueOf(route.hashCode())), yaml(route, "GET", DIRECTIONS));
+            assertThat(codes(result)).as(route).containsExactly(Tuple.tuple("OVL021", Severity.ERROR));
+            assertThat(result.model().orElseThrow().operations()).as(route).isEmpty();
+        }
+        assertThat(codes(load(dir.resolve("fine"), yaml("/x/{a}-{b}/{c}", "GET", DIRECTIONS)))).doesNotContain(Tuple.tuple("OVL021", Severity.ERROR));
+    }
+
     // ---- types, codec, names
 
     @Test

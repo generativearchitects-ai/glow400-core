@@ -15,7 +15,7 @@ import org.snakeyaml.engine.v2.nodes.Node;
 
 /**
  * Reads an overlay file ({@code api.yaml}) into an {@link OverlayFile}: checks keys, value types, enumerations,
- * ranges and the two file forms, and reports {@code OVL010}, {@code OVL011}, {@code OVL012} and {@code OVL020}.
+ * ranges and the two file forms, and reports {@code OVL010}, {@code OVL011}, {@code OVL012}, {@code OVL020} and {@code OVL021}.
  */
 final class OverlayParser {
 
@@ -260,6 +260,11 @@ final class OverlayParser {
             Optional<String> problem = RouteRules.problem(text.get().value());
             if (problem.isPresent()) {
                 yaml.error("OVL012", "'route' " + problem.get() + ": '" + text.get().value() + "'", text.get().at());
+                return Optional.empty();
+            }
+            if (RouteRules.hasAdjacentPlaceholders(text.get().value())) {
+                yaml.error("OVL021", "'route' has two placeholders with no text between them, so the split of a segment is ambiguous: '"
+                        + text.get().value() + "'", text.get().at());
                 return Optional.empty();
             }
         }

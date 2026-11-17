@@ -265,7 +265,7 @@ public final class RouteTable {
     }
 
     /** A segment of a route: plain text, or text with placeholders. */
-    private static final class Template {
+    static final class Template {
         /** The plain text when there is no placeholder. */
         final String literal;
         /** The parts of a segment with placeholders: text and placeholders in turn; empty for plain text. */
@@ -273,8 +273,11 @@ public final class RouteTable {
         /** The segment with every placeholder name replaced by {@code {}}. */
         final String shape;
         final int literalLength;
+        /** Two placeholders with no text between them: no segment matches. */
+        final boolean unmatchable;
 
-        private Template(String literal, List<Part> parts, String shape, int literalLength) {
+        private Template(String literal, List<Part> parts, String shape, int literalLength, boolean unmatchable) {
+            this.unmatchable = unmatchable;
             this.literal = literal;
             this.parts = parts;
             this.shape = shape;
@@ -286,6 +289,7 @@ public final class RouteTable {
             List<Part> parts = new ArrayList<>();
             StringBuilder shape = new StringBuilder();
             int literalLength = 0;
+            boolean unmatchable = false;
             int from = 0;
             while (true) {
                 int open = segment.indexOf('{', from);
@@ -298,57 +302,119 @@ public final class RouteTable {
                     shape.append(segment, from, open);
                     literalLength += open - from;
                 }
+                unmatchable |= open == from && !parts.isEmpty();
                 names.add(segment.substring(open + 1, close));
                 parts.add(new Part(true, ""));
                 shape.append("{}");
                 from = close + 1;
             }
             if (parts.isEmpty()) {
-                return new Template(segment, List.of(), segment, segment.length());
+                return new Template(segment, List.of(), segment, segment.length(), false);
             }
             if (from < segment.length()) {
                 parts.add(new Part(false, segment.substring(from)));
                 shape.append(segment, from, segment.length());
                 literalLength += segment.length() - from;
             }
-            return new Template("", parts, shape.toString(), literalLength);
+            return new Template("", parts, shape.toString(), literalLength, unmatchable);
         }
 
-        /** Whether the decoded segment has this form; the values of the placeholders are added to {@code captures}. */
+        /**
+         * Whether the decoded segment has this form; the values of the placeholders are added to {@code captures}. Without
+         * backtracking: the first text is anchored at the start and the last at the end, and each text in between is taken at
+         * its first occurrence that leaves a character for the placeholder before it. Only a value of {@code .} or {@code ..}
+         * moves a text to its next occurrence, at most twice. A template with two placeholders and no text between them
+         * (an error of the overlay, OVL021) matches nothing.
+         *
+         * @param steps {@code steps[0]} is increased by the number of characters compared
+         */
+        boolean match(String segment, List<String> captures, long[] steps) {
+            if (parts.isEmpty()) {
+                steps[0] += segment.length();
+                return segment.equals(literal);
+            }
+            int mark = captures.size();
+            if (unmatchable || !matchAnchored(segment, captures, steps)) {
+                while (captures.size() > mark) {
+                    captures.remove(captures.size() - 1);
+                }
+                return false;
+            }
+            return true;
+        }
+
         boolean match(String segment, List<String> captures) {
-            return matchFrom(0, 0, segment, captures);
+            return match(segment, captures, new long[1]);
         }
 
-        private boolean matchFrom(int part, int position, String segment, List<String> captures) {
-            if (part == parts.size()) {
-                return position == segment.length();
-            }
-            Part current = parts.get(part);
-            if (!current.placeholder) {
-                return segment.startsWith(current.text, position) && matchFrom(part + 1, position + current.text.length(), segment, captures);
-            }
-            boolean last = part == parts.size() - 1;
-            for (int end = last ? segment.length() : position + 1; end <= segment.length(); end++) {
-                if (end <= position || (!last && !followedBy(part + 1, segment, end))) {
-                    continue;
+        private boolean matchAnchored(String segment, List<String> captures, long[] steps) {
+            int first = 0;
+            int last = parts.size();
+            int start = 0;
+            int end = segment.length();
+            if (!parts.get(0).placeholder) {
+                String text = parts.get(0).text;
+                steps[0] += text.length();
+                if (!segment.startsWith(text)) {
+                    return false;
                 }
-                String value = segment.substring(position, end);
-                if (value.equals(".") || value.equals("..")) {
-                    continue;
-                }
-                captures.add(value);
-                if (matchFrom(part + 1, end, segment, captures)) {
-                    return true;
-                }
-                captures.remove(captures.size() - 1);
+                start = text.length();
+                first = 1;
             }
-            return false;
+            if (!parts.get(last - 1).placeholder) {
+                String text = parts.get(last - 1).text;
+                steps[0] += text.length();
+                if (end - text.length() < start || !segment.endsWith(text)) {
+                    return false;
+                }
+                end -= text.length();
+                last--;
+            }
+            int position = start;
+            for (int i = first; i < last - 1; i += 2) {
+                String text = parts.get(i + 1).text;
+                int from = position + 1;
+                int at;
+                while (true) {
+                    at = indexOf(segment, text, from, end - 1 - text.length(), steps);
+                    if (at < 0) {
+                        return false;
+                    }
+                    if (!dots(segment, position, at)) {
+                        break;
+                    }
+                    from = at + 1;
+                }
+                captures.add(segment.substring(position, at));
+                position = at + text.length();
+            }
+            if (end - position < 1 || dots(segment, position, end)) {
+                return false;
+            }
+            captures.add(segment.substring(position, end));
+            return true;
         }
 
-        /** Whether the part after a placeholder can start at {@code end}: a placeholder can end anywhere, text only where it is. */
-        private boolean followedBy(int part, String segment, int end) {
-            Part next = parts.get(part);
-            return next.placeholder || segment.startsWith(next.text, end);
+        /** The first position of {@code text} in {@code segment} from {@code from} to {@code lastStart}, or -1. */
+        private static int indexOf(String segment, String text, int from, int lastStart, long[] steps) {
+            for (int at = from; at <= lastStart; at++) {
+                int k = 0;
+                while (k < text.length()) {
+                    steps[0]++;
+                    if (segment.charAt(at + k) != text.charAt(k)) {
+                        break;
+                    }
+                    k++;
+                }
+                if (k == text.length()) {
+                    return at;
+                }
+            }
+            return -1;
+        }
+
+        private static boolean dots(String segment, int from, int to) {
+            return (to - from == 1 && segment.charAt(from) == '.') || (to - from == 2 && segment.charAt(from) == '.' && segment.charAt(from + 1) == '.');
         }
     }
 

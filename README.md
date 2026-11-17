@@ -102,7 +102,7 @@ A customer repository holds an optional `gateway.yaml` and one folder per API un
 
 ```java
 RepositoryResult result = OverlayLoader.loadRepository(Path.of("my-repository"));
-result.diagnostics().forEach(System.out::println);          // OVL001 ... OVL020, with file, line and column
+result.diagnostics().forEach(System.out::println);          // OVL001 ... OVL021, with file, line and column
 result.model().ifPresent(model -> model.operations().forEach(op -> System.out.println(op.id())));
 ```
 
