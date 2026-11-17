@@ -11,6 +11,8 @@ name: release
 #    and no step prints them. The private key is passed to the signer in an environment variable and stays in memory: no key
 #    ring, no file. When a secret is missing, the job stops with one line that says which.
 #  * The tag must be v<version>, the version must not be a snapshot, and every module must have it (scripts/check_release_tag.py).
+#  * The tagged commit must be an ancestor of origin/main: a tag on a commit that is not in main is never released.
+#  * No build cache: a job that holds the secrets takes nothing from a cache that other jobs write.
 
 on:
   push:
@@ -29,11 +31,22 @@ jobs:
     environment: release
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The whole history, to tell whether the tagged commit is in main.
+          fetch-depth: 0
 
       - name: Check the tag
         env:
           TAG: ${{ github.ref_name }}
         run: python3 scripts/check_release_tag.py "$TAG"
+
+      - name: Check that the tagged commit is in main
+        run: |
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tagged commit $GITHUB_SHA is not an ancestor of origin/main. Tag a commit that is in main. Nothing was built or uploaded."
+            exit 1
+          fi
 
       - name: Check that the secrets exist
         env:
@@ -56,7 +69,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: maven
           # Writes a settings.xml with the server "central" that reads the two environment variables below; no value is stored.
           server-id: central
           server-username: CENTRAL_TOKEN_USERNAME

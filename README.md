@@ -71,7 +71,7 @@ repository `https://central.sonatype.com/repository/maven-snapshots/` with snaps
 
 ## Release
 
-A push to `main` runs the `snapshot` workflow; a tag `v<version>` runs the `release` workflow, which signs and uploads the
+A push to `main` runs the `snapshot` workflow; a tag `v<version>` on a commit that is in `main` runs the `release` workflow, which signs and uploads the
 release for validation, and the owner publishes it in the Central Portal. Both run in the protected GitHub environment
 `release`. Everything that can be checked without the accounts is checked in every build (`build` workflow): the
 `release` profile stages all modules without signing or uploading, `scripts/check_staged_artifacts.py` checks the files, the

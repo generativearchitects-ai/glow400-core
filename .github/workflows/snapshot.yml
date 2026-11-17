@@ -11,6 +11,7 @@ name: snapshot
 #  * The secrets are CENTRAL_TOKEN_USERNAME and CENTRAL_TOKEN_PASSWORD of that environment, and no step prints them. When they
 #    are missing, the job stops with one line that says which.
 #  * Only the newest commit of main is published, so that an old run waiting for approval cannot replace a newer snapshot.
+#  * No build cache: a job that holds the secrets takes nothing from a cache that other jobs write.
 #
 # Once, by the owner: enable snapshots for the namespace in the Central Portal (see the pull request of kickoff 12).
 
@@ -77,7 +78,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: maven
           # Writes a settings.xml with the server "central" that reads the two environment variables below; no value is stored.
           server-id: central
           server-username: CENTRAL_TOKEN_USERNAME
