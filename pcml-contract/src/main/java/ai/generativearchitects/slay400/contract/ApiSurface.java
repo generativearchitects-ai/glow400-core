@@ -46,7 +46,7 @@ public record ApiSurface(String name, String title, String version, List<Operati
         return new ApiSurface(api.name(), api.title(), api.version(), operations);
     }
 
-    private static OperationSurface operation(ApiOperation operation) {
+    static OperationSurface operation(ApiOperation operation) {
         List<FieldSurface> request = new ArrayList<>();
         List<FieldSurface> response = new ArrayList<>();
         for (FieldBinding binding : operation.bindings()) {
