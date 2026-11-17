@@ -24,6 +24,17 @@ public final class Json {
     }
 
     /**
+     * The JSON text of a tree without any white space between its tokens and without a final newline, for a document that
+     * travels over a network. Keys come in the order of the maps and the escaping is that of {@link #write}. The same trees
+     * are accepted.
+     *
+     * @throws IllegalArgumentException for any other value
+     */
+    public static String writeCompact(Object tree) {
+        return JsonWriter.writeCompact(tree);
+    }
+
+    /**
      * Reads one JSON document with the limits of the descriptor: its size, its nesting depth and the length of a string are
      * bounded, a repeated key is an error, and nothing may follow the document. The stream is left open.
      *

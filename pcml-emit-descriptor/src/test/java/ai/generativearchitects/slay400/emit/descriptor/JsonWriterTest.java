@@ -73,4 +73,24 @@ class JsonWriterTest {
     void refusesWhatIsNotJson() {
         assertThatThrownBy(() -> JsonWriter.write(3.5)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Double");
     }
+
+    @Test
+    void theCompactFormHasNoWhiteSpaceAndNoFinalNewlineAndTheSameOrderAndEscaping() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("b", 1);
+        map.put("a", List.of("x y", true, 2L, false, new java.math.BigInteger("12345678901234567890")));
+        map.put("c", null);
+        map.put("d", Map.of());
+        map.put("e", List.of());
+        map.put("f", Map.of("k", Map.of("n", 1)));
+        map.put("g\n", "q\"\\\n\u0001\ud800");
+        assertThat(Json.writeCompact(map)).isEqualTo(
+                "{\"b\":1,\"a\":[\"x y\",true,2,false,12345678901234567890],\"c\":null,\"d\":{},\"e\":[],\"f\":{\"k\":{\"n\":1}},"
+                        + "\"g\\n\":\"q\\\"\\\\\\n\\u0001\\ud800\"}");
+        assertThat(Json.writeCompact(List.of())).isEqualTo("[]");
+        assertThat(Json.writeCompact(List.of(1, List.of(2, 3), Map.of("a", List.of())))).isEqualTo("[1,[2,3],{\"a\":[]}]");
+        assertThat(Json.writeCompact("text")).isEqualTo("\"text\"");
+        assertThat(Json.writeCompact(null)).isEqualTo("null");
+        assertThatThrownBy(() -> Json.writeCompact(3.5)).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Double");
+    }
 }

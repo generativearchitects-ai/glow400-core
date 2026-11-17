@@ -11,15 +11,24 @@ import java.util.Map;
 final class JsonWriter {
 
     private final StringBuilder out = new StringBuilder();
+    private final boolean compact;
 
-    private JsonWriter() {
+    private JsonWriter(boolean compact) {
+        this.compact = compact;
     }
 
     /** The JSON text of the tree, ending with a newline. */
     static String write(Object tree) {
-        JsonWriter writer = new JsonWriter();
+        JsonWriter writer = new JsonWriter(false);
         writer.value(tree, 0);
         writer.out.append('\n');
+        return writer.out.toString();
+    }
+
+    /** The JSON text of the tree without any white space between its tokens, and without a final newline. */
+    static String writeCompact(Object tree) {
+        JsonWriter writer = new JsonWriter(true);
+        writer.value(tree, 0);
         return writer.out.toString();
     }
 
@@ -42,14 +51,14 @@ final class JsonWriter {
             out.append("{}");
             return;
         }
-        out.append("{\n");
+        out.append(compact ? "{" : "{\n");
         int i = 0;
         for (Map.Entry<?, ?> entry : map.entrySet()) {
             indent(depth + 1);
             string((String) entry.getKey());
-            out.append(": ");
+            out.append(compact ? ":" : ": ");
             value(entry.getValue(), depth + 1);
-            out.append(++i < map.size() ? ",\n" : "\n");
+            out.append(++i < map.size() ? separator() : newline());
         }
         indent(depth);
         out.append('}');
@@ -60,18 +69,28 @@ final class JsonWriter {
             out.append("[]");
             return;
         }
-        out.append("[\n");
+        out.append(compact ? "[" : "[\n");
         for (int i = 0; i < list.size(); i++) {
             indent(depth + 1);
             value(list.get(i), depth + 1);
-            out.append(i + 1 < list.size() ? ",\n" : "\n");
+            out.append(i + 1 < list.size() ? separator() : newline());
         }
         indent(depth);
         out.append(']');
     }
 
     private void indent(int depth) {
-        out.append("  ".repeat(depth));
+        if (!compact) {
+            out.append("  ".repeat(depth));
+        }
+    }
+
+    private String separator() {
+        return compact ? "," : ",\n";
+    }
+
+    private String newline() {
+        return compact ? "" : "\n";
     }
 
     private void string(String text) {

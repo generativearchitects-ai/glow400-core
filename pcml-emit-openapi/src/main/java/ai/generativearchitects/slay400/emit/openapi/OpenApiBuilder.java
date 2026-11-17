@@ -4,6 +4,7 @@ import ai.generativearchitects.slay400.contract.ApiSurface;
 import ai.generativearchitects.slay400.contract.FieldSurface;
 import ai.generativearchitects.slay400.contract.Limits;
 import ai.generativearchitects.slay400.contract.OperationSurface;
+import ai.generativearchitects.slay400.contract.TextForms;
 import ai.generativearchitects.slay400.pcml.api.Location;
 import ai.generativearchitects.slay400.pcml.api.SemanticType;
 import ai.generativearchitects.slay400.pcml.model.Length;
@@ -180,7 +181,11 @@ final class OpenApiBuilder {
         return out;
     }
 
-    /** RFC 9457: the five standard members, and any extension member is allowed. */
+    /**
+     * RFC 9457: the five standard members, and the extension members of the HTTP binding: the code and message the program
+     * reported, one entry for each problem of a request, and the tenant, the environment and the correlation id. Any other
+     * extension member is allowed.
+     */
     private static Map<String, Object> problemDetails() {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("type", typed("string", "uri-reference", "A URI that identifies the kind of problem."));
@@ -188,11 +193,33 @@ final class OpenApiBuilder {
         properties.put("status", typed("integer", null, "The HTTP status code."));
         properties.put("detail", typed("string", null, "An explanation of this occurrence of the problem."));
         properties.put("instance", typed("string", "uri-reference", "A URI that identifies this occurrence of the problem."));
+        properties.put("code", typed("string", null, "The error code that the program reported."));
+        properties.put("errors", problemList());
+        properties.put("tenant", typed("string", null, "The tenant the request was made for."));
+        properties.put("environment", typed("string", null, "The environment the request was made for."));
+        properties.put("correlationId", typed("string", null, "Identifies the request, in the logs and in a support request."));
         Map<String, Object> schema = new LinkedHashMap<>();
         schema.put("type", "object");
         schema.put("description", "A problem details object (RFC 9457).");
         schema.put("properties", properties);
         return schema;
+    }
+
+    /** One entry for each problem found in a request: where, which, and what, never the value. */
+    private static Map<String, Object> problemList() {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("field", typed("string", null, "The field the problem is about, as the API names it, for example lines[2].quantity. Absent when it is about the request as a whole."));
+        entry.put("code", typed("string", null, "A stable code that tells the kind of problem, such as REQ005 or VAL003."));
+        entry.put("message", typed("string", null, "What is wrong, without the value."));
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("type", "object");
+        item.put("properties", entry);
+        item.put("required", List.of("code", "message"));
+        Map<String, Object> list = new LinkedHashMap<>();
+        list.put("type", "array");
+        list.put("description", "One entry for each problem found in the request.");
+        list.put("items", item);
+        return list;
     }
 
     private static Map<String, Object> typed(String type, String format, String description) {
@@ -270,22 +297,23 @@ final class OpenApiBuilder {
             case DECIMAL -> {
                 out.put("type", "string");
                 out.put("format", "decimal");
-                out.put("pattern", decimalPattern(limits));
+                out.put("pattern", TextForms.decimal(limits));
             }
             case BOOLEAN -> out.put("type", "boolean");
             case DATE -> {
                 out.put("type", "string");
                 out.put("format", "date");
+                out.put("pattern", TextForms.DATE);
             }
             case TIME -> {
                 out.put("type", "string");
                 out.put("format", "local-time");
-                out.put("pattern", "^\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$");
+                out.put("pattern", TextForms.TIME);
             }
             case DATETIME -> {
                 out.put("type", "string");
                 out.put("format", "local-date-time");
-                out.put("pattern", "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?$");
+                out.put("pattern", TextForms.DATETIME);
             }
             case BINARY -> {
                 out.put("type", "string");
@@ -303,20 +331,6 @@ final class OpenApiBuilder {
     /** Small numbers are written as such; a bound beyond a long keeps all its digits. */
     private static Object number(BigInteger value) {
         return value.bitLength() < 32 ? (Object) value.intValue() : value;
-    }
-
-    /** A decimal is text: up to the field's scale for packed and zoned, trailing zeros beyond it allowed (the codec compares numbers, accepts fewer decimals and writes the full scale), unsigned for text fields, any fraction for float. */
-    private static String decimalPattern(Limits limits) {
-        if (limits.scale().isPresent()) {
-            return fixedScalePattern(limits.digits().get(), limits.scale().get());
-        }
-        return limits.minimum().isPresent() ? "^\\d+(\\.\\d+)?$" : "^[-+]?\\d+(\\.\\d+)?$";
-    }
-
-    private static String fixedScalePattern(int digits, int scale) {
-        int integerDigits = digits - scale;
-        String integer = integerDigits <= 0 ? "0" : "\\d{1," + integerDigits + "}";
-        return "^-?" + integer + (scale > 0 ? "(\\.\\d{1," + scale + "}0*)?" : "") + "$";
     }
 
     /** The description of the field, with what the schema cannot say about decimals. */

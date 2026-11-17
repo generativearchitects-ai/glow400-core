@@ -53,6 +53,14 @@ class ApiSurfaceTest {
     }
 
     @Test
+    void theSurfaceOfOneOperationIsTheOneTheApiSurfaceBuildsForIt(@TempDir Path dir) {
+        ApiDefinition api = Apis.api(dir, data("A", "type=\"char\" length=\"4\"", "input"),
+                header("/x/{a}", "GET") + "summary: Sum\nparameters:\n  A: { name: a, in: path }\n");
+        assertThat(OperationSurface.of(api.operations().get(0))).isEqualTo(ApiSurface.of(api).operations().get(0));
+        assertThatThrownBy(() -> OperationSurface.of(null)).isInstanceOf(NullPointerException.class).hasMessage("operation");
+    }
+
+    @Test
     void requestAndResponseSidesAndBothFields(@TempDir Path dir) {
         String pcml = data("I", "type=\"char\" length=\"4\"", "input") + data("O", "type=\"char\" length=\"4\"", "output")
                 + data("B", "type=\"char\" length=\"4\"", "inputoutput");

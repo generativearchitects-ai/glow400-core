@@ -1,5 +1,6 @@
 package ai.generativearchitects.slay400.contract;
 
+import ai.generativearchitects.slay400.pcml.api.ApiOperation;
 import ai.generativearchitects.slay400.pcml.api.HttpMethod;
 import java.util.List;
 import java.util.Objects;
@@ -35,6 +36,15 @@ public record OperationSurface(String id, String route, HttpMethod method, Optio
         response = List.copyOf(response);
         Objects.requireNonNull(defaultErrorStatus, "defaultErrorStatus");
         errorStatuses = List.copyOf(errorStatuses);
+    }
+
+    /**
+     * The surface of one operation, as {@link ApiSurface#of} builds it for each operation of an API.
+     *
+     * @throws NullPointerException if {@code operation} is {@code null}
+     */
+    public static OperationSurface of(ApiOperation operation) {
+        return ApiSurface.operation(Objects.requireNonNull(operation, "operation"));
     }
 
     /** Whether the operation returns content: it has at least one response field. */
