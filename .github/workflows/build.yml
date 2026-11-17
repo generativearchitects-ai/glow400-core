@@ -55,7 +55,13 @@ jobs:
           cache: maven
       - name: Tests of the release checks
         run: python3 -m unittest discover -s scripts
-      # An ordinary build first: it makes the test jars that some modules share, which the release profile leaves out.
+      # The next two commands MUST STAY THE SAME as the ones that snapshot.yml and release.yml run to publish: an ordinary
+      # "install", then the release-profile "clean deploy". If they differ, this job stops seeing what the publishing jobs hit
+      # (C243: "deploy" without "clean" after "install" made the shade plugin pack the shaded jar of pcml-cli a second time, and
+      # only the first snapshot run found out). The only differences allowed: here -Dgpg.skip=true and -DskipUpload=true (nothing
+      # is signed or uploaded; snapshot.yml also skips signing), and release.yml runs the tests in its "install". Change one place,
+      # change all three.
+      # The ordinary build also makes the test jars that some modules share, which the release profile leaves out.
       - name: Install the modules
         run: ./mvnw -B install -DskipTests -Dinvoker.skip=true
       - name: Stage the release (no signature, no upload)
