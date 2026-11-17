@@ -79,6 +79,9 @@ jobs:
       - name: Build and test
         run: ./mvnw -B install
 
+      # "clean" matters: "install" has already made the shaded jar of pcml-cli in target/, and without "clean" the shade plugin
+      # packs that jar a second time (duplicate entry: META-INF/NOTICE-slay400-core). These two commands must stay the same as
+      # in the release-files job of build.yml, which runs them without signing and without uploading.
       - name: Sign and upload for validation
         env:
           CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
@@ -86,4 +89,4 @@ jobs:
           # The names that maven-gpg-plugin reads (signer bc): the armored private key, and its passphrase.
           MAVEN_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        run: ./mvnw -B -Prelease -DskipTests -Dinvoker.skip=true deploy
+        run: ./mvnw -B -Prelease -DskipTests -Dinvoker.skip=true clean deploy

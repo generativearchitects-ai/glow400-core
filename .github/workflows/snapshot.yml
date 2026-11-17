@@ -89,9 +89,12 @@ jobs:
         if: steps.what.outputs.publish == 'true'
         run: ./mvnw -B install -DskipTests -Dinvoker.skip=true
 
+      # "clean" matters: "install" has already made the shaded jar of pcml-cli in target/, and without "clean" the shade plugin
+      # packs that jar a second time (duplicate entry: META-INF/NOTICE-slay400-core). These two commands must stay the same as
+      # in the release-files job of build.yml, which runs them without uploading.
       - name: Publish the snapshot
         if: steps.what.outputs.publish == 'true'
         env:
           CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
           CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
-        run: ./mvnw -B -Prelease -Dgpg.skip=true -DskipTests -Dinvoker.skip=true deploy
+        run: ./mvnw -B -Prelease -Dgpg.skip=true -DskipTests -Dinvoker.skip=true clean deploy
