@@ -352,6 +352,7 @@ class OpenApiMappingTest {
         JsonNode date = field(dir.resolve("b"), "type=\"date\"", "");
         assertThat(date.get("type").asText()).isEqualTo("string");
         assertThat(date.get("format").asText()).isEqualTo("date");
+        assertThat(date.get("pattern").asText()).isEqualTo("^\\d{4}-\\d{2}-\\d{2}$");
         JsonNode time = field(dir.resolve("c"), "type=\"time\"", "");
         assertThat(time.get("type").asText()).isEqualTo("string");
         assertThat(time.get("format").asText()).isEqualTo("local-time");

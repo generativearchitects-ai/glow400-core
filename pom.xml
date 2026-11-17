@@ -62,6 +62,7 @@
     <module>pcml-bundle</module>
     <module>pcml-report</module>
     <module>pcml-scaffold</module>
+    <module>pcml-http</module>
     <module>pcml-tasks</module>
     <module>pcml-cli</module>
     <module>pcml-maven-plugin</module>
@@ -143,6 +144,11 @@
       <dependency>
         <groupId>ai.generativearchitects.slay400</groupId>
         <artifactId>pcml-mock</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-http</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

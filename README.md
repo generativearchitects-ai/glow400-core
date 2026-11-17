@@ -26,6 +26,7 @@ Licence: Apache-2.0.
 | `pcml-cli` | The command-line tool: `init`, `annotate`, `validate`, `generate`, `bundle` and `diff`, in one runnable jar (`java -jar pcml-cli/target/pcml-cli-<version>.jar`) |
 | `pcml-bundle` | Packs the descriptor, the OpenAPI documents and the PCML and overlay files into one deterministic, checksummed `.rpgapi` zip file, and reads it back as untrusted input (`BDL001` to `BDL006`) |
 | `pcml-emit-openapi` | Writes one OpenAPI 3.1 document per API, `openapi/<api name>.yaml` |
+| `pcml-http` | The HTTP binding, without a web framework: routes (`RouteTable`), reading a request into API values and writing the JSON response (`HttpBinding`), and RFC 9457 problem details (`ProblemDetails`), all agreeing with the OpenAPI document |
 | `pcml-tasks` | The four pipeline tasks (`validate`, `generate`, `bundle`, `diff`) that the command-line tool and the Maven plugin both call |
 | `pcml-maven-plugin` | The Maven plugin, goal prefix `pcml`: `pcml:validate`, `pcml:generate`, `pcml:bundle`, `pcml:diff` |
 | `pcml-bom` | The bill of materials: one import that sets the version of every module above (see "Use the artifacts") |

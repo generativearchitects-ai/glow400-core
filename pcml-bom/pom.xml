@@ -119,6 +119,11 @@
       </dependency>
       <dependency>
         <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-http</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
         <artifactId>pcml-tasks</artifactId>
         <version>${project.version}</version>
       </dependency>

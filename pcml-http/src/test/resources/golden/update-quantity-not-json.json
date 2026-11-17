@@ -1,0 +1,2 @@
+400 application/problem+json
+{"type":"https://slay400.dev/problems/request-invalid","title":"The request is not valid","status":400,"detail":"The request has 1 problem; see errors.","instance":"urn:slay400:request:req-0001","errors":[{"code":"REQ003","message":"The body is not valid JSON (line 1, column 13)"}],"tenant":"acme","environment":"test","correlationId":"req-0001"}

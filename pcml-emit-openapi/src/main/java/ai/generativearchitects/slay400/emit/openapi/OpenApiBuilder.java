@@ -303,6 +303,7 @@ final class OpenApiBuilder {
             case DATE -> {
                 out.put("type", "string");
                 out.put("format", "date");
+                out.put("pattern", TextForms.DATE);
             }
             case TIME -> {
                 out.put("type", "string");

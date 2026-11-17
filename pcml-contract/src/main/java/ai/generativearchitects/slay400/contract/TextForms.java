@@ -17,7 +17,7 @@ public final class TextForms {
     /** A whole number: an optional minus sign and digits. The document gives it the type {@code integer}, with no pattern. */
     public static final String INTEGER = "^-?\\d+$";
 
-    /** A date, {@code yyyy-MM-dd}. The document gives it {@code format: date}, with no pattern. */
+    /** A date, {@code yyyy-MM-dd}. The document gives it {@code format: date} and this pattern, which a validator that ignores formats still applies. */
     public static final String DATE = "^\\d{4}-\\d{2}-\\d{2}$";
 
     /** A time of day without a time zone: {@code HH:mm:ss} and an optional fraction of 1 to 9 digits. */

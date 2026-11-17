@@ -1,0 +1,2 @@
+405 application/problem+json
+{"type":"https://slay400.dev/problems/method-not-allowed","title":"Method not allowed","status":405,"detail":"The route does not take this method.","instance":"urn:slay400:request:req-0001","tenant":"acme","environment":"test","correlationId":"req-0001"}

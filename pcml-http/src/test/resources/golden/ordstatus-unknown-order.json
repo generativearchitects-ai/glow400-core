@@ -1,0 +1,2 @@
+404 application/problem+json
+{"type":"https://slay400.dev/problems/program-error","title":"The program reported an error","status":404,"detail":"The program reported an error.","instance":"urn:slay400:request:req-0001","code":"404","tenant":"acme","environment":"test","correlationId":"req-0001"}
