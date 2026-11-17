@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    A small consumer of slay400-core, built in CI against the files that a release would publish (kickoff 12). It is what the
+    gateway will do: import pcml-bom, name three modules without a version, read a bundle, and call the mock of an operation.
+    It is not a module of the root pom, and it does not use the root pom as parent: it sees the artifacts the way an outside
+    build does.
+
+    Build it with, from the repository root:
+      ./mvnw -B -f consumer-check/pom.xml -Dslay400.version=<project version> \
+          -Dstaging.repo=file://$PWD/target/central-deferred -Dmaven.repo.local=$PWD/target/consumer-repo test
+    (target/central-staging instead of target/central-deferred for a release version).
+  -->
+  <groupId>example.consumer</groupId>
+  <artifactId>slay400-consumer-check</artifactId>
+  <version>1</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <junit.version>5.11.4</junit.version>
+    <!--
+      The folder (a Maven repository) where the staged files are, and the version of slay400-core to use: -Dslay400.version has
+      no default on purpose, because a default would have to be changed with every release.
+    -->
+    <staging.repo>file://${project.basedir}/../target/central-deferred</staging.repo>
+    <!-- The bundle that the test reads: the golden bundle of pcml-bundle. -->
+    <golden.bundle>${project.basedir}/../pcml-bundle/src/test/resources/golden/mocked.rpgapi</golden.bundle>
+  </properties>
+
+  <!-- The staging folder of a release build. It is a plain Maven repository without checksum files. -->
+  <repositories>
+    <repository>
+      <id>slay400-staging</id>
+      <url>${staging.repo}</url>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>ignore</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <checksumPolicy>ignore</checksumPolicy>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-bom</artifactId>
+        <version>${slay400.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <!-- No version here: the bill of materials sets it. -->
+  <dependencies>
+    <dependency>
+      <groupId>ai.generativearchitects.slay400</groupId>
+      <artifactId>pcml-codec</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.slay400</groupId>
+      <artifactId>pcml-bundle</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ai.generativearchitects.slay400</groupId>
+      <artifactId>pcml-mock</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <systemPropertyVariables>
+            <golden.bundle>${golden.bundle}</golden.bundle>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
