@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
   <modelVersion>4.0.0</modelVersion>
 
   <!-- Provisional coordinates: the groupId is declared once, here, and inherited by every module. -->
@@ -12,6 +13,13 @@
 
   <name>slay400-core</name>
   <description>Generator for slay400: PCML model, parser, overlay, validation, codec and emitters.</description>
+  <url>https://github.com/generativearchitects-ai/slay400-core</url>
+  <inceptionYear>2026</inceptionYear>
+
+  <organization>
+    <name>Generative Architects</name>
+    <url>https://generativearchitects.ai</url>
+  </organization>
 
   <licenses>
     <license>
@@ -20,6 +28,25 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <!-- The organisation only: no personal name or e-mail address (kickoff 12). -->
+  <developers>
+    <developer>
+      <name>Generative Architects</name>
+      <organization>Generative Architects</organization>
+      <organizationUrl>https://generativearchitects.ai</organizationUrl>
+    </developer>
+  </developers>
+
+  <!-- The links are the same for every module: the repository, not a path below it. -->
+  <scm child.scm.connection.inherit.append.path="false"
+       child.scm.developerConnection.inherit.append.path="false"
+       child.scm.url.inherit.append.path="false">
+    <connection>scm:git:https://github.com/generativearchitects-ai/slay400-core.git</connection>
+    <developerConnection>scm:git:git@github.com:generativearchitects-ai/slay400-core.git</developerConnection>
+    <url>https://github.com/generativearchitects-ai/slay400-core</url>
+    <tag>HEAD</tag>
+  </scm>
 
   <modules>
     <module>pcml-model</module>
@@ -38,18 +65,26 @@
     <module>pcml-tasks</module>
     <module>pcml-cli</module>
     <module>pcml-maven-plugin</module>
+    <module>pcml-bom</module>
   </modules>
 
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <!-- Reproducible builds: the time stored in every jar and zip entry, so that two builds make the same bytes. -->
+    <project.build.outputTimestamp>2026-11-16T00:00:00Z</project.build.outputTimestamp>
 
     <junit.version>5.11.4</junit.version>
     <assertj.version>3.27.3</assertj.version>
     <snakeyaml-engine.version>3.2</snakeyaml-engine.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <jackson.version>2.22.4</jackson.version>
+    <!-- Plugins of the release profile (kickoff 12), all Apache-2.0. -->
+    <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+    <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+    <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+    <central-publishing-maven-plugin.version>0.12.0</central-publishing-maven-plugin.version>
     <pitest.version>1.30.2</pitest.version>
     <pitest-junit5.version>1.2.3</pitest-junit5.version>
     <!-- Minimum share of mutants the tests must kill, in percent. Raise it as the test suite grows. -->
@@ -168,6 +203,24 @@
   </dependencies>
 
   <build>
+    <!--
+      Every jar carries META-INF/LICENSE and META-INF/NOTICE (Maven Central, and Apache-2.0 section 4): the two files of the
+      repository root are resources of every module, so that the jar and the sources jar pack them. A module that lists its own
+      resources lists these too (pcml-emit-descriptor).
+    -->
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>${maven.multiModuleProjectDirectory}</directory>
+        <targetPath>META-INF</targetPath>
+        <includes>
+          <include>LICENSE</include>
+          <include>NOTICE</include>
+        </includes>
+      </resource>
+    </resources>
     <pluginManagement>
       <plugins>
         <plugin>
@@ -205,6 +258,126 @@
   </build>
 
   <profiles>
+    <!--
+      Everything that is only needed to publish (kickoff 12): the sources jar, the Javadoc jar, the signatures and the upload to
+      Maven Central. Without this profile the build does what it did before.
+
+      Signing: the Bouncy Castle signer of maven-gpg-plugin reads the armored private key from the environment variable
+      MAVEN_GPG_KEY and the passphrase from MAVEN_GPG_PASSPHRASE: the key lives in memory, never in a key ring or a file.
+      Skip signing with -Dgpg.skip=true.
+
+      Upload: central-publishing-maven-plugin bundles every module, uploads the bundle and waits until Central has validated
+      it. It does not publish: the owner does that in the Central Portal (decision 92). The server id "central" holds the
+      Portal token (settings.xml). Build the bundle without uploading it with -DskipUpload=true.
+    -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <!--
+            Test jars are for this build only (pcml-bundle, pcml-codec and pcml-overlay share fixtures with the modules after
+            them): with the release profile they are not built, so they are not attached and not published. The modules that
+            use them find them in the local repository, so an ordinary build with "install" has to come first (the workflows
+            and scripts/check-reproducible.sh do that). The test-jar executions of these three modules have no id, which is
+            "default".
+          -->
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>default</id>
+                <configuration>
+                  <skip>true</skip>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>${maven-source-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-resources-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>legal-files-for-javadoc</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>copy-resources</goal>
+                </goals>
+                <configuration>
+                  <outputDirectory>${project.build.directory}/reports/apidocs/META-INF</outputDirectory>
+                  <resources>
+                    <resource>
+                      <directory>${maven.multiModuleProjectDirectory}</directory>
+                      <includes>
+                        <include>LICENSE</include>
+                        <include>NOTICE</include>
+                      </includes>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${maven-javadoc-plugin.version}</version>
+            <configuration>
+              <release>${maven.compiler.release}</release>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${maven-gpg-plugin.version}</version>
+            <configuration>
+              <signer>bc</signer>
+              <bestPractices>true</bestPractices>
+            </configuration>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central-publishing-maven-plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>false</autoPublish>
+              <waitUntil>validated</waitUntil>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <!--
       Mutation testing: PIT changes the production code in small ways (a different constant, a flipped
       condition, a removed call) and runs the tests; a test suite that still passes has a gap.

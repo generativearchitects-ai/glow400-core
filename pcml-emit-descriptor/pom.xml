@@ -56,6 +56,15 @@
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
       </resource>
+      <!-- The licence and notice files of the repository root, as in the parent pom. -->
+      <resource>
+        <directory>${maven.multiModuleProjectDirectory}</directory>
+        <targetPath>META-INF</targetPath>
+        <includes>
+          <include>LICENSE</include>
+          <include>NOTICE</include>
+        </includes>
+      </resource>
     </resources>
   </build>
 </project>
