@@ -105,3 +105,33 @@ components:
           type: string
           format: uri-reference
           description: "A URI that identifies this occurrence of the problem."
+        code:
+          type: string
+          description: "The error code that the program reported."
+        errors:
+          type: array
+          description: "One entry for each problem found in the request."
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: "The field the problem is about, as the API names it, for example lines[2].quantity. Absent when it is about the request as a whole."
+              code:
+                type: string
+                description: "A stable code that tells the kind of problem, such as REQ005 or VAL003."
+              message:
+                type: string
+                description: "What is wrong, without the value."
+            required:
+              - code
+              - message
+        tenant:
+          type: string
+          description: "The tenant the request was made for."
+        environment:
+          type: string
+          description: "The environment the request was made for."
+        correlationId:
+          type: string
+          description: "Identifies the request, in the logs and in a support request."

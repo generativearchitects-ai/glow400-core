@@ -223,10 +223,34 @@ class OpenApiMappingTest {
         JsonNode d = doc(dir, data("A", "type=\"char\" length=\"4\"", "input"), "parameters:\n  A: { name: a }\n");
         assertThat(names(d.at("/components/schemas"))).containsExactly("ProblemDetails");
         JsonNode problem = d.at("/components/schemas/ProblemDetails");
-        assertThat(names(problem.get("properties"))).containsExactly("type", "title", "status", "detail", "instance");
+        assertThat(names(problem.get("properties"))).containsExactly("type", "title", "status", "detail", "instance", "code", "errors", "tenant",
+                "environment", "correlationId");
         assertThat(problem.at("/properties/type/format").asText()).isEqualTo("uri-reference");
+        assertThat(problem.at("/properties/instance/format").asText()).isEqualTo("uri-reference");
         assertThat(problem.at("/properties/status/type").asText()).isEqualTo("integer");
+        for (String text : new String[] {"title", "detail", "code", "tenant", "environment", "correlationId"}) {
+            assertThat(problem.at("/properties/" + text + "/type").asText()).as(text).isEqualTo("string");
+            assertThat(problem.at("/properties/" + text + "/description").asText()).as(text).isNotBlank();
+        }
         assertThat(problem.has("additionalProperties")).isFalse();
+        assertThat(problem.has("required")).isFalse();
+    }
+
+    @Test
+    void theErrorsOfAProblemAreAListOfEntriesWithACodeAndAMessageAndAnOptionalField(@TempDir Path dir) {
+        JsonNode d = doc(dir, data("A", "type=\"char\" length=\"4\"", "input"), "parameters:\n  A: { name: a }\n");
+        JsonNode errors = d.at("/components/schemas/ProblemDetails/properties/errors");
+        assertThat(errors.get("type").asText()).isEqualTo("array");
+        assertThat(errors.get("description").asText()).isNotBlank();
+        JsonNode entry = errors.get("items");
+        assertThat(entry.get("type").asText()).isEqualTo("object");
+        assertThat(names(entry.get("properties"))).containsExactly("field", "code", "message");
+        for (String name : new String[] {"field", "code", "message"}) {
+            assertThat(entry.at("/properties/" + name + "/type").asText()).as(name).isEqualTo("string");
+            assertThat(entry.at("/properties/" + name + "/description").asText()).as(name).isNotBlank();
+        }
+        assertThat(texts(entry.get("required"))).containsExactly("code", "message");
+        assertThat(entry.has("additionalProperties")).isFalse();
     }
 
     // ---- schemas by semantic type
