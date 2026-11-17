@@ -38,6 +38,11 @@ final class RouteRules {
         return open >= 0 ? Optional.of("has a '{' without '}'") : Optional.empty();
     }
 
+    /** Whether a well-formed route has a segment with two placeholders and no text between them, such as {@code /{a}{b}}. */
+    static boolean hasAdjacentPlaceholders(String route) {
+        return route.contains("}{");
+    }
+
     /** The placeholder names of a well-formed route, in order of appearance. */
     static List<String> placeholders(String route) {
         List<String> names = new ArrayList<>();
