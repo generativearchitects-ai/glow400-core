@@ -1,0 +1,89 @@
+name: release
+
+# A tag v<version> builds, signs and uploads a release to the Central Portal for validation (kickoff 12, decision 92). It does
+# not publish: the owner looks at the deployment in the Central Portal and publishes it there by hand.
+#
+# Safety:
+#  * It starts only from a pushed tag, never for a pull request, and never with pull_request_target.
+#  * It runs in the GitHub environment "release", which the owner protects with a required reviewer.
+#  * The job can read the repository and nothing else.
+#  * The secrets are CENTRAL_TOKEN_USERNAME, CENTRAL_TOKEN_PASSWORD, GPG_PRIVATE_KEY and GPG_PASSPHRASE of that environment,
+#    and no step prints them. The private key is passed to the signer in an environment variable and stays in memory: no key
+#    ring, no file. When a secret is missing, the job stops with one line that says which.
+#  * The tag must be v<version>, the version must not be a snapshot, and every module must have it (scripts/check_release_tag.py).
+#  * The tagged commit must be an ancestor of origin/main: a tag on a commit that is not in main is never released.
+#  * No build cache: a job that holds the secrets takes nothing from a cache that other jobs write.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The whole history, to tell whether the tagged commit is in main.
+          fetch-depth: 0
+
+      - name: Check the tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: python3 scripts/check_release_tag.py "$TAG"
+
+      - name: Check that the tagged commit is in main
+        run: |
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::The tagged commit $GITHUB_SHA is not an ancestor of origin/main. Tag a commit that is in main. Nothing was built or uploaded."
+            exit 1
+          fi
+
+      - name: Check that the secrets exist
+        env:
+          CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          missing=""
+          [ -n "$CENTRAL_TOKEN_USERNAME" ] || missing="$missing CENTRAL_TOKEN_USERNAME"
+          [ -n "$CENTRAL_TOKEN_PASSWORD" ] || missing="$missing CENTRAL_TOKEN_PASSWORD"
+          [ -n "$GPG_PRIVATE_KEY" ] || missing="$missing GPG_PRIVATE_KEY"
+          [ -n "$GPG_PASSPHRASE" ] || missing="$missing GPG_PASSPHRASE"
+          if [ -n "$missing" ]; then
+            echo "::error::Secret(s) missing in the environment 'release':$missing. Nothing was built or uploaded."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          # Writes a settings.xml with the server "central" that reads the two environment variables below; no value is stored.
+          server-id: central
+          server-username: CENTRAL_TOKEN_USERNAME
+          server-password: CENTRAL_TOKEN_PASSWORD
+
+      # The whole build with its tests, as for any commit. It also makes the test jars that some modules share, which the
+      # release profile leaves out of what is published.
+      - name: Build and test
+        run: ./mvnw -B install
+
+      - name: Sign and upload for validation
+        env:
+          CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          # The names that maven-gpg-plugin reads (signer bc): the armored private key, and its passphrase.
+          MAVEN_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: ./mvnw -B -Prelease -DskipTests -Dinvoker.skip=true deploy

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    The bill of materials: a build imports this one pom with scope import and then names the modules it needs without a
+    version. It has no parent on purpose. A POM that is imported brings everything it inherits with it, so with the root pom
+    as parent every consumer would also receive the root's dependency management (Jackson, JUnit, snakeyaml, and more). The
+    price is that the Central metadata and the version are written here too: the version goes up with the others (versions:set
+    does it), and a check (scripts/check-staged-artifacts.py) compares the list below with the modules of the repository.
+  -->
+  <groupId>ai.generativearchitects.slay400</groupId>
+  <artifactId>pcml-bom</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>pcml-bom</name>
+  <description>Bill of materials of slay400-core: one import that sets the version of every module published to Maven Central.</description>
+  <url>https://github.com/generativearchitects-ai/slay400-core</url>
+  <inceptionYear>2026</inceptionYear>
+
+  <organization>
+    <name>Generative Architects</name>
+    <url>https://generativearchitects.ai</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Generative Architects</name>
+      <organization>Generative Architects</organization>
+      <organizationUrl>https://generativearchitects.ai</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/generativearchitects-ai/slay400-core.git</connection>
+    <developerConnection>scm:git:git@github.com:generativearchitects-ai/slay400-core.git</developerConnection>
+    <url>https://github.com/generativearchitects-ai/slay400-core</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <!-- Every module that is published, with the version of this project. Not in the list: this pom and the root pom. -->
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-parser</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-overlay</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-codec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-validation</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-contract</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-diff</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-emit-descriptor</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-emit-openapi</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-mock</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-bundle</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-report</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-scaffold</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-tasks</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-cli</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ai.generativearchitects.slay400</groupId>
+        <artifactId>pcml-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <type>maven-plugin</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <profiles>
+    <!--
+      This pom is published too, so the release profile of the root pom is repeated here, without sources and Javadoc (a pom has
+      none): it is signed (skip with -Dgpg.skip=true) and goes into the same Central bundle as the other modules. Keep the plugin
+      versions the same as in the root pom.
+    -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.8</version>
+            <configuration>
+              <signer>bc</signer>
+              <bestPractices>true</bestPractices>
+            </configuration>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>0.12.0</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>false</autoPublish>
+              <waitUntil>validated</waitUntil>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

@@ -26,8 +26,11 @@ Licence: Apache-2.0.
 | `pcml-cli` | The command-line tool: `init`, `annotate`, `validate`, `generate`, `bundle` and `diff`, in one runnable jar (`java -jar pcml-cli/target/pcml-cli-<version>.jar`) |
 | `pcml-bundle` | Packs the descriptor, the OpenAPI documents and the PCML and overlay files into one deterministic, checksummed `.rpgapi` zip file, and reads it back as untrusted input (`BDL001` to `BDL006`) |
 | `pcml-emit-openapi` | Writes one OpenAPI 3.1 document per API, `openapi/<api name>.yaml` |
+| `pcml-tasks` | The four pipeline tasks (`validate`, `generate`, `bundle`, `diff`) that the command-line tool and the Maven plugin both call |
+| `pcml-maven-plugin` | The Maven plugin, goal prefix `pcml`: `pcml:validate`, `pcml:generate`, `pcml:bundle`, `pcml:diff` |
+| `pcml-bom` | The bill of materials: one import that sets the version of every module above (see "Use the artifacts") |
 
-Emitters are discovered with `java.util.ServiceLoader` (`Emitter` in `pcml-model`). More modules (mock and Java emitters, the Maven plugin) will follow, one increment at a time.
+Emitters are discovered with `java.util.ServiceLoader` (`Emitter` in `pcml-model`). More modules (a Java emitter) will follow, one increment at a time.
 
 ## Build
 
@@ -36,6 +39,53 @@ Requires Java 21. The Maven Wrapper is included, so no separate Maven install is
 ```
 ./mvnw verify
 ```
+
+## Use the artifacts
+
+Every module is published to Maven Central (decision 91), and `pcml-bom` sets all their versions at once. Import it, then name
+the modules you need without a version:
+
+```xml
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>ai.generativearchitects.slay400</groupId>
+      <artifactId>pcml-bom</artifactId>
+      <version>VERSION</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+
+<dependencies>
+  <dependency>
+    <groupId>ai.generativearchitects.slay400</groupId>
+    <artifactId>pcml-bundle</artifactId>
+  </dependency>
+</dependencies>
+```
+
+A `-SNAPSHOT` version is published to the Central snapshot repository after every build of `main`; to use one, add the
+repository `https://central.sonatype.com/repository/maven-snapshots/` with snapshots enabled.
+
+## Release
+
+A push to `main` runs the `snapshot` workflow; a tag `v<version>` on a commit that is in `main` runs the `release` workflow, which signs and uploads the
+release for validation, and the owner publishes it in the Central Portal. Both run in the protected GitHub environment
+`release`. Everything that can be checked without the accounts is checked in every build (`build` workflow): the
+`release` profile stages all modules without signing or uploading, `scripts/check_staged_artifacts.py` checks the files, the
+POM elements and the licence files, a small project in `consumer-check/` is built against the staged files the way the
+gateway will, and `scripts/check-reproducible.sh` builds twice and compares the checksums. To run the first part yourself:
+
+```
+./mvnw install -DskipTests                  # an ordinary build first: it makes the test jars that some modules share
+./mvnw -Prelease -Dgpg.skip=true -DskipUpload=true -DskipTests clean deploy
+python3 scripts/check_staged_artifacts.py target/central-deferred
+```
+
+To set the version of a release in every POM, including `pcml-bom`: `./mvnw versions:set -DnewVersion=<version>
+-DprocessAllModules=true -DgenerateBackupPoms=false`; `scripts/check_release_tag.py v<version>` checks the result.
 
 ## Use
 

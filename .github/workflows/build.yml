@@ -11,8 +11,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: '21'
@@ -25,8 +25,8 @@ jobs:
   mutation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: '21'
@@ -35,8 +35,50 @@ jobs:
         run: ./mvnw -B -Pmutation verify
       - name: Upload mutation reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pit-reports
           path: '*/target/pit-reports'
           if-no-files-found: ignore
+
+  # What a release would publish, checked without publishing anything (kickoff 12): the release profile stages every module
+  # without signing and without uploading, and the files, the POM elements and the licence files are checked. A small project
+  # that depends on the staged files the way the gateway will is built against them. No secret is used.
+  release-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Tests of the release checks
+        run: python3 -m unittest discover -s scripts
+      # An ordinary build first: it makes the test jars that some modules share, which the release profile leaves out.
+      - name: Install the modules
+        run: ./mvnw -B install -DskipTests -Dinvoker.skip=true
+      - name: Stage the release (no signature, no upload)
+        run: ./mvnw -B -Prelease -Dgpg.skip=true -DskipUpload=true -DskipTests -Dinvoker.skip=true clean deploy
+      - name: Check the staged files
+        run: python3 scripts/check_staged_artifacts.py target/central-deferred
+      - name: Build a consumer against the staged files
+        run: >
+          ./mvnw -B -f consumer-check/pom.xml
+          -Dslay400.version="$(python3 -I -c "import xml.etree.ElementTree as E; print(E.parse('pom.xml').getroot().find('{http://maven.apache.org/POM/4.0.0}version').text)")"
+          -Dstaging.repo="file://$PWD/target/central-deferred"
+          -Dmaven.repo.local="$PWD/target/consumer-repo"
+          test
+
+  # Two builds of the same commit give the same bytes.
+  reproducible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build twice and compare checksums
+        run: scripts/check-reproducible.sh

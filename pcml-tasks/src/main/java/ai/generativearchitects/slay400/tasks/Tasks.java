@@ -56,10 +56,13 @@ public final class Tasks {
         this.base = Objects.requireNonNull(baseDirectory, "baseDirectory").toAbsolutePath().normalize();
     }
 
-    /** The path of a file as shown to the person: relative to the base directory when it is under it, escaped. */
+    /**
+     * The path of a file as shown to the person, escaped: relative to the base directory when it is under it, and the base
+     * directory itself as {@code .}. A path outside the base directory is shown as it is.
+     */
     public String shown(Path path) {
         Path absolute = path.toAbsolutePath().normalize();
-        String text = absolute.startsWith(base) && !absolute.equals(base) ? base.relativize(absolute).toString() : absolute.toString();
+        String text = !absolute.startsWith(base) ? absolute.toString() : absolute.equals(base) ? "." : base.relativize(absolute).toString();
         return TextReport.escape(text.replace(java.io.File.separatorChar, '/'));
     }
 

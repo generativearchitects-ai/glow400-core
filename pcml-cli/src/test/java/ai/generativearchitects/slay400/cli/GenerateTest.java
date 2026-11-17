@@ -125,6 +125,19 @@ class GenerateTest {
     }
 
     @Test
+    void theRepositoryRootAsOutputFolderIsShownAsADotInTextAndJson(@TempDir Path dir) throws IOException {
+        Path repo = Support.repo("minimal", dir.resolve("repo"));
+        String absolute = repo.toAbsolutePath().normalize().toString();
+        Result text = Support.run(repo, "generate", "--repo", ".", "--out", ".");
+        assertThat(text.exit()).isEqualTo(1);
+        assertThat(text.out()).contains(".:1:1: error CLI002: The output folder . is the repository root").doesNotContain(absolute);
+        Result json = Support.run(repo, "generate", "--repo", ".", "--out", ".", "--format", "json");
+        assertThat(json.exit()).isEqualTo(1);
+        assertThat(json.out()).contains("\"The output folder . is the repository root\"").doesNotContain(absolute);
+        assertThat(Support.names(repo)).doesNotContain("descriptor.json", "openapi");
+    }
+
+    @Test
     void theOutputFolderCannotBeTheRepositoryRootOrInsideApis(@TempDir Path dir) throws IOException {
         Path repo = Support.repo("minimal", dir.resolve("repo"));
         Result root = Support.run(dir, "generate", "--repo", "repo", "--out", "repo");

@@ -56,7 +56,7 @@ class ValidateTaskTest {
         Tasks tasks = new Tasks(dir);
         assertThat(tasks.shown(dir.resolve("a/b.txt"))).isEqualTo("a/b.txt");
         assertThat(tasks.shown(dir.resolve("a/../a/./b.txt"))).isEqualTo("a/b.txt");
-        assertThat(tasks.shown(dir)).isEqualTo(dir.toAbsolutePath().normalize().toString().replace('\\', '/'));
+        assertThat(tasks.shown(dir)).isEqualTo("."); // the base folder itself, never an absolute path (C211)
         assertThat(tasks.shown(dir.getParent().resolve("elsewhere/c.txt"))).isEqualTo(dir.getParent().resolve("elsewhere/c.txt").toString());
         assertThat(tasks.shown(dir.resolve("a\u001bb"))).isEqualTo("a\\u001bb");
         assertThat(new Tasks(dir.resolve("x/..")).shown(dir.resolve("y"))).isEqualTo("y");
