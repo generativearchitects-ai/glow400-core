@@ -70,7 +70,7 @@ class RouteTableTest {
         assertThat(get("/files/.json", "GET /files/{name}.json")).isInstanceOf(RouteMatch.NotFound.class);
         assertThat(get("/files/report.txt", "GET /files/{name}.json")).isInstanceOf(RouteMatch.NotFound.class);
         assertThat(parameters(get("/x/p-q-r", "GET /x/{a}-{b}"))).containsExactly(Map.entry("a", "p"), Map.entry("b", "q-r"));
-        assertThat(parameters(get("/x/ab", "GET /x/{a}{b}"))).containsExactly(Map.entry("a", "a"), Map.entry("b", "b"));
+        assertThat(get("/x/ab", "GET /x/{a}{b}")).as("two placeholders with no text between them match nothing (OVL021)").isInstanceOf(RouteMatch.NotFound.class);
         assertThat(get("/x/a", "GET /x/{a}{b}")).isInstanceOf(RouteMatch.NotFound.class);
         assertThat(get("/x/-b", "GET /x/{a}-{b}")).isInstanceOf(RouteMatch.NotFound.class);
         assertThat(get("/x/a-", "GET /x/{a}-{b}")).isInstanceOf(RouteMatch.NotFound.class);
@@ -229,5 +229,101 @@ class RouteTableTest {
         }
         assertThat(found).isPositive();
         assertThat(List.of(HttpMethod.values())).hasSize(5);
+    }
+
+    // ---- matching a segment in linear time
+
+    @Test
+    void aSegmentOfTheLimitWithFourPlaceholdersCostsAFewTimesItsLengthInComparisons() {
+        RouteTable.Template template = RouteTable.Template.of("{a}-{b}-{c}-{d}", new java.util.ArrayList<>());
+        int length = RouteTable.MAX_SEGMENT_LENGTH;
+        String[] segments = {"x".repeat(length), "x-".repeat(length / 2), "-".repeat(length), "a".repeat(length - 3) + "-.-", ".-".repeat(length / 2),
+                "x-".repeat(length / 2 - 1) + "x.", "a".repeat(length / 2) + "-" + "b".repeat(length / 2 - 1)};
+        for (String segment : segments) {
+            assertThat(segment).hasSize(length);
+            long[] steps = new long[1];
+            template.match(segment, new java.util.ArrayList<>(), steps);
+            assertThat(steps[0]).as("comparisons for " + segment.substring(0, 6) + "...").isLessThanOrEqualTo(3L * length);
+        }
+        // with text before and after, and a text of several characters
+        RouteTable.Template wide = RouteTable.Template.of("pre{a}--{b}--{c}--{d}.json", new java.util.ArrayList<>());
+        String body = "pre" + "-".repeat(length - 3 - 5);
+        long[] steps = new long[1];
+        assertThat(wide.match(body + ".json", new java.util.ArrayList<>(), steps)).isTrue();
+        assertThat(steps[0]).isLessThanOrEqualTo(4L * length);
+        steps = new long[1];
+        String noDoubleDash = "pre" + "-x".repeat((length - 3 - 5) / 2) + ".json";
+        assertThat(wide.match(noDoubleDash, new java.util.ArrayList<>(), steps)).isFalse();
+        assertThat(steps[0]).isLessThanOrEqualTo(4L * length);
+    }
+
+    /** The search by backtracking that this table used before the review of PR 17: exhaustive and exponential, kept as the oracle. */
+    private static boolean exhaustive(List<String> parts, int part, int position, String segment) {
+        if (part == parts.size()) {
+            return position == segment.length();
+        }
+        String current = parts.get(part);
+        if (!current.equals("{}")) {
+            return segment.startsWith(current, position) && exhaustive(parts, part + 1, position + current.length(), segment);
+        }
+        for (int end = position + 1; end <= segment.length(); end++) {
+            String value = segment.substring(position, end);
+            if (value.equals(".") || value.equals("..")) {
+                continue;
+            }
+            if (exhaustive(parts, part + 1, end, segment)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
+    void theMatcherFindsAMatchExactlyWhenTheExhaustiveSearchDoes() {
+        Random random = new Random(400_17);
+        String alphabet = "ab.-";
+        int matches = 0;
+        int refusals = 0;
+        for (int round = 0; round < 60_000; round++) {
+            List<String> parts = new java.util.ArrayList<>();
+            StringBuilder written = new StringBuilder();
+            boolean placeholder = random.nextBoolean();
+            for (int count = 1 + random.nextInt(5); count > 0; count--) {
+                if (placeholder) {
+                    parts.add("{}");
+                    written.append("{p").append(parts.size()).append('}');
+                } else {
+                    String text = "";
+                    for (int n = 1 + random.nextInt(2); n > 0; n--) {
+                        text += alphabet.charAt(random.nextInt(alphabet.length()));
+                    }
+                    parts.add(text);
+                    written.append(text);
+                }
+                placeholder = !placeholder;
+            }
+            StringBuilder segment = new StringBuilder();
+            for (int n = random.nextInt(11); n > 0; n--) {
+                segment.append(alphabet.charAt(random.nextInt(alphabet.length())));
+            }
+            List<String> captures = new java.util.ArrayList<>();
+            boolean found = RouteTable.Template.of(written.toString(), new java.util.ArrayList<>()).match(segment.toString(), captures);
+            assertThat(found).as(written + " against '" + segment + "'").isEqualTo(exhaustive(parts, 0, 0, segment.toString()));
+            if (found) {
+                matches++;
+                StringBuilder rebuilt = new StringBuilder();
+                int next = 0;
+                for (String part : parts) {
+                    rebuilt.append(part.equals("{}") ? captures.get(next++) : part);
+                }
+                assertThat(rebuilt.toString()).isEqualTo(segment.toString());
+                assertThat(captures).doesNotContain(".", "..", "");
+            } else {
+                refusals++;
+                assertThat(captures).isEmpty();
+            }
+        }
+        assertThat(matches).isGreaterThan(3_000);
+        assertThat(refusals).isGreaterThan(3_000);
     }
 }
