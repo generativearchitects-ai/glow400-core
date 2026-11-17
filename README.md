@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/slay400-banner.svg" alt="slay400. RPG slay: turn your IBM i programs into REST, async and AI-ready APIs." width="100%">
+</p>
+
 # slay400-core
 
 The project was called glow400 until 2026-11-16.
@@ -6,7 +10,7 @@ The generator behind slay400: it reads the PCML definition of an RPG program, me
 
 **Status: early development.** The call model, the PCML parser, the overlay loader with the API model, the codec and the static validation exist so far. Nothing here is released.
 
-Licence: Apache-2.0.
+Licence: Apache-2.0. The slay400 name and logo are not licensed under Apache-2.0; see `docs/assets/README.md`.
 
 ## Modules
 
