@@ -326,4 +326,108 @@ class RouteTableTest {
         assertThat(matches).isGreaterThan(3_000);
         assertThat(refusals).isGreaterThan(3_000);
     }
+
+    // ---- the matcher of a segment, input by input
+
+    private static RouteTable.Template template(String segment) {
+        return RouteTable.Template.of(segment, new java.util.ArrayList<>());
+    }
+
+    /** The captures of a match, or null; {@code steps[0]} holds the comparisons. */
+    private static List<String> captures(String template, String segment, long[] steps) {
+        List<String> captures = new java.util.ArrayList<>();
+        return template(template).match(segment, captures, steps) ? captures : null;
+    }
+
+    @Test
+    void theComparisonsOfFixedInputsAreCountedExactly() {
+        long[] steps = new long[1];
+        assertThat(captures("{a}-{b}-{c}-{d}", "x-x-x-x", steps)).containsExactly("x", "x", "x", "x");
+        assertThat(steps[0]).as("one comparison for each dash found at once").isEqualTo(3);
+        steps = new long[1];
+        assertThat(captures("ab{x}cd", "abXcd", steps)).containsExactly("X");
+        assertThat(steps[0]).as("the first text and the last text").isEqualTo(4);
+        steps = new long[1];
+        assertThat(captures("ab{x}", "abc", steps)).containsExactly("c");
+        assertThat(steps[0]).isEqualTo(2);
+        steps = new long[1];
+        assertThat(captures("{x}cd", "abcd", steps)).containsExactly("ab");
+        assertThat(steps[0]).isEqualTo(2);
+        steps = new long[1];
+        assertThat(captures("{a}--{b}", "x-y--z", steps)).containsExactly("x-y", "z");
+        assertThat(steps[0]).as("'--' is compared at 1 (two), at 2 (one) and at 3 (two)").isEqualTo(1 + 1 + 1 + 1 + 1);
+        steps = new long[1];
+        assertThat(template("abc").match("abc", new java.util.ArrayList<>(), steps)).isTrue();
+        assertThat(steps[0]).as("a segment without placeholders is compared as a whole").isEqualTo(3);
+        steps = new long[1];
+        assertThat(template("abc").match("abcd", new java.util.ArrayList<>(), steps)).isFalse();
+        assertThat(steps[0]).isEqualTo(4);
+    }
+
+    @Test
+    void aFailedMatchLeavesTheCapturesAsItFoundThemAndASuccessAddsToThem() {
+        List<String> captures = new java.util.ArrayList<>(List.of("keep"));
+        assertThat(template("{a}-{b}-{c}").match("x-y-.", captures)).isFalse();
+        assertThat(captures).containsExactly("keep");
+        assertThat(template("{a}-{b}-{c}").match("x-y", captures)).isFalse();
+        assertThat(captures).containsExactly("keep");
+        assertThat(template("{a}-{b}-{c}").match("x-y-z", captures)).isTrue();
+        assertThat(captures).containsExactly("keep", "x", "y", "z");
+        assertThat(template("ab{x}cd").match("abcd", captures)).isFalse();
+        assertThat(captures).containsExactly("keep", "x", "y", "z");
+    }
+
+    @Test
+    void everyTextLeavesACharacterForTheValueBeforeIt() {
+        long[] steps = new long[1];
+        assertThat(captures("{a}-{b}", "x-y", steps)).containsExactly("x", "y");
+        assertThat(captures("{a}-{b}", "x-", steps)).as("nothing after the dash").isNull();
+        assertThat(captures("{a}-{b}", "-y", steps)).as("nothing before the dash").isNull();
+        assertThat(captures("{a}-{b}", "--", steps)).as("the dash at 1 would leave nothing after it").isNull();
+    }
+
+    @Test
+    void theFirstAndTheLastTextAreAnchoredAndMayNotOverlapTheValues() {
+        assertThat(captures("ab{x}cd", "abXcd", new long[1])).containsExactly("X");
+        assertThat(captures("ab{x}cd", "abcd", new long[1])).as("no character for the value").isNull();
+        assertThat(captures("ab{x}cd", "abXc", new long[1])).isNull();
+        assertThat(captures("ab{x}cd", "aXcd", new long[1])).isNull();
+        assertThat(captures("a{x}a", "a", new long[1])).isNull();
+        assertThat(captures("a{x}a", "aa", new long[1])).isNull();
+        assertThat(captures("a{x}a", "aXa", new long[1])).containsExactly("X");
+        assertThat(captures("ab{x}bc", "abc", new long[1])).as("the texts overlap in 'abc'").isNull();
+        assertThat(captures("ab{x}bc", "abXbc", new long[1])).containsExactly("X");
+        assertThat(captures("ab{x}bc", "abbbc", new long[1])).containsExactly("b");
+    }
+
+    @Test
+    void aValueOfDotOrTwoDotsMovesTheTextToItsNextOccurrenceAtEveryPlaceholder() {
+        assertThat(captures("{a}-{b}-{c}", ".-x-y-z", new long[1])).as("first: '.'").containsExactly(".-x", "y", "z");
+        assertThat(captures("{a}-{b}-{c}", "..-x-y-z", new long[1])).as("first: '..'").containsExactly("..-x", "y", "z");
+        assertThat(captures("{a}-{b}-{c}", "x-.-y-z", new long[1])).as("middle: '.'").containsExactly("x", ".-y", "z");
+        assertThat(captures("{a}-{b}-{c}", "x-..-y-z", new long[1])).as("middle: '..'").containsExactly("x", "..-y", "z");
+        assertThat(captures("{a}-{b}-{c}", "x-y-.", new long[1])).as("last: '.'").isNull();
+        assertThat(captures("{a}-{b}-{c}", "x-y-..", new long[1])).as("last: '..'").isNull();
+        assertThat(captures("{a}-{b}-{c}", "x-y-.z", new long[1])).as("last: not only dots").containsExactly("x", "y", ".z");
+        assertThat(captures("{a}-{b}", ".-x", new long[1])).as("no later place for the dash").isNull();
+        assertThat(captures("{a}-{b}", "...-x", new long[1])).containsExactly("...", "x");
+        assertThat(get("/d/.-x", "GET /d/{a}-{b}")).isInstanceOf(RouteMatch.NotFound.class);
+        assertThat(parameters(get("/d/.-x-y", "GET /d/{a}-{b}"))).containsExactly(Map.entry("a", ".-x"), Map.entry("b", "y"));
+    }
+
+    @Test
+    void theOrderOfTemplatesFollowsTheTextOfEachSegmentWhereverItSits() {
+        assertThat(id(get("/q/1-xyz", "GET /q/{a}-{b}", "GET /q/{c}xyz"))).as("3 characters of text before 1").isEqualTo("op1");
+        assertThat(id(get("/q/1-xyz", "GET /q/{c}xyz", "GET /q/{a}-{b}"))).isEqualTo("op0");
+        assertThat(id(get("/r/1abx", "GET /r/{c}x", "GET /r/{a}ab{b}"))).as("2 characters of text before 1").isEqualTo("op1");
+        assertThat(id(get("/r/1abx", "GET /r/{a}ab{b}", "GET /r/{c}x"))).isEqualTo("op0");
+    }
+
+    @Test
+    void textThatIsNotUtf8AfterDecodingMatchesNothing() {
+        assertThat(get("/a/%ff", "GET /a/{x}")).isInstanceOf(RouteMatch.NotFound.class);
+        assertThat(get("/a/%c3", "GET /a/{x}")).isInstanceOf(RouteMatch.NotFound.class);
+        assertThat(get("/a/x%c3y", "GET /a/{x}")).isInstanceOf(RouteMatch.NotFound.class);
+        assertThat(parameters(get("/a/%c3%a9", "GET /a/{x}"))).containsExactly(Map.entry("x", "\u00e9"));
+    }
 }
