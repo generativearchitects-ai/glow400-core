@@ -149,6 +149,21 @@ class ValidatorUnitTest {
                 nestedArray("ROWS", 5, Optional.empty(), "CELLS", 50, Optional.of(new Trim.DropBlank()))))).isEmpty();
     }
 
+    @Test
+    void aMemberWithNoOverlaySettingsIsReportedAtItsOwnPcmlPositionNotTheOperation() {
+        // Review of PR #20, "smaller" #1: a struct member nobody wrote an overlay entry for has its own position in
+        // the PCML, which is far more useful than the operation header -- unlike sourceOf's fallback for a
+        // top-level parameter derived from the PCML alone, which this diagnostic does not use.
+        FieldDef innerField = def("CELLS", chr(2), new Count.Fixed(50));
+        FieldBinding inner = new FieldBinding("ROWS.CELLS", innerField, Direction.RESPONSE, Optional.empty(), "cells",
+                Optional.empty(), Optional.of(SemanticType.STRING), new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty()),
+                false, Optional.empty(), Optional.empty(), false, Optional.empty(), List.of(), PCML_AT);
+        FieldDef outerField = def("ROWS", new WireType.Struct("ROW_T"), new Count.Fixed(5));
+        FieldBinding outer = binding(outerField, Direction.RESPONSE, null, BINDING_AT, Optional.empty(), List.of(inner));
+        assertThat(Validator.validate(model(10, Optional.of(ERRORS), outer))).extracting(Diagnostic::code, Diagnostic::location)
+                .containsExactly(Tuple.tuple("OVL005", PCML_AT));
+    }
+
     // ---- OVL022
 
     @Test

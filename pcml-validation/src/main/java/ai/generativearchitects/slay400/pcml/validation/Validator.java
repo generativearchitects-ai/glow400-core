@@ -97,7 +97,14 @@ public final class Validator {
         return diagnostics;
     }
 
-    /** {@code OVL005}, at any nesting level: a struct member can be a large response array in its own right. */
+    /**
+     * {@code OVL005}, at any nesting level: a struct member can be a large response array in its own right. Reported
+     * at the binding's own position, the member's or its parameter's, whether that is in the overlay or the PCML --
+     * unlike {@link #sourceOf}, which some other diagnostics use to fall back to the operation for a binding derived
+     * from the PCML alone: here the member itself is a far more useful position to report than the operation header,
+     * and, unlike the top-level parameters {@code sourceOf} was written for, nothing else already reports where a
+     * struct member with no overlay settings of its own is (review of PR #20, "smaller" #1).
+     */
     private static void collectLargeArrayWarnings(ApiOperation operation, FieldBinding binding, int threshold,
                                                    List<Diagnostic> diagnostics) {
         if (isLargeResponseArrayWithoutTrim(binding, threshold)) {
@@ -105,7 +112,7 @@ public final class Validator {
                     "Operation " + operation.id() + ", field " + binding.fieldPath() + ": the response array has "
                             + ((Count.Fixed) binding.field().count()).value() + " elements and no trim, so every call returns all of them; "
                             + "set 'trim' (at least " + threshold + " elements is large)",
-                    sourceOf(operation, binding)));
+                    binding.source()));
         }
         for (FieldBinding child : binding.children()) {
             collectLargeArrayWarnings(operation, child, threshold, diagnostics);
