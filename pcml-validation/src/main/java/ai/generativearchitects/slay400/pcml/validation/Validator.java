@@ -64,7 +64,7 @@ public final class Validator {
             }
             long guaranteed = 0;
             for (FieldBinding binding : operation.bindings()) {
-                guaranteed += guaranteedResponseValueCount(binding);
+                guaranteed = saturatingAdd(guaranteed, guaranteedResponseValueCount(binding));
             }
             if (guaranteed > model.defaults().maxResponseValues()) {
                 diagnostics.add(new Diagnostic("OVL022", Severity.ERROR,
@@ -143,9 +143,27 @@ public final class Validator {
         }
         long perElement = 0;
         for (FieldBinding child : binding.children()) {
-            perElement += guaranteedResponseValueCount(child);
+            perElement = saturatingAdd(perElement, guaranteedResponseValueCount(child));
         }
-        return multiplier * perElement;
+        return saturatingMultiply(multiplier, perElement);
+    }
+
+    /** {@code OVL022}'s guaranteed count, saturating at {@link Long#MAX_VALUE} instead of overflowing for a
+     *  declared size deep or wide enough to wrap a {@code long} negative. */
+    private static long saturatingAdd(long a, long b) {
+        try {
+            return Math.addExact(a, b);
+        } catch (ArithmeticException overflow) {
+            return Long.MAX_VALUE;
+        }
+    }
+
+    private static long saturatingMultiply(long a, long b) {
+        try {
+            return Math.multiplyExact(a, b);
+        } catch (ArithmeticException overflow) {
+            return Long.MAX_VALUE;
+        }
     }
 
     private static String describe(ApiOperation operation, ConfigurationIssue issue) {

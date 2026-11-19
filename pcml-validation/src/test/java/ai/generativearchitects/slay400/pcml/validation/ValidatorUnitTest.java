@@ -216,6 +216,28 @@ class ValidatorUnitTest {
         assertThat(Validator.validate(model(1000, 100, Optional.of(ERRORS), hidden))).extracting(Diagnostic::code).doesNotContain("OVL022");
     }
 
+    @Test
+    void aGuaranteedCountThatWouldOverflowALongSaturatesInsteadOfWrappingAndMissingTheError() {
+        // Review of PR #20, "smaller" #2: three nested levels of Integer.MAX_VALUE elements each is about 9.9 * 10^27,
+        // far past Long.MAX_VALUE (about 9.2 * 10^18); a wrapped (possibly negative) product would make "guaranteed >
+        // limit" false by chance and silently miss the error.
+        FieldBinding leaf = binding(def("LEAF", chr(2), new Count.Fixed(Integer.MAX_VALUE)), Direction.RESPONSE, SemanticType.STRING,
+                BINDING_AT, Optional.empty(), List.of());
+        FieldDef midField = def("MID", new WireType.Struct("MID_T"), new Count.Fixed(Integer.MAX_VALUE));
+        FieldBinding mid = new FieldBinding("TOP.MID", midField, Direction.RESPONSE, Optional.empty(), "mid", Optional.empty(),
+                Optional.empty(), new CodecSettings(Pad.NONE, ' ', "", Optional.empty()), false, Optional.empty(), Optional.empty(),
+                false, Optional.empty(), List.of(leaf), BINDING_AT);
+        FieldBinding top = binding(def("TOP", new WireType.Struct("TOP_T"), new Count.Fixed(Integer.MAX_VALUE)), Direction.RESPONSE,
+                null, BINDING_AT, Optional.empty(), List.of(mid));
+
+        // Every level also clears 100 elements on its own, so OVL005 fires for each of them too; that is expected
+        // and not what this test is about.
+        List<Diagnostic> diagnostics = Validator.validate(model(1000, 100, Optional.of(ERRORS), top));
+        List<Diagnostic> ovl022 = diagnostics.stream().filter(d -> d.code().equals("OVL022")).toList();
+        assertThat(ovl022).hasSize(1);
+        assertThat(ovl022.get(0).message()).contains("at least " + Long.MAX_VALUE + " values");
+    }
+
     // ---- OVL006
 
     @Test
