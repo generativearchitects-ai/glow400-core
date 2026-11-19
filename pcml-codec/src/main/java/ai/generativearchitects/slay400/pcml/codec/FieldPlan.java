@@ -212,18 +212,19 @@ final class FieldPlan {
      * under it is left alone. Scalars are not looked at here: their own codec reads them. A {@link WireValue.Blank} fits any
      * shape. Decoding, trimming and the error mapping rely on this having been done for the whole output.
      *
-     * <p>A {@code dropBlank} trim is applied here too, before any element beyond the kept part is looked at (kickoff 14,
-     * Part B): the declared size is still checked against the field (the program always returns it in full), but the
-     * expensive per-element shape check runs only for the elements {@link #decodeArray} will go on to decode. A
-     * {@code countField} trim is not narrowed here: its count lives in another field, which this pass, without a
-     * {@link Scope}, cannot read yet; such an array keeps its full shape check, same as before kickoff 14.
+     * <p>Trim is applied here too, before any element beyond the kept part is looked at (kickoff 14, Part B): the
+     * declared size is still checked against the field (the program always returns it in full), but the expensive
+     * per-element shape check runs only for the elements {@link #decodeArray} will go on to decode. A
+     * {@code countField} trim is read the same way {@link #decodeArray} reads it, but silently: a problem reading
+     * the count field itself is not reported twice, it is left for {@link #decodeArray}'s own read to report; until
+     * then, the full declared size is checked, same as before this narrowing existed.
      */
-    void checkShape(WireValue value, Where where, Problems problems) {
+    void checkShape(WireValue value, Where where, Problems problems, Scope scope) {
         if (value instanceof WireValue.Blank) {
             return;
         }
         if (!isArray()) {
-            checkElementShape(value, where, problems);
+            checkElementShape(value, where, problems, scope);
             return;
         }
         if (!(value instanceof WireValue.Array array)) {
@@ -237,9 +238,11 @@ final class FieldPlan {
         int limit = array.elements().size();
         if (binding.trim().isPresent() && binding.trim().get() instanceof Trim.DropBlank) {
             limit = trimmedLength(array.elements());
+        } else if (binding.trim().isPresent() && binding.trim().get() instanceof Trim.CountField countField) {
+            limit = probeCount(countField.path(), array.elements().size(), scope).orElse(limit);
         }
         for (int i = 0; i < limit; i++) {
-            checkElementShape(array.elements().get(i), where.element(i), problems);
+            checkElementShape(array.elements().get(i), where.element(i), problems, scope);
         }
     }
 
@@ -252,7 +255,12 @@ final class FieldPlan {
         return end;
     }
 
-    private void checkElementShape(WireValue value, Where where, Problems problems) {
+    /** {@link #readCount}, but silent: a problem reading the count field is left for {@link #decodeArray} to report. */
+    private Optional<Integer> probeCount(String path, int size, Scope scope) {
+        return readCount(path, size, scope, true, Where.ROOT, new Problems());
+    }
+
+    private void checkElementShape(WireValue value, Where where, Problems problems, Scope scope) {
         if (!isStruct() || value instanceof WireValue.Blank) {
             return;
         }
@@ -260,8 +268,9 @@ final class FieldPlan {
             problems.add("VAL101", where, "A struct with " + children.size() + " members was expected");
             return;
         }
+        Scope inner = new Scope(children, struct.members(), scope.top(), scope.top().program());
         for (int i = 0; i < children.size(); i++) {
-            children.get(i).checkShape(struct.members().get(i), children.get(i).where(where), problems);
+            children.get(i).checkShape(struct.members().get(i), children.get(i).where(where), problems, inner);
         }
     }
 
@@ -429,6 +438,13 @@ final class FieldPlan {
             FieldPlan plan = plans.get(i);
             if (!plan.field.name().equals(parts[from])) {
                 continue;
+            }
+            if (values != null && i >= values.size()) {
+                // A struct on the way has fewer wire values than its model expects: unresolvable, same as a blank
+                // one. Only reachable from checkShape's own, silent probe of a countField trim (kickoff 14, Part B),
+                // before that struct's own shape has necessarily been checked yet; every other caller runs after a
+                // clean checkShape, where plans and values always agree in length.
+                return null;
             }
             WireValue value = values == null ? null : values.get(i);
             if (from == parts.length - 1) {

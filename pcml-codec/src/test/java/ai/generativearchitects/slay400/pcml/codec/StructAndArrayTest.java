@@ -269,6 +269,18 @@ class StructAndArrayTest {
     }
 
     @Test
+    void elementsPastACountFieldTrimAreNeitherCheckedNorDecoded() {
+        // kickoff 14, review of PR #20, "to change" #2: a malformed element past the count-field cutoff (one member
+        // instead of two) would be VAL101 if checkShape looked at it; since the cutoff is read before the per-element
+        // shape check, same as a dropBlank trim, it never is.
+        WireValue malformed = s(t("z"));
+        DecodeResult r = codec(field("N", int4()).internal(), rows(3).trimCount("N"))
+                .decode(List.of(i(1), a(row("a ", 1), malformed, malformed)));
+        assertThat(r.problems()).isEmpty();
+        assertThat(r.response().orElseThrow().get("rows")).isEqualTo(arr(obj("x", text("a"), "y", integer(1))));
+    }
+
+    @Test
     void theCountFieldMayBeAMemberOfAStruct() {
         Ops.F f = struct("HDR", field("CNT", int4())).internal();
         DecodeResult r = codec(f, rows(2).trimCount("HDR.CNT")).decode(List.of(s(i(1)), a(row("a", 1), row("b", 2))));
