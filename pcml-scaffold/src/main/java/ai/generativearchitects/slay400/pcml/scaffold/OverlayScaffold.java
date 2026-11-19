@@ -115,32 +115,27 @@ public final class OverlayScaffold {
 
     /**
      * Writes one top-level parameter: the flat, one-line form, or a block with a {@code trim} when the parameter, or
-     * a struct member at any depth, is a large fixed array (kickoff 14, Part A).
-     *
-     * <p>A parameter that still needs a direction ({@link #needsDirection}) always keeps its flat form and trailing
-     * comment unchanged: {@code annotate}'s block-editing path has no logic to remove that comment the way its
-     * flat-editing path does, so combining the two would leave a stale comment once a direction is added. Trim is
-     * only considered for a parameter whose PCML {@code usage} already says {@code output} without ambiguity; once
-     * an {@code inputoutput} or undirected parameter is annotated, {@code validate} still warns with OVL005 if it
-     * turns out to be a large response array without trim, the same way it always has.
+     * a struct member at any depth, is a large fixed array (kickoff 14, Part A). Trim is considered for every
+     * parameter except a request-only one ({@code usage="input"}): an {@code inputoutput} or undirected parameter is
+     * the common case the RPG compiler writes, so it gets the same trim as an {@code output} one, with the
+     * "run annotate" comment kept alongside it (trailing the {@code name:} line, in block form too — see
+     * {@link OverlayEditor}'s block-editing path, which now removes it from there the same way it already did for
+     * the flat form).
      */
     private static void writeParameter(StringBuilder out, String indent, FieldDef parameter, PcmlDocument pcml, int threshold) {
         String exposedName = OverlayText.exposedName(parameter.name());
-        if (needsDirection(parameter)) {
-            out.append(indent).append(YamlText.scalar(parameter.name())).append(": { name: ")
-                    .append(YamlText.scalar(exposedName)).append(" }  ").append(INPUTOUTPUT_COMMENT).append('\n');
-            return;
-        }
-        writeField(out, indent, parameter, pcml, parameter.usage() == Usage.OUTPUT ? threshold : -1, exposedName);
+        String comment = needsDirection(parameter) ? INPUTOUTPUT_COMMENT : null;
+        int eligible = parameter.usage() == Usage.INPUT ? -1 : threshold;
+        writeField(out, indent, parameter, pcml, eligible, exposedName, comment);
     }
 
     /**
      * Writes a parameter or struct member, in flat or block form. {@code threshold} is negative when trim is never
-     * considered for this field or anything under it (the request side, or a parameter {@link #writeParameter} has
-     * already excluded).
+     * considered for this field or anything under it (the request side). {@code trailingComment} trails the
+     * {@code name:} line when not {@code null}; only a top-level parameter ever has one.
      */
     private static void writeField(StringBuilder out, String indent, FieldDef field, PcmlDocument pcml, int threshold,
-                                    String exposedName) {
+                                    String exposedName, String trailingComment) {
         boolean ownLarge = threshold >= 0 && field.count() instanceof Count.Fixed fixed && fixed.value() >= threshold;
         List<FieldDef> membersToWrite = List.of();
         if (threshold >= 0 && field.wire() instanceof WireType.Struct struct) {
@@ -157,12 +152,20 @@ public final class OverlayScaffold {
         }
         if (!ownLarge && membersToWrite.isEmpty()) {
             out.append(indent).append(YamlText.scalar(field.name())).append(": { name: ")
-                    .append(YamlText.scalar(exposedName)).append(" }\n");
+                    .append(YamlText.scalar(exposedName)).append(" }");
+            if (trailingComment != null) {
+                out.append("  ").append(trailingComment);
+            }
+            out.append('\n');
             return;
         }
         out.append(indent).append(YamlText.scalar(field.name())).append(":\n");
         String inner = indent + "  ";
-        out.append(inner).append("name: ").append(YamlText.scalar(exposedName)).append('\n');
+        out.append(inner).append("name: ").append(YamlText.scalar(exposedName));
+        if (trailingComment != null) {
+            out.append("  ").append(trailingComment);
+        }
+        out.append('\n');
         if (ownLarge) {
             int n = ((Count.Fixed) field.count()).value();
             out.append(inner).append("# this array declares ").append(n).append(" elements (>= the large-array threshold, ")
@@ -174,7 +177,7 @@ public final class OverlayScaffold {
         if (!membersToWrite.isEmpty()) {
             out.append(inner).append("fields:\n");
             for (FieldDef member : membersToWrite) {
-                writeField(out, inner + "  ", member, pcml, threshold, OverlayText.exposedName(member.name()));
+                writeField(out, inner + "  ", member, pcml, threshold, OverlayText.exposedName(member.name()), null);
             }
         }
     }
