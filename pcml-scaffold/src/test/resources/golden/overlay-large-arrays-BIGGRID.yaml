@@ -1,0 +1,22 @@
+pcml: BIGGRID.pcml
+version: 0.1.0
+title: BIGGRID
+operations:
+  - id: biggrid
+    program: BIGGRID
+    route: /biggrid
+    method: POST
+    parameters:
+      ROWS:
+        name: rows
+        # this array declares 1000 elements (>= the large-array threshold, 100); trim drops the blank trailing ones so a call returns only the filled part.
+        # If the program has a count field for it, 'trim: { countField: <name> }' is the better rule.
+        trim:
+          dropBlank: true
+        fields:
+          CELLS:
+            name: cells
+            # this array declares 1000 elements (>= the large-array threshold, 100); trim drops the blank trailing ones so a call returns only the filled part.
+            # If the program has a count field for it, 'trim: { countField: <name> }' is the better rule.
+            trim:
+              dropBlank: true

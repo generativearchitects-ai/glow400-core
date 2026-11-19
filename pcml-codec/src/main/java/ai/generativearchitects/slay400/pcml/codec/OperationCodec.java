@@ -5,6 +5,7 @@ import ai.generativearchitects.slay400.pcml.api.Direction;
 import ai.generativearchitects.slay400.pcml.api.ErrorCondition;
 import ai.generativearchitects.slay400.pcml.api.ErrorMapping;
 import ai.generativearchitects.slay400.pcml.api.FieldBinding;
+import ai.generativearchitects.slay400.pcml.api.GatewayDefaults;
 import ai.generativearchitects.slay400.pcml.api.SemanticType;
 import ai.generativearchitects.slay400.pcml.api.Trim;
 import ai.generativearchitects.slay400.pcml.model.Count;
@@ -36,10 +37,12 @@ public final class OperationCodec {
 
     private final ApiOperation operation;
     private final List<FieldPlan> plans;
+    private final int maxResponseValues;
 
-    private OperationCodec(ApiOperation operation, List<FieldPlan> plans) {
+    private OperationCodec(ApiOperation operation, List<FieldPlan> plans, int maxResponseValues) {
         this.operation = operation;
         this.plans = plans;
+        this.maxResponseValues = maxResponseValues;
     }
 
     // ------------------------------------------------------------------ configuration
@@ -69,11 +72,26 @@ public final class OperationCodec {
     }
 
     /**
-     * The codec of an operation.
+     * The codec of an operation, with the standard response-value limit ({@link GatewayDefaults#DEFAULT_MAX_RESPONSE_VALUES}).
      *
      * @throws IllegalArgumentException if {@link #check} finds an issue: the operation cannot be encoded
      */
     public static OperationCodec of(ApiOperation operation) {
+        return of(operation, GatewayDefaults.DEFAULT_MAX_RESPONSE_VALUES);
+    }
+
+    /**
+     * The codec of an operation.
+     *
+     * @param maxResponseValues the largest number of scalar values {@link #decode} builds into a response, the value the
+     *                          repository's bundle was built with ({@code defaults.maxResponseValues}, kickoff 14, decision 113)
+     * @throws IllegalArgumentException if {@link #check} finds an issue: the operation cannot be encoded, or if
+     *                                  {@code maxResponseValues} is less than 1
+     */
+    public static OperationCodec of(ApiOperation operation, int maxResponseValues) {
+        if (maxResponseValues < 1) {
+            throw new IllegalArgumentException("maxResponseValues must be at least 1");
+        }
         List<ConfigurationIssue> issues = check(operation);
         if (!issues.isEmpty()) {
             throw new IllegalArgumentException("Operation " + operation.id() + " cannot be encoded: "
@@ -83,7 +101,7 @@ public final class OperationCodec {
         for (FieldBinding binding : operation.bindings()) {
             plans.add(FieldPlan.build(binding, new ArrayList<>()));
         }
-        return new OperationCodec(operation, plans);
+        return new OperationCodec(operation, plans, maxResponseValues);
     }
 
     private static void checkField(FieldPlan plan, FieldPlan.Scope scope, FieldPlan.Scope top, List<ConfigurationIssue> issues) {
@@ -297,13 +315,17 @@ public final class OperationCodec {
             }
         }
         Map<String, ApiValue> response = new LinkedHashMap<>();
+        ValueBudget budget = new ValueBudget(maxResponseValues);
         for (int i = 0; i < plans.size(); i++) {
+            if (budget.exceeded()) {
+                break;
+            }
             FieldPlan plan = plans.get(i);
             Direction direction = plan.binding.direction();
             if (direction != Direction.RESPONSE && direction != Direction.BOTH || plan.binding.hidden()) {
                 continue;
             }
-            Optional<ApiValue> value = plan.decodeField(programOutput.get(i), plan.where(Where.ROOT), problems, top);
+            Optional<ApiValue> value = plan.decodeField(programOutput.get(i), plan.where(Where.ROOT), problems, top, budget);
             if (value.isPresent() && !(value.get() instanceof ApiValue.Absent)) {
                 response.put(plan.exposedName(), value.get());
             }
@@ -336,7 +358,7 @@ public final class OperationCodec {
      */
     private static Optional<String> mappingText(String path, FieldPlan.Scope top, Problems problems) {
         FieldPlan.Found found = FieldPlan.resolve(path, top, top);
-        Where where = new Where(path, "");
+        Where where = Where.literal(path);
         if (found == null || found.value() == null) {
             problems.add("VAL101", where, "The program's output has no value for a field the error mapping reads");
             return Optional.empty();

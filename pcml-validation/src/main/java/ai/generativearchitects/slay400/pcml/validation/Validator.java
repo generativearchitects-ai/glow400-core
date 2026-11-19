@@ -28,8 +28,10 @@ import java.util.Optional;
  *       codec's own rules ({@link OperationCodec#check}), so the validator and the codec cannot disagree: an operation
  *       without an OVL003 error never fails in {@link OperationCodec#of}.</li>
  *   <li>{@code OVL005} (warning): a response array with a fixed count of {@code defaults.largeArrayThreshold} or more and
- *       no {@code trim}.</li>
+ *       no {@code trim}, at any nesting level.</li>
  *   <li>{@code OVL006} (warning): an operation without an {@code error} mapping.</li>
+ *   <li>{@code OVL022} (error): a response whose guaranteed size (fixed counts with no {@code trim} anywhere on the way)
+ *       is already more than {@code defaults.maxResponseValues}, so it could never be served (kickoff 14, decision 113).</li>
  *   <li>{@code MCK003} (error): a name in a mock that is not a parameter or member of the program, or is on the wrong side.</li>
  *   <li>{@code MCK004} (error): a value in a mock that the codec cannot carry for its field.</li>
  *   <li>{@code MCK005} (warning): a case of a mock that can never match.</li>
@@ -58,13 +60,18 @@ public final class Validator {
                 diagnostics.add(new Diagnostic("OVL003", Severity.ERROR, describe(operation, issue), positionOf(operation, issue.fieldPath())));
             }
             for (FieldBinding binding : operation.bindings()) {
-                if (isLargeResponseArrayWithoutTrim(binding, model.defaults().largeArrayThreshold())) {
-                    diagnostics.add(new Diagnostic("OVL005", Severity.WARNING,
-                            "Operation " + operation.id() + ", field " + binding.fieldPath() + ": the response array has "
-                                    + ((Count.Fixed) binding.field().count()).value() + " elements and no trim, so every call returns all of them; "
-                                    + "set 'trim' (at least " + model.defaults().largeArrayThreshold() + " elements is large)",
-                            sourceOf(operation, binding)));
-                }
+                collectLargeArrayWarnings(operation, binding, model.defaults().largeArrayThreshold(), diagnostics);
+            }
+            long guaranteed = 0;
+            for (FieldBinding binding : operation.bindings()) {
+                guaranteed += guaranteedResponseValueCount(binding);
+            }
+            if (guaranteed > model.defaults().maxResponseValues()) {
+                diagnostics.add(new Diagnostic("OVL022", Severity.ERROR,
+                        "Operation " + operation.id() + ": the response always has at least " + guaranteed
+                                + " values, more than the limit of " + model.defaults().maxResponseValues()
+                                + "; set 'trim' on a large array on the way, or raise 'defaults.maxResponseValues'",
+                        operation.source()));
             }
             if (operation.errorMapping().isEmpty()) {
                 diagnostics.add(new Diagnostic("OVL006", Severity.WARNING,
@@ -90,10 +97,48 @@ public final class Validator {
         return diagnostics;
     }
 
+    /** {@code OVL005}, at any nesting level: a struct member can be a large response array in its own right. */
+    private static void collectLargeArrayWarnings(ApiOperation operation, FieldBinding binding, int threshold,
+                                                   List<Diagnostic> diagnostics) {
+        if (isLargeResponseArrayWithoutTrim(binding, threshold)) {
+            diagnostics.add(new Diagnostic("OVL005", Severity.WARNING,
+                    "Operation " + operation.id() + ", field " + binding.fieldPath() + ": the response array has "
+                            + ((Count.Fixed) binding.field().count()).value() + " elements and no trim, so every call returns all of them; "
+                            + "set 'trim' (at least " + threshold + " elements is large)",
+                    sourceOf(operation, binding)));
+        }
+        for (FieldBinding child : binding.children()) {
+            collectLargeArrayWarnings(operation, child, threshold, diagnostics);
+        }
+    }
+
     private static boolean isLargeResponseArrayWithoutTrim(FieldBinding binding, int threshold) {
         boolean response = binding.direction() == Direction.RESPONSE || binding.direction() == Direction.BOTH;
         return response && binding.trim().isEmpty()
                 && binding.field().count() instanceof Count.Fixed fixed && fixed.value() >= threshold;
+    }
+
+    /**
+     * {@code OVL022}: the number of scalar values a response is guaranteed to hold on every call, assuming every array
+     * that carries a {@code trim} anywhere on the way down to it shrinks to nothing (the opposite, most favourable
+     * case for the limit). A {@code Count.Ref} array is bounded by another field at run time, so it is excluded the
+     * same way {@link #isLargeResponseArrayWithoutTrim} excludes it from {@code OVL005}.
+     */
+    private static long guaranteedResponseValueCount(FieldBinding binding) {
+        boolean response = binding.direction() == Direction.RESPONSE || binding.direction() == Direction.BOTH;
+        // A hidden field is skipped while decoding (FieldPlan.decodeElement), so it never costs a value either.
+        if (!response || binding.hidden() || binding.trim().isPresent() || binding.field().count() instanceof Count.Ref) {
+            return 0;
+        }
+        long multiplier = binding.field().count() instanceof Count.Fixed fixed ? fixed.value() : 1;
+        if (binding.children().isEmpty()) {
+            return multiplier;
+        }
+        long perElement = 0;
+        for (FieldBinding child : binding.children()) {
+            perElement += guaranteedResponseValueCount(child);
+        }
+        return multiplier * perElement;
     }
 
     private static String describe(ApiOperation operation, ConfigurationIssue issue) {

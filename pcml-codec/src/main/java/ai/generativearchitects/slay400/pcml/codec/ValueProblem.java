@@ -10,7 +10,8 @@ import java.util.Objects;
  * {@code VAL003} too long, too many digits or decimals, or out of range; {@code VAL004} text does not have the expected
  * form; {@code VAL005} too many array elements; {@code VAL006} unknown field. While decoding: {@code VAL101} program
  * output does not have the expected shape or wire type; {@code VAL102} wire value cannot be read as the semantic type;
- * {@code VAL103} the count field of an array is negative, not a number, or larger than the array.
+ * {@code VAL103} the count field of an array is negative, not a number, or larger than the array; {@code VAL104} the
+ * response has more scalar values than {@code defaults.maxResponseValues} after trimming (kickoff 14, decision 113).
  *
  * @param code        stable code, for example {@code VAL003}
  * @param fieldPath   path in the PCML, with {@code [i]} after an array element: {@code P0ROWS[2].QTY}; empty if the

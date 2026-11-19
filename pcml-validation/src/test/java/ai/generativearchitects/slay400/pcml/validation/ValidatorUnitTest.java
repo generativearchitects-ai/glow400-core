@@ -62,6 +62,10 @@ class ValidatorUnitTest {
     }
 
     private static ApiRepositoryModel model(int threshold, Optional<ErrorMapping> errors, FieldBinding... bindings) {
+        return model(threshold, GatewayDefaults.DEFAULT_MAX_RESPONSE_VALUES, errors, bindings);
+    }
+
+    private static ApiRepositoryModel model(int threshold, int maxResponseValues, Optional<ErrorMapping> errors, FieldBinding... bindings) {
         List<FieldDef> defs = new ArrayList<>();
         for (FieldBinding b : bindings) {
             defs.add(b.field());
@@ -69,8 +73,19 @@ class ValidatorUnitTest {
         ProgramDef program = new ProgramDef("PGM", Optional.empty(), Optional.empty(), Optional.empty(), defs, Map.of(), PCML_AT);
         ApiOperation operation = new ApiOperation("op", "1.0.0", Optional.empty(), Optional.empty(), List.of(), program, "a.pcml", "api.yaml", "/op",
                 HttpMethod.POST, CallStrategy.AUTO, List.of(bindings), errors, Optional.<CacheSettings>empty(), OPERATION_AT);
-        return new ApiRepositoryModel(new GatewayDefaults(new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty()), InputOutputPolicy.BOTH, List.of(), threshold),
-                List.of(operation));
+        return new ApiRepositoryModel(new GatewayDefaults(new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty()), InputOutputPolicy.BOTH, List.of(), threshold,
+                maxResponseValues), List.of(operation));
+    }
+
+    /** An array-of-struct field with one array-of-scalar member, both with their own fixed count and trim. */
+    private static FieldBinding nestedArray(String outerName, int outerCount, Optional<Trim> outerTrim,
+                                            String innerName, int innerCount, Optional<Trim> innerTrim) {
+        FieldDef innerField = def(innerName, chr(2), new Count.Fixed(innerCount));
+        FieldBinding inner = new FieldBinding(outerName + "." + innerName, innerField, Direction.RESPONSE, Optional.empty(),
+                innerName.toLowerCase(), Optional.empty(), Optional.of(SemanticType.STRING), new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty()),
+                false, Optional.empty(), Optional.empty(), false, innerTrim, List.of(), BINDING_AT);
+        FieldDef outerField = def(outerName, new WireType.Struct("ROW_T"), new Count.Fixed(outerCount));
+        return binding(outerField, Direction.RESPONSE, null, BINDING_AT, outerTrim, List.of(inner));
     }
 
     private static List<Tuple> codesAndLines(List<Diagnostic> diagnostics) {
@@ -121,6 +136,69 @@ class ValidatorUnitTest {
         Diagnostic d = Validator.validate(model(10, Optional.of(ERRORS), array("ROWS", 50, Direction.RESPONSE, Optional.empty()))).get(0);
         assertThat(d.message()).isEqualTo("Operation op, field ROWS: the response array has 50 elements and no trim, so every call returns all of them; "
                 + "set 'trim' (at least 10 elements is large)");
+    }
+
+    @Test
+    void aLargeArrayNestedInsideAStructIsReportedTooNotOnlyTopLevelOnes() {
+        FieldBinding nested = nestedArray("ROWS", 5, Optional.empty(), "CELLS", 50, Optional.empty());
+        assertThat(Validator.validate(model(10, Optional.of(ERRORS), nested))).extracting(Diagnostic::code, Diagnostic::message)
+                .containsExactly(Tuple.tuple("OVL005", "Operation op, field ROWS.CELLS: the response array has 50 elements and no trim, "
+                        + "so every call returns all of them; set 'trim' (at least 10 elements is large)"));
+        // Trim on the inner array alone silences it; the outer, below the threshold, was never large to begin with.
+        assertThat(Validator.validate(model(10, Optional.of(ERRORS),
+                nestedArray("ROWS", 5, Optional.empty(), "CELLS", 50, Optional.of(new Trim.DropBlank()))))).isEmpty();
+    }
+
+    // ---- OVL022
+
+    @Test
+    void aFixedArrayWithNoTrimThatAloneExceedsTheLimitIsAnError() {
+        FieldBinding big = array("A", 101, Direction.RESPONSE, Optional.empty());
+        List<Diagnostic> diagnostics = Validator.validate(model(1000, 100, Optional.of(ERRORS), big));
+        assertThat(diagnostics).extracting(Diagnostic::code).containsExactly("OVL022");
+        assertThat(diagnostics.get(0).message()).isEqualTo(
+                "Operation op: the response always has at least 101 values, more than the limit of 100; "
+                        + "set 'trim' on a large array on the way, or raise 'defaults.maxResponseValues'");
+    }
+
+    @Test
+    void exactlyAtTheLimitIsNotAnError() {
+        assertThat(Validator.validate(model(1000, 100, Optional.of(ERRORS), array("A", 100, Direction.RESPONSE, Optional.empty())))).isEmpty();
+    }
+
+    @Test
+    void aTrimAnywhereOnTheWayMeansItIsNotReportedEvenThoughTheDeclaredSizeExceedsTheLimit() {
+        assertThat(Validator.validate(model(1000, 100, Optional.of(ERRORS), array("A", 1000, Direction.RESPONSE, Optional.of(new Trim.DropBlank())))))
+                .extracting(Diagnostic::code).doesNotContain("OVL022");
+        // the outer array of the nested shape has a trim; the limit can never be proven to be exceeded on every call
+        assertThat(Validator.validate(model(1000, 100, Optional.of(ERRORS),
+                nestedArray("ROWS", 1000, Optional.of(new Trim.DropBlank()), "CELLS", 1000, Optional.empty()))))
+                .extracting(Diagnostic::code).doesNotContain("OVL022");
+    }
+
+    @Test
+    void nestedFixedCountsMultiplyForTheGuaranteedCount() {
+        // 10 rows of 20 cells, no trim anywhere: guaranteed 200, over a limit of 150.
+        FieldBinding nested = nestedArray("ROWS", 10, Optional.empty(), "CELLS", 20, Optional.empty());
+        List<Diagnostic> diagnostics = Validator.validate(model(1000, 150, Optional.of(ERRORS), nested));
+        assertThat(diagnostics).extracting(Diagnostic::code).containsExactly("OVL022");
+        assertThat(diagnostics.get(0).message()).contains("at least 200 values");
+    }
+
+    @Test
+    void anArrayWhoseCountIsAnotherFieldDoesNotCountTowardTheGuaranteedTotal() {
+        FieldBinding count = binding(def("N", new WireType.Int(4, Optional.empty()), new Count.None()), Direction.INTERNAL, SemanticType.INTEGER, BINDING_AT, Optional.empty(), List.of());
+        FieldBinding byField = binding(def("A", chr(2), new Count.Ref("N")), Direction.RESPONSE, SemanticType.STRING, BINDING_AT, Optional.empty(), List.of());
+        assertThat(Validator.validate(model(1000, 1, Optional.of(ERRORS), count, byField))).extracting(Diagnostic::code).doesNotContain("OVL022");
+    }
+
+    @Test
+    void aHiddenFieldDoesNotCountTowardTheGuaranteedTotalEither() {
+        FieldDef field = def("A", chr(2), new Count.Fixed(500));
+        FieldBinding hidden = new FieldBinding(field.name(), field, Direction.RESPONSE, Optional.empty(), field.name().toLowerCase(),
+                Optional.empty(), Optional.of(SemanticType.STRING), new CodecSettings(Pad.RIGHT, ' ', "", Optional.empty()), false, Optional.empty(),
+                Optional.empty(), true, Optional.empty(), List.of(), BINDING_AT);
+        assertThat(Validator.validate(model(1000, 100, Optional.of(ERRORS), hidden))).extracting(Diagnostic::code).doesNotContain("OVL022");
     }
 
     // ---- OVL006

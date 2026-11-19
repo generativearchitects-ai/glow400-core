@@ -1,5 +1,6 @@
 package ai.generativearchitects.slay400.cli;
 
+import ai.generativearchitects.slay400.pcml.api.GatewayDefaults;
 import ai.generativearchitects.slay400.pcml.diagnostics.Diagnostic;
 import ai.generativearchitects.slay400.pcml.diagnostics.Severity;
 import ai.generativearchitects.slay400.pcml.model.SourceLocation;
@@ -98,7 +99,8 @@ final class InitCommand implements Command {
         if (parsed.hasErrors() || parsed.document().isEmpty()) {
             return Optional.empty();
         }
-        ScaffoldResult result = OverlayScaffold.create(folder, pcml.getFileName().toString(), parsed.document().get());
+        ScaffoldResult result = OverlayScaffold.create(folder, pcml.getFileName().toString(), parsed.document().get(),
+                GatewayDefaults.standard().largeArrayThreshold());
         context.diagnostics.addAll(result.diagnostics());
         return result.text();
     }

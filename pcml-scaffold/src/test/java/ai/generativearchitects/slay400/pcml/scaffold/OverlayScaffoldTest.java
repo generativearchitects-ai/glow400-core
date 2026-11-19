@@ -226,7 +226,7 @@ class OverlayScaffoldTest {
 
     @Test
     void goldenFiles() {
-        for (String label : List.of("inputoutput/UPDQTY", "kitchen-sink/CATALOG")) {
+        for (String label : List.of("inputoutput/UPDQTY", "kitchen-sink/CATALOG", "large-arrays/BIGGRID")) {
             Fixtures.Api api = Fixtures.apis().stream().filter(a -> a.label().equals(label)).findFirst().orElseThrow();
             String file = api.pcml().getFileName().toString();
             ScaffoldResult result = OverlayScaffold.create(api.folder(), file, Fixtures.parse(file, Fixtures.read(api.pcml())).document().orElseThrow());

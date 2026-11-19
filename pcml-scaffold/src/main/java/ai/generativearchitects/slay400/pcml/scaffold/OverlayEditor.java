@@ -57,7 +57,7 @@ public final class OverlayEditor {
     private static GatewayDefaults defaults() {
         GatewayDefaults standard = GatewayDefaults.standard();
         return new GatewayDefaults(standard.charCodec(), InputOutputPolicy.FAIL, standard.emitters(),
-                standard.largeArrayThreshold(), standard.emitterSources());
+                standard.largeArrayThreshold(), standard.maxResponseValues());
     }
 
     // ------------------------------------------------------------------ types

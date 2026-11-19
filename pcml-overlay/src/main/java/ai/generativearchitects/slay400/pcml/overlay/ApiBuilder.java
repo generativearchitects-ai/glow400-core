@@ -228,7 +228,7 @@ final class ApiBuilder {
         SourceLocation source = layers.isEmpty() ? parameter.source() : layers.get(layers.size() - 1).source();
 
         if (injection != null) {
-            return injected(parameter, path, layers, injection, composite);
+            return injected(parameter, path, layers, injection, composite, program);
         }
 
         Optional<Located<Direction>> overlayDirection = last(layers, FieldSettings::direction);
@@ -277,11 +277,11 @@ final class ApiBuilder {
         }
         Optional<Trim> trim = last(layers, FieldSettings::trim).map(Located::value);
         return common(parameter, path, layers, direction.get(), location, Optional.empty(), exposedName, false, trim,
-                source, new ArrayDeque<>());
+                source, new ArrayDeque<>(), program);
     }
 
     private Optional<FieldBinding> injected(FieldDef parameter, String path, List<FieldSettings> layers,
-                                            Located<String> injection, boolean composite) {
+                                            Located<String> injection, boolean composite, ProgramDef program) {
         if (!layers.isEmpty()) {
             last(layers, FieldSettings::in).ifPresent(in -> error("OVL012", "'in' has no effect on parameter '" + path
                     + "': its direction is injected, and only request fields have a location", in.at()));
@@ -293,14 +293,14 @@ final class ApiBuilder {
             return Optional.empty();
         }
         return common(parameter, path, List.of(), Direction.INJECTED, Optional.empty(), Optional.of(injection.value()),
-                NameRules.exposedName(parameter.name()), false, Optional.empty(), injection.at(), new ArrayDeque<>());
+                NameRules.exposedName(parameter.name()), false, Optional.empty(), injection.at(), new ArrayDeque<>(), program);
     }
 
     /** Builds the binding once direction and location are known; shared by parameters and struct members. */
     private Optional<FieldBinding> common(FieldDef field, String path, List<FieldSettings> layers, Direction direction,
                                           Optional<Location> location, Optional<String> injection, String exposedName,
                                           boolean member, Optional<Trim> trim, SourceLocation source,
-                                          Deque<String> structStack) {
+                                          Deque<String> structStack, ProgramDef program) {
         WireType wire = field.wire();
         Optional<SemanticType> semantic = NameRules.semanticType(wire);
         Optional<Located<SemanticType>> overlayType = last(layers, FieldSettings::type);
@@ -338,7 +338,7 @@ final class ApiBuilder {
 
         List<FieldBinding> children = List.of();
         if (wire instanceof WireType.Struct struct) {
-            Optional<List<FieldBinding>> built = children(field, struct, path, layers, direction, location, structStack);
+            Optional<List<FieldBinding>> built = children(field, struct, path, layers, direction, location, structStack, program);
             if (built.isEmpty()) {
                 return Optional.empty();
             }
@@ -353,7 +353,7 @@ final class ApiBuilder {
 
     private Optional<List<FieldBinding>> children(FieldDef parent, WireType.Struct struct, String path,
                                                   List<FieldSettings> layers, Direction direction,
-                                                  Optional<Location> location, Deque<String> structStack) {
+                                                  Optional<Location> location, Deque<String> structStack, ProgramDef program) {
         StructDef definition = pcml.structs().get(struct.structName());
         if (definition == null || structStack.contains(struct.structName())) {
             error("OVL013", "'" + path + "' uses the struct '" + struct.structName() + "', which refers to itself", parent.source());
@@ -371,8 +371,13 @@ final class ApiBuilder {
                     : memberLayers.get(memberLayers.size() - 1).source();
             String name = last(memberLayers, FieldSettings::name).map(Located::value)
                     .orElseGet(() -> NameRules.exposedName(member.name()));
+            if (!validTrim(member, memberLayers, program)) {
+                ok = false;
+                continue;
+            }
+            Optional<Trim> trim = last(memberLayers, FieldSettings::trim).map(Located::value);
             Optional<FieldBinding> binding = common(member, path + "." + member.name(), memberLayers, direction, location,
-                    Optional.empty(), name, true, Optional.empty(), source, structStack);
+                    Optional.empty(), name, true, trim, source, structStack, program);
             if (binding.isPresent()) {
                 children.add(binding.get());
             } else {
