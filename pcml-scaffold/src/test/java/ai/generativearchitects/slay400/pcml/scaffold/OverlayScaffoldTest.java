@@ -216,6 +216,69 @@ class OverlayScaffoldTest {
         assertThat(create(pcml).text()).isPresent();
     }
 
+    // ---- trim boundaries and recursion (kickoff 14, Part A; review of PR #20, "to change" #4)
+
+    @Test
+    void aTopLevelArrayExactlyAtTheThresholdGetsTrimButOneLessDoesNot() {
+        String pcml = "<pcml version=\"6.0\"><program name=\"P\" path=\"/Q\">"
+                + "<data name=\"AT\" type=\"char\" length=\"2\" usage=\"output\" count=\"10\"/>"
+                + "<data name=\"BELOW\" type=\"char\" length=\"2\" usage=\"output\" count=\"9\"/></program></pcml>";
+        String text = OverlayScaffold.create("f", "A.pcml", Fixtures.document(pcml), 10).text().orElseThrow();
+        assertThat(text).contains("AT:\n").contains("trim:\n").contains("BELOW: { name: below }\n");
+    }
+
+    @Test
+    void aThresholdOfZeroStillConsidersEveryArray() {
+        String pcml = "<pcml version=\"6.0\"><program name=\"P\" path=\"/Q\">"
+                + "<data name=\"A\" type=\"char\" length=\"2\" usage=\"output\" count=\"1\"/></program></pcml>";
+        assertThat(OverlayScaffold.create("f", "A.pcml", Fixtures.document(pcml), 0).text().orElseThrow()).contains("trim:\n");
+    }
+
+    @Test
+    void aThresholdOfZeroStillSearchesAStructsMembers() {
+        String pcml = "<pcml version=\"6.0\"><struct name=\"S\"><data name=\"BIG\" type=\"char\" length=\"2\" count=\"1\"/></struct>"
+                + "<program name=\"P\" path=\"/Q\"><data name=\"Y\" type=\"struct\" struct=\"S\" usage=\"output\"/></program></pcml>";
+        String text = OverlayScaffold.create("f", "A.pcml", Fixtures.document(pcml), 0).text().orElseThrow();
+        assertThat(text).contains("fields:\n").contains("BIG:\n").contains("trim:\n");
+    }
+
+    @Test
+    void aNestedMemberExactlyAtTheThresholdGetsTrimButOneLessDoesNot() {
+        String pcml = "<pcml version=\"6.0\"><struct name=\"S\"><data name=\"AT\" type=\"char\" length=\"2\" count=\"10\"/>"
+                + "<data name=\"BELOW\" type=\"char\" length=\"2\" count=\"9\"/></struct>"
+                + "<program name=\"P\" path=\"/Q\"><data name=\"X\" type=\"struct\" struct=\"S\" usage=\"output\"/></program></pcml>";
+        String text = OverlayScaffold.create("f", "A.pcml", Fixtures.document(pcml), 10).text().orElseThrow();
+        assertThat(text).contains("fields:\n").contains("AT:\n").doesNotContain("BELOW:\n");
+    }
+
+    // needsTrim's own "definition == null || structStack.contains(...)" guard (mirroring the equivalent guard in
+    // ApiBuilder.children()/markFieldMatches) cannot be exercised through create(): resolves() already walks the
+    // same struct-reference graph for every top-level parameter first, rejecting an undefined or self-referential
+    // struct before writeField/needsTrim is ever called on it (SCF003). Confirmed by trying both as tests here: each
+    // one made create() return no text at all, before reaching needsTrim. Left undocumented in code (it would just
+    // repeat this comment) and named as an equivalent/unreachable mutant in the pull request description instead.
+
+    @Test
+    void aSingleStructOccurrenceGetsBlockFormOnlyBecauseANestedArrayNeedsTrim() {
+        // Y itself is not an array (Count.None): it only gets block form, with a nested 'fields:', because
+        // needsTrim finds BIG inside S -- isolating needsTrim's "a member needs trim" return from writeField's own,
+        // independent ownLarge check (which BIGGRID's and other fixtures' own largeness would otherwise mask).
+        String pcml = "<pcml version=\"6.0\"><struct name=\"S\"><data name=\"SMALL\" type=\"char\" length=\"2\"/>"
+                + "<data name=\"BIG\" type=\"char\" length=\"2\" count=\"50\"/></struct>"
+                + "<program name=\"P\" path=\"/Q\"><data name=\"Y\" type=\"struct\" struct=\"S\" usage=\"output\"/></program></pcml>";
+        String text = OverlayScaffold.create("f", "A.pcml", Fixtures.document(pcml), 10).text().orElseThrow();
+        assertThat(text).contains("Y:\n").contains("fields:\n").contains("BIG:\n").contains("trim:\n").doesNotContain("SMALL:\n");
+    }
+
+    @Test
+    void aStructWithNoLargeMembersStaysFlat() {
+        String pcml = "<pcml version=\"6.0\"><struct name=\"S\"><data name=\"A\" type=\"char\" length=\"2\"/>"
+                + "<data name=\"B\" type=\"char\" length=\"2\" count=\"5\"/></struct>"
+                + "<program name=\"P\" path=\"/Q\"><data name=\"Y\" type=\"struct\" struct=\"S\" usage=\"output\"/></program></pcml>";
+        String text = OverlayScaffold.create("f", "A.pcml", Fixtures.document(pcml), 10).text().orElseThrow();
+        assertThat(text).contains("Y: { name: y }\n").doesNotContain("fields:").doesNotContain("trim:");
+    }
+
     // ---- golden files and determinism
 
     @Test
