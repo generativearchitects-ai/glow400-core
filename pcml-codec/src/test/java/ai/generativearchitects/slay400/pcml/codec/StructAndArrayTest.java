@@ -340,6 +340,24 @@ class StructAndArrayTest {
                 .containsExactly(Tuple.tuple("VAL101", "S[1].T", "s[1].t"));
     }
 
+    // ---- kickoff 15, Part C: a cleared date, time or timestamp is blank for dropBlank (decision 126)
+
+    @Test
+    void anArrayOfStructsWithDateTimeAndTimestampMembersClearedBeyondTheFilledPartIsTrimmed() {
+        Ops.F f = struct("R", field("D", new WireType.Date()), field("T", new WireType.Time()), field("S", new WireType.Timestamp()))
+                .count(4).response().trimBlank();
+        WireValue filled = s(new WireValue.Date(LocalDate.of(2026, 1, 2)), new WireValue.Time(java.time.LocalTime.of(9, 0)),
+                new WireValue.Timestamp(java.time.LocalDateTime.of(2026, 1, 2, 9, 0)));
+        WireValue cleared = s(new WireValue.Date(LocalDate.of(1, 1, 1)), new WireValue.Time(java.time.LocalTime.MIDNIGHT),
+                new WireValue.Timestamp(java.time.LocalDateTime.of(1, 1, 1, 0, 0)));
+        DecodeResult r = codec(f).decode(List.of(a(filled, cleared, cleared, cleared)));
+        assertThat(r.problems()).isEmpty();
+        assertThat(((ApiValue.Arr) r.response().orElseThrow().get("r")).elements()).hasSize(1);
+        // A real element in the middle of cleared ones is kept, with those before it.
+        DecodeResult middle = codec(f).decode(List.of(a(cleared, filled, cleared, cleared)));
+        assertThat(((ApiValue.Arr) middle.response().orElseThrow().get("r")).elements()).hasSize(2);
+    }
+
     // ---- kickoff 14, Part B: trim at more than one nesting level, and dropped elements never checked or decoded
 
     @Test
