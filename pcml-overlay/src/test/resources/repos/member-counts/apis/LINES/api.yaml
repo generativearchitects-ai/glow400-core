@@ -1,0 +1,18 @@
+program: LINES
+pcml: LINES.pcml
+route: /lines/{id}
+method: GET
+version: 1.0.0
+summary: Returns an array of structs, each trimmed by its own count
+description: Invented example for kickoff 15, Part B. Each of the three rows has its own count N, naming a member of the same struct.
+
+parameters:
+  ID: { name: id, direction: request, in: path }
+  ROWS:
+    name: rows
+    direction: response
+    fields:
+      N: { name: count }
+      T:
+        name: values
+        trim: { countField: N }

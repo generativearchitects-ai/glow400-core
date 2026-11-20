@@ -332,6 +332,40 @@ class ApiBuilderTest {
         }
     }
 
+    /** kickoff 15, Part B: on a member, {@code countField} names a plain, whole-number sibling of the same struct. */
+    private static final String LINE_PCML = HEAD + """
+              <struct name="LINE"><data name="N" type="int" length="4"/><data name="DEC" type="packed" length="5" precision="2"/>
+                <data name="ZN" type="zoned" length="3" precision="0"/><data name="T" type="char" length="2" count="3"/></struct>
+              <program name="LINES" path="/QSYS.LIB/DEMOLIB.LIB/LINES.PGM">
+                <data name="LINES" type="struct" struct="LINE" usage="output"/>
+              </program>
+            </pcml>
+            """;
+
+    private static RepositoryResult loadLines(Path dir, String countField) {
+        String overlay = "program: LINES\npcml: LINES.pcml\nroute: /m\nmethod: POST\nversion: 1.0.0\nparameters:\n  LINES:\n    fields:\n      T: { trim: { countField: "
+                + countField + " } }\n";
+        return new Repos.Temp(dir).file("apis/A/LINES.pcml", LINE_PCML).file("apis/A/api.yaml", overlay).load();
+    }
+
+    @Test
+    void theCountFieldOfAMemberNamesASiblingOfTheSameStruct(@TempDir Path dir) {
+        for (String countField : List.of("N", "ZN")) {
+            ApiOperation op = single(loadLines(dir.resolve(countField), countField));
+            FieldBinding lines = binding(op, "LINES");
+            FieldBinding t = lines.children().stream().filter(c -> c.fieldPath().equals("LINES.T")).findFirst().orElseThrow();
+            assertThat(t.trim()).as(countField).contains(new Trim.CountField(countField));
+        }
+    }
+
+    @Test
+    void theMemberCountFieldMustBeAPlainNameOfAWholeNumberSibling(@TempDir Path dir) {
+        for (String countField : List.of("NOPE", "DEC", "T", "N.X")) {
+            RepositoryResult result = loadLines(dir.resolve(countField), countField);
+            assertThat(codes(result)).as(countField).containsExactly(Tuple.tuple("OVL017", Severity.ERROR));
+        }
+    }
+
     @Test
     void onlyArraysCanBeTrimmed(@TempDir Path dir) {
         RepositoryResult result = load(dir, yaml("/m", "POST", DIRECTIONS + "  OUT: { trim: { dropBlank: true } }\n"));

@@ -148,4 +148,34 @@ class TrimBeforeDecodePropertyTest {
             assertThat(((ApiValue.Arr) r.response().orElseThrow().get("a")).elements()).as("size=%d n=%d", size, n).isEqualTo(expected);
         });
     }
+
+    /**
+     * Kickoff 15, Part B: the same equivalence, for a {@code countField} trim set on a struct member, naming a
+     * sibling member of the same struct rather than a top-level field.
+     */
+    @Test
+    void memberCountFieldTrimGivesTheSameResultAsTheParameterLevelOne() {
+        Properties.check("memberCountFieldTrimBeforeEqualsAfter", gen -> {
+            int size = gen.intIn(0, 20);
+            int n = gen.intIn(0, size);
+            List<WireValue> elements = new ArrayList<>(size);
+            List<String> texts = new ArrayList<>(size);
+            for (int i = 0; i < size; i++) {
+                String t = gen.text(Gen.LETTERS, 1, 2);
+                texts.add(t);
+                elements.add(new WireValue.Text(t));
+            }
+            Ops.F structField = struct("S", field("N", int4()), field("T", chr(2)).count(size).trimCount("N")).response();
+            WireValue input = new WireValue.Struct(List.of(new WireValue.Integer(BigInteger.valueOf(n)), new WireValue.Array(elements)));
+            DecodeResult r = OperationCodec.of(op(structField)).decode(List.of(input));
+
+            assertThat(r.problems()).isEmpty();
+            List<ApiValue> expected = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                expected.add(new ApiValue.Text(texts.get(i)));
+            }
+            ApiValue.Obj decoded = (ApiValue.Obj) r.response().orElseThrow().get("s");
+            assertThat(((ApiValue.Arr) decoded.members().get("t")).elements()).as("size=%d n=%d", size, n).isEqualTo(expected);
+        });
+    }
 }

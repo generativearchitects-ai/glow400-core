@@ -38,8 +38,8 @@ final class NameRules {
     /** The semantic type a wire type maps to by default; empty for a struct. */
     static Optional<SemanticType> semanticType(WireType wire) {
         return switch (wire) {
-            case WireType.Char c -> Optional.of(SemanticType.STRING);
-            case WireType.VarChar v -> Optional.of(SemanticType.STRING);
+            case WireType.Char c -> Optional.of(WireType.isRawBytes(c.ccsid()) ? SemanticType.BINARY : SemanticType.STRING);
+            case WireType.VarChar v -> Optional.of(WireType.isRawBytes(v.ccsid()) ? SemanticType.BINARY : SemanticType.STRING);
             case WireType.Byte b -> Optional.of(SemanticType.BINARY);
             case WireType.Int i -> Optional.of(SemanticType.INTEGER);
             case WireType.Packed p -> Optional.of(SemanticType.DECIMAL);

@@ -141,47 +141,66 @@ public final class MockCodec {
     }
 
     /**
-     * The count field of a list that {@code returns} gives, or whose count {@code returns} gives: the count must be one the
-     * list can hold ({@code MCK004}), should be the number of elements given ({@code MCK006}), and when it is not given
-     * the evaluator writes it, so the number of elements must fit it ({@code MCK004}).
+     * The count field of a top-level list that {@code returns} gives, or whose count {@code returns} gives: the count
+     * must be one the list can hold ({@code MCK004}), should be the number of elements given ({@code MCK006}), and
+     * when it is not given the evaluator writes it, so the number of elements must fit it ({@code MCK004}). A count
+     * that is a member of the same struct (kickoff 15, Part B) is checked the same way, in {@link #convertStruct}: it
+     * is found at the place the elements it counts are, so it cannot be gathered once for the whole case as a
+     * top-level count can.
      */
     private void checkCounts(MockCase mockCase, String label, List<MockProblem> problems) {
         for (Counted c : counted) {
             if (c.list.field.usage() == Usage.INPUT || c.count.field.usage() == Usage.INPUT) {
                 continue;
             }
-            MockValue list = mockCase.returns().get(c.list.field.name());
-            MockValue count = mockCase.returns().get(c.count.field.name());
-            if (list != null && !(list instanceof MockValue.Array)) {
-                continue; // reported as a value the field cannot carry
+            checkCount(c, mockCase.returns().get(c.list.field.name()), mockCase.returns().get(c.count.field.name()), label, problems);
+        }
+    }
+
+    /** {@code MCK004} and {@code MCK006} of one count against the list it counts, wherever the pair is found. */
+    private void checkCount(Counted c, MockValue list, MockValue count, String label, List<MockProblem> problems) {
+        if (list != null && !(list instanceof MockValue.Array)) {
+            return; // reported as a value the field cannot carry
+        }
+        int given = list == null ? 0 : ((MockValue.Array) list).elements().size();
+        int capacity = c.list.field.count() instanceof Count.Fixed fixed ? fixed.value() : given;
+        if (count instanceof MockValue.Whole whole) {
+            if (whole.value().signum() < 0 || whole.value().compareTo(BigInteger.valueOf(capacity)) > 0) {
+                problems.add(error("MCK004", count.source(), "In " + label + ": the value for " + c.count.binding.fieldPath()
+                        + " is not a count that the list " + c.list.binding.fieldPath() + " can hold: it is negative or more than the "
+                        + capacity + " elements it holds"));
+            } else if (!whole.value().equals(BigInteger.valueOf(given))) {
+                problems.add(new MockProblem("MCK006", Severity.WARNING, count.source(), "In " + label + ": the count "
+                        + c.count.binding.fieldPath() + " is not the number of elements given for " + c.list.binding.fieldPath() + " ("
+                        + given + ")"));
             }
-            int given = list == null ? 0 : ((MockValue.Array) list).elements().size();
-            int capacity = c.list.field.count() instanceof Count.Fixed fixed ? fixed.value() : given;
-            if (count instanceof MockValue.Whole whole) {
-                if (whole.value().signum() < 0 || whole.value().compareTo(BigInteger.valueOf(capacity)) > 0) {
-                    problems.add(error("MCK004", count.source(), "In " + label + ": the value for " + c.count.binding.fieldPath()
-                            + " is not a count that the list " + c.list.binding.fieldPath() + " can hold: it is negative or more than the "
-                            + capacity + " elements it holds"));
-                } else if (!whole.value().equals(BigInteger.valueOf(given))) {
-                    problems.add(new MockProblem("MCK006", Severity.WARNING, count.source(), "In " + label + ": the count "
-                            + c.count.binding.fieldPath() + " is not the number of elements given for " + c.list.binding.fieldPath() + " ("
-                            + given + ")"));
-                }
-            } else if (count == null && list != null) {
-                Problems own = new Problems();
-                countValue(c, given, list.source(), own);
-                for (ValueProblem problem : own.list()) {
-                    problems.add(error("MCK004", list.source(), "In " + label + ": the number of elements given for " + c.list.binding.fieldPath()
-                            + " cannot be written to its count field " + c.count.binding.fieldPath() + " (" + problem.code() + ": " + problem.message() + ")"));
-                }
+        } else if (count == null && list != null) {
+            Problems own = new Problems();
+            countValue(c.count, given, list.source(), own);
+            for (ValueProblem problem : own.list()) {
+                problems.add(error("MCK004", list.source(), "In " + label + ": the number of elements given for " + c.list.binding.fieldPath()
+                        + " cannot be written to its count field " + c.count.binding.fieldPath() + " (" + problem.code() + ": " + problem.message() + ")"));
             }
         }
     }
 
+    /** The local count pairs of a struct's own members: a child array with a member-level {@code countField} naming
+     *  a sibling, paired with that sibling (kickoff 15, Part B). Validation has already checked the pairing. */
+    private static List<Counted> localCounts(FieldPlan structPlan) {
+        List<Counted> pairs = new ArrayList<>();
+        for (FieldPlan child : structPlan.children) {
+            if (child.isArray() && child.binding.trim().isPresent() && child.binding.trim().get() instanceof Trim.CountField countField) {
+                structPlan.children.stream().filter(sibling -> sibling.field.name().equals(countField.path())).findFirst()
+                        .ifPresent(count -> pairs.add(new Counted(child, count)));
+            }
+        }
+        return pairs;
+    }
+
     /** The value of a count field for a number of elements; problems are added when the field cannot hold it. */
-    private Optional<WireValue> countValue(Counted c, int elements, SourceLocation at, Problems problems) {
-        Where where = Where.ROOT.member(c.count.field.name(), c.count.exposedName());
-        Optional<WireValue> wire = c.count.scalar.encode(new ApiValue.Integer(BigInteger.valueOf(elements)), where, problems);
+    private Optional<WireValue> countValue(FieldPlan count, int elements, SourceLocation at, Problems problems) {
+        Where where = Where.ROOT.member(count.field.name(), count.exposedName());
+        Optional<WireValue> wire = count.scalar.encode(new ApiValue.Integer(BigInteger.valueOf(elements)), where, problems);
         return problems.any() ? Optional.empty() : wire;
     }
 
@@ -289,6 +308,17 @@ public final class MockCodec {
         }
         if (!ok) {
             return Optional.empty();
+        }
+        for (Counted c : localCounts(plan)) {
+            if (c.list.field.usage() == Usage.INPUT || c.count.field.usage() == Usage.INPUT) {
+                continue;
+            }
+            MockValue list = struct.members().get(c.list.field.name());
+            MockValue count = struct.members().get(c.count.field.name());
+            checkCount(c, list, count, label, problems);
+            if (list instanceof MockValue.Array array && count == null && !given.containsKey(c.count.field.name())) {
+                countValue(c.count, array.elements().size(), list.source(), new Problems()).ifPresent(v -> given.put(c.count.field.name(), v));
+            }
         }
         List<WireValue> members = new ArrayList<>();
         plan.children.forEach(child -> members.add(given.getOrDefault(child.field.name(), child.blankValue())));
@@ -427,7 +457,7 @@ public final class MockCodec {
             MockValue list = returns.get(c.list.field.name());
             if (list instanceof MockValue.Array array && c.list.field.usage() != Usage.INPUT && c.count.field.usage() != Usage.INPUT
                     && !returns.containsKey(c.count.field.name())) {
-                countValue(c, array.elements().size(), list.source(), new Problems()).ifPresent(v -> output.set(indexByName.get(c.count.field.name()), v));
+                countValue(c.count, array.elements().size(), list.source(), new Problems()).ifPresent(v -> output.set(indexByName.get(c.count.field.name()), v));
             }
         }
         return output;

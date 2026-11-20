@@ -2,14 +2,21 @@ package ai.generativearchitects.slay400.pcml.codec;
 
 import java.util.Optional;
 
-/** A {@code byte} field: an exact number of bytes. */
+/**
+ * A {@code byte} field, or a {@code char} or {@code varchar} field with CCSID 65535 read as bytes (kickoff 15,
+ * Part A): an exact number of bytes for {@code byte} and {@code char}, at most the declared length for
+ * {@code varchar}, whose value has its current length rather than the declared one, the same as text varchar.
+ */
 final class BytesCodec implements ScalarCodec {
 
-    /** The field length in bytes, or -1 if it is given by another field. */
+    /** The field length in bytes (exact, or the maximum for varchar), or -1 if it is given by another field. */
     private final int length;
+    /** Whether {@link #length} is a maximum (varchar) rather than an exact length (byte, char). */
+    private final boolean varchar;
 
-    BytesCodec(int length) {
+    BytesCodec(int length, boolean varchar) {
         this.length = length;
+        this.varchar = varchar;
     }
 
     @Override
@@ -19,7 +26,7 @@ final class BytesCodec implements ScalarCodec {
 
     @Override
     public WireValue blank() {
-        return new WireValue.Bytes(new byte[Math.max(length, 0)]);
+        return new WireValue.Bytes(varchar ? new byte[0] : new byte[Math.max(length, 0)]);
     }
 
     @Override
@@ -29,8 +36,9 @@ final class BytesCodec implements ScalarCodec {
             return Optional.empty();
         }
         byte[] bytes = b.value();
-        if (length >= 0 && bytes.length != length) {
-            problems.add("VAL003", where, "The value must be exactly " + length + " bytes");
+        if (length >= 0 && (varchar ? bytes.length > length : bytes.length != length)) {
+            problems.add("VAL003", where, varchar ? "The value is too long: at most " + length + " bytes"
+                    : "The value must be exactly " + length + " bytes");
             return Optional.empty();
         }
         return Optional.of(new WireValue.Bytes(bytes));
@@ -53,8 +61,9 @@ final class BytesCodec implements ScalarCodec {
             return Optional.empty();
         }
         byte[] bytes = b.value();
-        if (length >= 0 && bytes.length != length) {
-            problems.add("VAL101", where, "The bytes do not have the length of the field");
+        if (length >= 0 && (varchar ? bytes.length > length : bytes.length != length)) {
+            problems.add("VAL101", where, varchar ? "The bytes are longer than the field's declared length"
+                    : "The bytes do not have the length of the field");
             return Optional.empty();
         }
         return Optional.of(new ApiValue.Binary(bytes));

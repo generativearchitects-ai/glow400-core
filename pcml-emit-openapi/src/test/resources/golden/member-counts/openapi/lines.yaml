@@ -1,0 +1,147 @@
+openapi: "3.1.0"
+info:
+  title: lines
+  version: "1.0.0"
+servers:
+  - url: "/{tenant}/{environment}"
+    variables:
+      tenant:
+        description: "The tenant the program is called for."
+        default: tenant
+      environment:
+        description: "The environment the program is called for."
+        default: environment
+paths:
+  "/lines/{id}":
+    get:
+      operationId: lines
+      summary: "Returns an array of structs, each trimmed by its own count"
+      description: "Invented example for kickoff 15, Part B. Each of the three rows has its own count N, naming a member of the same struct."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 4
+          x-slay400-field:
+            name: ID
+            wire: "char(4)"
+      responses:
+        "200":
+          description: "The program ran"
+          content:
+            "application/json":
+              schema:
+                type: object
+                properties:
+                  rows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        count:
+                          type: integer
+                          minimum: -2147483648
+                          maximum: 2147483647
+                          x-slay400-field:
+                            name: ROWS.N
+                            wire: "int(4)"
+                        values:
+                          type: array
+                          items:
+                            type: string
+                            maxLength: 4
+                          maxItems: 5
+                          x-slay400-field:
+                            name: ROWS.T
+                            wire: "char(4)"
+                      additionalProperties: false
+                    maxItems: 3
+                    x-slay400-field:
+                      name: ROWS
+                      wire: "struct(ROW)"
+                additionalProperties: false
+        "400":
+          description: "The request is not valid"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "404":
+          description: "Not found"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "502":
+          description: "The program or the system could not be reached or answered badly"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "503":
+          description: "Service unavailable"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+        "504":
+          description: "The program did not answer in time"
+          content:
+            "application/problem+json":
+              schema:
+                "$ref": "#/components/schemas/ProblemDetails"
+components:
+  schemas:
+    ProblemDetails:
+      type: object
+      description: "A problem details object (RFC 9457)."
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: "A URI that identifies the kind of problem."
+        title:
+          type: string
+          description: "A short summary of the kind of problem."
+        status:
+          type: integer
+          description: "The HTTP status code."
+        detail:
+          type: string
+          description: "An explanation of this occurrence of the problem."
+        instance:
+          type: string
+          format: uri-reference
+          description: "A URI that identifies this occurrence of the problem."
+        code:
+          type: string
+          description: "The error code that the program reported."
+        errors:
+          type: array
+          description: "One entry for each problem found in the request."
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: "The field the problem is about, as the API names it, for example lines[2].quantity. Absent when it is about the request as a whole."
+              code:
+                type: string
+                description: "A stable code that tells the kind of problem, such as REQ005 or VAL003."
+              message:
+                type: string
+                description: "What is wrong, without the value."
+            required:
+              - code
+              - message
+        tenant:
+          type: string
+          description: "The tenant the request was made for."
+        environment:
+          type: string
+          description: "The environment the request was made for."
+        correlationId:
+          type: string
+          description: "Identifies the request, in the logs and in a support request."

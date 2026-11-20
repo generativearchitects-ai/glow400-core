@@ -35,6 +35,12 @@ class MockValidationTest {
         assertThat(mockDiagnostics("mocked")).isEmpty();
     }
 
+    /** Kickoff 15, Part B's invented example: a struct with a count and five lines, filled to 0, 2 and 5. */
+    @Test
+    void aMemberCountFieldFilledAtEveryLevelGivesNothing() {
+        assertThat(mockDiagnostics("member-counts")).isEmpty();
+    }
+
     @Test
     void namesThatAreNotThereOrOnTheWrongSideAreMck003() {
         assertThat(found(mockDiagnostics("invalid/mck003"))).containsExactly(

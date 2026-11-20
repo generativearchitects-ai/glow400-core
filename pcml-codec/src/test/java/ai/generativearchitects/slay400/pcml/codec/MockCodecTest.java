@@ -585,6 +585,69 @@ class MockCodecTest {
         assertThat(((WireValue.Struct) out.get(0)).members()).containsExactly(new WireValue.Integer(BigInteger.ZERO));
     }
 
+    // ---- kickoff 15, Part B: a count that is a member of the same struct
+
+    /** An array of structs; each LINE has a count N and up to 5 lines T, its own count resolved per element. */
+    private static ApiOperation memberCountOperation() {
+        return Ops.op(struct("LINE", field("N", int4()), field("T", chr(2)).count(5).trimCount("N"))
+                .count(3).response().usage(Usage.OUTPUT));
+    }
+
+    private static final ApiOperation MEMBER_COUNTS = memberCountOperation();
+    private static final MockCodec MEMBER_COUNT_CODEC = MockCodec.of(MEMBER_COUNTS);
+
+    private static List<MockProblem> memberCountCheck(MockValue lines) {
+        return MEMBER_COUNT_CODEC.check(def(c("c", Map.of(), map("LINE", lines))));
+    }
+
+    @Test
+    void eachElementOfAnArrayOfStructsUsesItsOwnMemberCountToFillOrCheckIt() {
+        MockValue lines = a(s("N", w(0), "T", a()), s("N", w(2), "T", a(t("a"), t("b"))),
+                s("T", a(t("p"), t("q"), t("r"), t("s"), t("t"))));
+        assertThat(memberCountCheck(lines)).isEmpty();
+        List<WireValue> out = MEMBER_COUNT_CODEC.returned(map("LINE", lines), List.of(new WireValue.Blank()));
+        WireValue.Array array = (WireValue.Array) out.get(0);
+        assertThat(((WireValue.Struct) array.elements().get(0)).members().get(0)).isEqualTo(new WireValue.Integer(BigInteger.ZERO));
+        assertThat(((WireValue.Struct) array.elements().get(1)).members().get(0)).isEqualTo(new WireValue.Integer(BigInteger.TWO));
+        // N was not given for the third element: filled from the number of elements given for T.
+        assertThat(((WireValue.Struct) array.elements().get(2)).members().get(0)).isEqualTo(new WireValue.Integer(BigInteger.valueOf(5)));
+    }
+
+    @Test
+    void aMemberCountThatTheListCannotHoldIsMck004() {
+        assertThat(memberCountCheck(a(s("N", w(-1), "T", a(t("a")))))).extracting(MockProblem::code).containsExactly("MCK004");
+        assertThat(memberCountCheck(a(s("N", w(6), "T", a(t("a")))))).extracting(MockProblem::code).containsExactly("MCK004");
+    }
+
+    @Test
+    void aMemberCountThatDiffersFromTheElementsGivenIsMck006() {
+        assertThat(memberCountCheck(a(s("N", w(1), "T", a(t("a"), t("b")))))).extracting(MockProblem::code).containsExactly("MCK006");
+    }
+
+    @Test
+    void aHiddenMemberCountFieldIsStillUsedForFillingAndChecking() {
+        ApiOperation op = Ops.op(struct("LINE", field("N", int4()).hidden(), field("T", chr(2)).count(5).trimCount("N"))
+                .count(1).response().usage(Usage.OUTPUT));
+        MockCodec codec = MockCodec.of(op);
+        MockValue lines = a(s("T", a(t("a"), t("b"))));
+        assertThat(codec.check(def(c("c", Map.of(), map("LINE", lines))))).isEmpty();
+        List<WireValue> out = codec.returned(map("LINE", lines), List.of(new WireValue.Blank()));
+        WireValue.Struct element = (WireValue.Struct) ((WireValue.Array) out.get(0)).elements().get(0);
+        assertThat(element.members().get(0)).isEqualTo(new WireValue.Integer(BigInteger.TWO));
+        DecodeResult decoded = OperationCodec.of(op).decode(out);
+        assertThat(decoded.problems()).isEmpty();
+        assertThat(((ApiValue.Obj) ((ApiValue.Arr) decoded.response().orElseThrow().get("line")).elements().get(0)).members()).doesNotContainKey("n");
+    }
+
+    @Test
+    void aMemberCountFieldIsNotCheckedWhenTheListIsOnTheRequestSide() {
+        ApiOperation op = Ops.op(struct("LINE", field("N", int4()), field("T", chr(2)).count(5).trimCount("N").usage(Usage.INPUT))
+                .count(1).response().usage(Usage.OUTPUT));
+        MockCodec codec = MockCodec.of(op);
+        assertThat(codec.check(def(c("c", Map.of(), map("LINE", a(s("N", w(99), "T", a(t("a")))))))))
+                .isEmpty();
+    }
+
     @Test
     void aWarningDoesNotMakeADefinitionUnusableButAnErrorDoes() {
         assertThat(new MockProblem("MCK006", Severity.WARNING, AT, "m").isError()).isFalse();

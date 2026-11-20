@@ -158,6 +158,16 @@ class ClassificationTest {
         }
     }
 
+    /** Kickoff 15, Part A: a char or varchar field with CCSID 65535 is bytes by default; reading it as text instead
+     *  ({@code type: string}) is a type change like any other. */
+    @Test
+    void aFieldThatChangesBetweenBytesAndTextIsBreaking(@TempDir Path dir) {
+        String pcml = data("A", "type=\"char\" length=\"4\" ccsid=\"65535\"", "output");
+        DiffResult result = same(dir, pcml, overlay("/x", "POST", "", PA), overlay("/x", "POST", "", "  A: { name: a, type: string }\n"));
+        assertThat(changes(result)).contains("BREAKING response.a");
+        assertThat(result.apis().get(0).changes().get(0).description()).isEqualTo("Response field a changed type from binary to string");
+    }
+
     @Test
     void aFieldThatChangedBetweenScalarObjectAndArrayIsBreakingOnEitherSide(@TempDir Path dir) {
         String scalar = data("A", "type=\"char\" length=\"4\"", "input");

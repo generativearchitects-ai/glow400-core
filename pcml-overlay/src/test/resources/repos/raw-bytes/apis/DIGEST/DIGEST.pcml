@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <program name="DIGEST" path="/QSYS.LIB/DEMOLIB.LIB/DIGEST.PGM">
+    <data name="TOKEN" type="char" length="8" ccsid="65535" usage="input"/>
+    <data name="HASH" type="char" length="16" ccsid="65535" usage="output"/>
+    <data name="EXTRA" type="varchar" length="32" varlength="2" ccsid="65535" usage="output"/>
+  </program>
+</pcml>

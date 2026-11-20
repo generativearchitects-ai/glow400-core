@@ -318,14 +318,16 @@ final class OpenApiBuilder {
             case BINARY -> {
                 out.put("type", "string");
                 out.put("contentEncoding", "base64");
-                limits.maxBytes().ifPresent(bytes -> {
-                    int encoded = 4 * ((bytes + 2) / 3);
-                    out.put("minLength", encoded);
-                    out.put("maxLength", encoded);
-                });
+                limits.minBytes().ifPresent(bytes -> out.put("minLength", base64Length(bytes)));
+                limits.maxBytes().ifPresent(bytes -> out.put("maxLength", base64Length(bytes)));
             }
         }
         return out;
+    }
+
+    /** The length of a byte array of this size once base64-encoded, padded to a multiple of 4 characters. */
+    private static int base64Length(int bytes) {
+        return 4 * ((bytes + 2) / 3);
     }
 
     /** Small numbers are written as such; a bound beyond a long keeps all its digits. */

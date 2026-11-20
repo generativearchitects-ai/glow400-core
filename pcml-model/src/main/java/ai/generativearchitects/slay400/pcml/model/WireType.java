@@ -123,4 +123,12 @@ public sealed interface WireType {
     /** {@code type="timestamp"}. */
     record Timestamp() implements WireType {
     }
+
+    /**
+     * Whether a char or varchar field with this CCSID holds bytes the RPG compiler never converts: CCSID 65535,
+     * "not converted". Such a field is {@code byte}-like by default (kickoff 15, Part A).
+     */
+    static boolean isRawBytes(Optional<Integer> ccsid) {
+        return ccsid.isPresent() && ccsid.get() == 65535;
+    }
 }
