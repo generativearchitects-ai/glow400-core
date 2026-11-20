@@ -102,8 +102,11 @@ public record ApiSurface(String name, String title, String version, List<Operati
             case INTEGER -> integerLimits(wire);
             case DECIMAL -> decimalLimits(wire);
             case BINARY -> {
+                // A varchar's length is its current one, not its declared maximum (kickoff 15, Part A), so unlike
+                // byte and char, which always have exactly their declared length, it has no minimum.
                 Optional<Integer> bytes = fixedLength(wire);
-                yield new Limits(none, Optional.empty(), Optional.empty(), none, none, bytes, bytes, none);
+                Optional<Integer> minBytes = wire instanceof WireType.VarChar ? none : bytes;
+                yield new Limits(none, Optional.empty(), Optional.empty(), none, none, minBytes, bytes, none);
             }
             case BOOLEAN, DATE, TIME, DATETIME -> Limits.none();
         };

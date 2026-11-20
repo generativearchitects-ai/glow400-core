@@ -32,6 +32,24 @@ class DescriptorEmitterTest {
         GoldenFiles.check(repository + "/descriptor.json", result.files().get(0).content());
     }
 
+    /** Kickoff 15, Part A: a char or varchar field with CCSID 65535 is bytes by default. */
+    @Test
+    void theDescriptorOfTheRawBytesExampleIsTheCommittedOne() {
+        EmitResult result = emit("raw-bytes");
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.files()).hasSize(1);
+        GoldenFiles.check("raw-bytes/descriptor.json", result.files().get(0).content());
+    }
+
+    /** Kickoff 15, Part B: a count that is a member of the same struct. */
+    @Test
+    void theDescriptorOfTheMemberCountsExampleIsTheCommittedOne() {
+        EmitResult result = emit("member-counts");
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.files()).hasSize(1);
+        GoldenFiles.check("member-counts/descriptor.json", result.files().get(0).content());
+    }
+
     @Test
     void everyValidFixtureIsCovered() {
         assertThat(Repositories.VALID).containsExactlyInAnyOrder("action-parameter", "body-struct", "dclcase", "defaults-both",

@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "slay400",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100,
+    "maxResponseValues": 100000
+  },
+  "apis": [
+    {
+      "name": "digest",
+      "title": "digest",
+      "version": "1.0.0",
+      "overlay": "apis/DIGEST/api.yaml",
+      "operations": [
+        {
+          "id": "digest",
+          "summary": "Hashes an 8-byte token",
+          "description": "Invented example for kickoff 15, Part A. token and hash are bytes by default (CCSID 65535); extra is kept as text.",
+          "tags": [],
+          "route": "/digest",
+          "method": "POST",
+          "call": "pcml",
+          "program": {
+            "name": "DIGEST",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/DIGEST.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/DIGEST/DIGEST.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "TOKEN",
+                "wire": {
+                  "kind": "char",
+                  "length": 8,
+                  "ccsid": 65535
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "HASH",
+                "wire": {
+                  "kind": "char",
+                  "length": 16,
+                  "ccsid": 65535
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "EXTRA",
+                "wire": {
+                  "kind": "varchar",
+                  "length": 32,
+                  "varLength": 2,
+                  "ccsid": 65535
+                },
+                "usage": "output",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "TOKEN",
+              "direction": "request",
+              "name": "token",
+              "in": "body",
+              "type": "binary",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "HASH",
+              "direction": "response",
+              "name": "hash",
+              "in": null,
+              "type": "binary",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "EXTRA",
+              "direction": "response",
+              "name": "extra",
+              "in": null,
+              "type": "string",
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

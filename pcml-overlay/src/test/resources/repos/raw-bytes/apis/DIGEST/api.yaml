@@ -1,0 +1,12 @@
+program: DIGEST
+pcml: DIGEST.pcml
+route: /digest
+method: POST
+version: 1.0.0
+summary: Hashes an 8-byte token
+description: Invented example for kickoff 15, Part A. token and hash are bytes by default (CCSID 65535); extra is kept as text.
+
+parameters:
+  TOKEN: { name: token, direction: request }
+  HASH: { name: hash, direction: response }
+  EXTRA: { name: extra, direction: response, type: string }

@@ -80,6 +80,22 @@ class ConfigurationCheckTest {
         }
     }
 
+    /** kickoff 15, Part A: a char or varchar field with CCSID 65535 only accepts BINARY (the default) or STRING. */
+    @Test
+    void aRawBytesCharOrVarcharOnlyAcceptsBinaryOrString() {
+        for (WireType wire : List.of(new WireType.Char(new Length.Fixed(3), Optional.of(65535)),
+                new WireType.VarChar(new Length.Fixed(3), Optional.empty(), Optional.of(65535)))) {
+            for (SemanticType semantic : SemanticType.values()) {
+                boolean shouldBeAllowed = semantic == SemanticType.BINARY || semantic == SemanticType.STRING;
+                boolean flagged = issues(field("A", wire).type(semantic)).stream().anyMatch(m -> m.contains("not allowed"));
+                assertThat(flagged).as(semantic + " on " + wire).isEqualTo(!shouldBeAllowed);
+            }
+        }
+        // A CCSID other than 65535 is unaffected: text still accepts the usual range, and never accepts binary.
+        assertOk(field("A", new WireType.Char(new Length.Fixed(3), Optional.of(37))).type(SemanticType.STRING));
+        assertIssue("not allowed", field("A", new WireType.Char(new Length.Fixed(3), Optional.of(37))).type(SemanticType.BINARY));
+    }
+
     @Test
     void integerOnPackedOrZonedNeedsNoDecimalPlaces() {
         assertIssue("INTEGER is not allowed for a packed field with decimal places", field("A", new WireType.Packed(5, 2)).type(SemanticType.INTEGER));

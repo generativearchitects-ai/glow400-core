@@ -48,16 +48,17 @@ final class ScalarCodecs {
         }
 
         return switch (wire) {
-            case WireType.Char c -> text(binding, c.length(), false, c.ccsid(), requestSide, injected, issues);
-            case WireType.VarChar v -> text(binding, v.length(), true, v.ccsid(), requestSide, injected, issues);
+            case WireType.Char c -> charLike(binding, c.length(), false, c.ccsid(), requestSide, injected, issues);
+            case WireType.VarChar v -> charLike(binding, v.length(), true, v.ccsid(), requestSide, injected, issues);
             case WireType.Int i -> integer(i, semantic, issues);
             case WireType.Packed p -> decimal(p.length(), p.precision(), semantic, type, issues);
             case WireType.Zoned z -> decimal(z.length(), z.precision(), semantic, type, issues);
             case WireType.Float f -> floating(f, semantic, issues);
             case WireType.Byte b -> bytes(b, semantic, requestSide, injected, issues);
-            case WireType.Date d -> temporal(TemporalCodec.Kind.DATE, SemanticType.DATE, semantic, type, issues);
-            case WireType.Time t -> temporal(TemporalCodec.Kind.TIME, SemanticType.TIME, semantic, type, issues);
-            case WireType.Timestamp t -> temporal(TemporalCodec.Kind.TIMESTAMP, SemanticType.DATETIME, semantic, type, issues);
+            case WireType.Date d -> temporal(TemporalCodec.Kind.DATE, SemanticType.DATE, semantic, type,
+                    field.attributes().get("dateformat"), issues);
+            case WireType.Time t -> temporal(TemporalCodec.Kind.TIME, SemanticType.TIME, semantic, type, null, issues);
+            case WireType.Timestamp t -> temporal(TemporalCodec.Kind.TIMESTAMP, SemanticType.DATETIME, semantic, type, null, issues);
             case WireType.Struct s -> {
                 issues.add("a struct is not a scalar");
                 yield null;
@@ -87,14 +88,42 @@ final class ScalarCodecs {
 
     // ------------------------------------------------------------------ char and varchar
 
+    /**
+     * Dispatches a char or varchar field to the bytes codec when it is raw bytes (CCSID 65535, kickoff 15, Part A)
+     * and the semantic type asks for {@code BINARY} (the default, or an explicit {@code type: binary}), to {@link
+     * #text} otherwise. A raw-bytes field accepts only {@code BINARY} or {@code STRING} (the overlay's {@code type:
+     * string} escape hatch, read as text in the job's CCSID); any other semantic type is the existing type error.
+     */
+    private static ScalarCodec charLike(FieldBinding binding, Length lengthOf, boolean varchar, Optional<Integer> ccsid,
+                                        boolean requestSide, boolean injected, List<String> issues) {
+        String type = varchar ? "varchar" : "char";
+        SemanticType semantic = binding.semanticType().orElseThrow();
+        boolean rawBytes = WireType.isRawBytes(ccsid);
+        if (rawBytes && semantic != SemanticType.BINARY && semantic != SemanticType.STRING) {
+            notAllowed(semantic, type, issues);
+            return null;
+        }
+        if (semantic == SemanticType.BINARY) {
+            if (!rawBytes) {
+                notAllowed(semantic, type, issues);
+                return null;
+            }
+            int length = lengthOf instanceof Length.Fixed fixed ? fixed.value() : -1;
+            if (length < 0 && requestSide) {
+                issues.add("a " + type + " field whose length is given by another field is not supported yet on the request side");
+            }
+            if (length < 0 && injected) {
+                issues.add("a " + type + " field whose length is given by another field is not supported yet when the value is injected");
+            }
+            return new BytesCodec(length, varchar);
+        }
+        return text(binding, lengthOf, varchar, ccsid, requestSide, injected, issues);
+    }
+
     private static ScalarCodec text(FieldBinding binding, Length lengthOf, boolean varchar, Optional<Integer> ccsid,
                                     boolean requestSide, boolean injected, List<String> issues) {
         String type = varchar ? "varchar" : "char";
         SemanticType semantic = binding.semanticType().orElseThrow();
-        if (semantic == SemanticType.BINARY) {
-            notAllowed(semantic, type, issues);
-        return null;
-        }
         CodecSettings settings = binding.codec();
         int length = lengthOf instanceof Length.Fixed fixed ? fixed.value() : -1;
         if (length < 0 && requestSide) {
@@ -236,15 +265,21 @@ final class ScalarCodecs {
         if (length < 0 && injected) {
             issues.add("a byte field whose length is given by another field is not supported yet when the value is injected");
         }
-        return new BytesCodec(length);
+        return new BytesCodec(length, false);
     }
 
-    private static ScalarCodec temporal(TemporalCodec.Kind kind, SemanticType allowed, SemanticType semantic, String type, List<String> issues) {
+    /** Date formats whose year is two digits, the lowest of which is 1940 (kickoff 15, Part C, decision 126). */
+    private static final List<String> TWO_DIGIT_YEAR_FORMATS = List.of("MDY", "DMY", "YMD", "JUL");
+
+    private static ScalarCodec temporal(TemporalCodec.Kind kind, SemanticType allowed, SemanticType semantic, String type,
+                                        String dateFormat, List<String> issues) {
         if (semantic != allowed) {
             notAllowed(semantic, type, issues);
         return null;
         }
-        return new TemporalCodec(kind);
+        boolean twoDigitYear = kind == TemporalCodec.Kind.DATE && dateFormat != null
+                && TWO_DIGIT_YEAR_FORMATS.contains(dateFormat.toUpperCase(java.util.Locale.ROOT));
+        return new TemporalCodec(kind, twoDigitYear);
     }
 
     /** Stands in for a field that cannot be encoded; never used, because such an operation has no codec. */

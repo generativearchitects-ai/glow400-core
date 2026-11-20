@@ -32,6 +32,26 @@ class OpenApiEmitterTest {
         }
     }
 
+    /** Kickoff 15, Part A: a char or varchar field with CCSID 65535 is bytes by default. */
+    @Test
+    void theDocumentOfTheRawBytesExampleIsTheCommittedOne() {
+        EmitResult result = new OpenApiEmitter().emit(Repositories.model("raw-bytes"));
+        assertThat(result.diagnostics()).isEmpty();
+        for (EmittedFile file : result.files()) {
+            GoldenFiles.check("raw-bytes/" + file.path(), file.content());
+        }
+    }
+
+    /** Kickoff 15, Part B: a count that is a member of the same struct. */
+    @Test
+    void theDocumentOfTheMemberCountsExampleIsTheCommittedOne() {
+        EmitResult result = new OpenApiEmitter().emit(Repositories.model("member-counts"));
+        assertThat(result.diagnostics()).isEmpty();
+        for (EmittedFile file : result.files()) {
+            GoldenFiles.check("member-counts/" + file.path(), file.content());
+        }
+    }
+
     @Test
     void everyValidFixtureIsCovered() {
         assertThat(Repositories.VALID).containsExactlyInAnyOrder("action-parameter", "body-struct", "dclcase", "defaults-both", "injected",
