@@ -1,0 +1,8 @@
+cases:
+  - name: three rows filled to 0, 2 and 5
+    when: { ID: "A001" }
+    returns:
+      ROWS:
+        - { N: 0, T: [] }
+        - { N: 2, T: [aa, bb] }
+        - { T: [aa, bb, cc, dd, ee] }

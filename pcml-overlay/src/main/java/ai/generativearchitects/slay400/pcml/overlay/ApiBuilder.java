@@ -272,7 +272,7 @@ final class ApiBuilder {
             return Optional.empty();
         }
 
-        if (!validTrim(parameter, layers, program)) {
+        if (!validTrim(parameter, layers, program, null)) {
             return Optional.empty();
         }
         Optional<Trim> trim = last(layers, FieldSettings::trim).map(Located::value);
@@ -371,7 +371,7 @@ final class ApiBuilder {
                     : memberLayers.get(memberLayers.size() - 1).source();
             String name = last(memberLayers, FieldSettings::name).map(Located::value)
                     .orElseGet(() -> NameRules.exposedName(member.name()));
-            if (!validTrim(member, memberLayers, program)) {
+            if (!validTrim(member, memberLayers, program, definition.fields())) {
                 ok = false;
                 continue;
             }
@@ -460,8 +460,14 @@ final class ApiBuilder {
 
     // ------------------------------------------------------------------ trim
 
-    /** Checks the {@code trim} of a parameter: only arrays can be trimmed, and a count field must be a scalar. */
-    private boolean validTrim(FieldDef parameter, List<FieldSettings> layers, ProgramDef program) {
+    /**
+     * Checks the {@code trim} of a parameter or struct member: only arrays can be trimmed, and a count field must
+     * resolve. {@code localSiblings} is {@code null} for a parameter, where {@code countField} is a dotted path from
+     * the program's parameters, unchanged from kickoff 14; for a struct member it is the struct's own fields, and
+     * {@code countField} must then be a plain name, by its PCML name, of a scalar whole-number member of that same
+     * struct (kickoff 15, Part B, decision 124).
+     */
+    private boolean validTrim(FieldDef parameter, List<FieldSettings> layers, ProgramDef program, List<FieldDef> localSiblings) {
         Optional<Located<Trim>> trim = last(layers, FieldSettings::trim);
         if (trim.isEmpty()) {
             return true;
@@ -470,11 +476,17 @@ final class ApiBuilder {
             error("OVL012", "'trim' applies to arrays only, and '" + parameter.name() + "' is not an array", trim.get().at());
             return false;
         }
-        if (trim.get().value() instanceof Trim.CountField countField
-                && !isScalar(countField.path(), program.parameters())) {
-            error("OVL017", "The count field '" + countField.path() + "' does not exist or is not a scalar",
-                    trim.get().at());
-            return false;
+        if (trim.get().value() instanceof Trim.CountField countField) {
+            boolean ok = localSiblings != null
+                    ? isLocalWholeNumber(countField.path(), localSiblings)
+                    : isScalar(countField.path(), program.parameters());
+            if (!ok) {
+                String detail = localSiblings != null
+                        ? "is not a plain name of a whole-number member of the same struct"
+                        : "does not exist or is not a scalar";
+                error("OVL017", "The count field '" + countField.path() + "' " + detail, trim.get().at());
+                return false;
+            }
         }
         return true;
     }
@@ -499,6 +511,25 @@ final class ApiBuilder {
             scope = pcml.structs().get(struct.structName()).fields();
         }
         return false;
+    }
+
+    /** Whether a plain (non-dotted) name is a scalar whole-number member of {@code siblings} (kickoff 15, Part B). */
+    private static boolean isLocalWholeNumber(String name, List<FieldDef> siblings) {
+        if (name.indexOf('.') >= 0) {
+            return false;
+        }
+        FieldDef found = siblings.stream().filter(f -> f.name().equals(name)).findFirst().orElse(null);
+        return found != null && found.count() instanceof Count.None && isWholeNumber(found.wire());
+    }
+
+    /** A wire type whose value is always a whole number: {@code int}, or {@code packed}/{@code zoned} with no decimals. */
+    private static boolean isWholeNumber(WireType wire) {
+        return switch (wire) {
+            case WireType.Int i -> true;
+            case WireType.Packed p -> p.precision() == 0;
+            case WireType.Zoned z -> z.precision() == 0;
+            default -> false;
+        };
     }
 
     // ------------------------------------------------------------------ route, names

@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "name": "slay400",
+    "version": "@VERSION@"
+  },
+  "defaults": {
+    "inputoutput": "both",
+    "largeArrayThreshold": 100,
+    "maxResponseValues": 100000
+  },
+  "apis": [
+    {
+      "name": "lines",
+      "title": "lines",
+      "version": "1.0.0",
+      "overlay": "apis/LINES/api.yaml",
+      "operations": [
+        {
+          "id": "lines",
+          "summary": "Returns an array of structs, each trimmed by its own count",
+          "description": "Invented example for kickoff 15, Part B. Each of the three rows has its own count N, naming a member of the same struct.",
+          "tags": [],
+          "route": "/lines/{id}",
+          "method": "GET",
+          "call": "raw",
+          "program": {
+            "name": "LINES",
+            "path": "/QSYS.LIB/DEMOLIB.LIB/LINES.PGM",
+            "entryPoint": null,
+            "returnValue": null,
+            "pcml": "apis/LINES/LINES.pcml",
+            "attributes": {},
+            "parameters": [
+              {
+                "name": "ID",
+                "wire": {
+                  "kind": "char",
+                  "length": 4,
+                  "ccsid": null
+                },
+                "usage": "input",
+                "count": null,
+                "attributes": {},
+                "fields": null
+              },
+              {
+                "name": "ROWS",
+                "wire": {
+                  "kind": "struct",
+                  "name": "ROW"
+                },
+                "usage": "output",
+                "count": 3,
+                "attributes": {},
+                "fields": [
+                  {
+                    "name": "N",
+                    "wire": {
+                      "kind": "int",
+                      "length": 4,
+                      "precision": null
+                    },
+                    "usage": "inherit",
+                    "count": null,
+                    "attributes": {},
+                    "fields": null
+                  },
+                  {
+                    "name": "T",
+                    "wire": {
+                      "kind": "char",
+                      "length": 4,
+                      "ccsid": null
+                    },
+                    "usage": "inherit",
+                    "count": 5,
+                    "attributes": {},
+                    "fields": null
+                  }
+                ]
+              }
+            ]
+          },
+          "bindings": [
+            {
+              "field": "ID",
+              "direction": "request",
+              "name": "id",
+              "in": "path",
+              "type": "string",
+              "codec": {
+                "pad": "right",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": true,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": []
+            },
+            {
+              "field": "ROWS",
+              "direction": "response",
+              "name": "rows",
+              "in": null,
+              "type": null,
+              "codec": {
+                "pad": "none",
+                "padChar": " ",
+                "nullAs": "",
+                "format": null,
+                "trueValue": null,
+                "falseValue": null
+              },
+              "required": false,
+              "hidden": false,
+              "description": null,
+              "example": null,
+              "trim": null,
+              "inject": null,
+              "children": [
+                {
+                  "field": "ROWS.N",
+                  "direction": "response",
+                  "name": "count",
+                  "in": null,
+                  "type": "integer",
+                  "codec": {
+                    "pad": "none",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": false,
+                  "description": null,
+                  "example": null,
+                  "trim": null,
+                  "inject": null,
+                  "children": []
+                },
+                {
+                  "field": "ROWS.T",
+                  "direction": "response",
+                  "name": "values",
+                  "in": null,
+                  "type": "string",
+                  "codec": {
+                    "pad": "right",
+                    "padChar": " ",
+                    "nullAs": "",
+                    "format": null,
+                    "trueValue": null,
+                    "falseValue": null
+                  },
+                  "required": false,
+                  "hidden": false,
+                  "description": null,
+                  "example": null,
+                  "trim": {
+                    "kind": "countField",
+                    "field": "N"
+                  },
+                  "inject": null,
+                  "children": []
+                }
+              ]
+            }
+          ],
+          "error": null,
+          "cache": null
+        }
+      ]
+    }
+  ]
+}

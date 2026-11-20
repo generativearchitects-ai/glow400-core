@@ -107,10 +107,10 @@ public final class OperationCodec {
     private static void checkField(FieldPlan plan, FieldPlan.Scope scope, FieldPlan.Scope top, List<ConfigurationIssue> issues) {
         String path = plan.binding.fieldPath();
         if (plan.field.count() instanceof Count.Ref ref) {
-            checkCountField(ref.field(), "the field that gives the number of elements", false, plan, scope, issues);
+            checkCountField(ref.field(), "the field that gives the number of elements", plan, scope, issues);
         }
         if (plan.binding.trim().isPresent() && plan.binding.trim().get() instanceof Trim.CountField countField) {
-            checkCountField(countField.path(), "trim.countField", true, plan, top, issues);
+            checkCountField(countField.path(), "trim.countField", plan, scope, issues);
         }
         if (plan.isStruct()) {
             if (plan.binding.example().isPresent()) {
@@ -126,8 +126,12 @@ public final class OperationCodec {
         checkInjection(plan, issues);
     }
 
-    /** A count field must exist, be a single value, and be read as a whole number. */
-    private static void checkCountField(String path, String what, boolean fromTop, FieldPlan array, FieldPlan.Scope scope,
+    /**
+     * A count field must exist, be a single value, and be read as a whole number. {@code scope} is where it is
+     * looked up: the program's parameters for a top-level array (whose own scope is the top scope already), or the
+     * struct value that holds the array for a member (kickoff 15, Part B, decision 124).
+     */
+    private static void checkCountField(String path, String what, FieldPlan array, FieldPlan.Scope scope,
                                         List<ConfigurationIssue> issues) {
         FieldPlan.Found found = FieldPlan.resolve(path, scope, scope);
         String at = array.binding.fieldPath();

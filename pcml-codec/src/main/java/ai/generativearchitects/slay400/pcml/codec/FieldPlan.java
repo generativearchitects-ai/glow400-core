@@ -257,7 +257,7 @@ final class FieldPlan {
 
     /** {@link #readCount}, but silent: a problem reading the count field is left for {@link #decodeArray} to report. */
     private Optional<Integer> probeCount(String path, int size, Scope scope) {
-        return readCount(path, size, scope, true, Where.ROOT, new Problems());
+        return readCount(path, size, scope, Where.ROOT, new Problems());
     }
 
     private void checkElementShape(WireValue value, Where where, Problems problems, Scope scope) {
@@ -288,7 +288,7 @@ final class FieldPlan {
         // checkShape has seen that this is an array, and of the right size for a fixed count
         List<WireValue> elements = ((WireValue.Array) value).elements();
         if (field.count() instanceof Count.Ref ref) {
-            Optional<Integer> n = readCount(ref.field(), elements.size(), scope, false, where, problems);
+            Optional<Integer> n = readCount(ref.field(), elements.size(), scope, where, problems);
             if (n.isEmpty()) {
                 return Optional.empty();
             }
@@ -296,7 +296,7 @@ final class FieldPlan {
         }
         Optional<Trim> trim = binding.trim();
         if (trim.isPresent() && trim.get() instanceof Trim.CountField countField) {
-            Optional<Integer> n = readCount(countField.path(), elements.size(), scope, true, where, problems);
+            Optional<Integer> n = readCount(countField.path(), elements.size(), scope, where, problems);
             if (n.isEmpty()) {
                 return Optional.empty();
             }
@@ -391,11 +391,12 @@ final class FieldPlan {
     // ------------------------------------------------------------------ counts
 
     /**
-     * Reads the number of elements to keep from a field that holds it. {@code fromTop} is true for an overlay path,
-     * which starts at the program's parameters; a PCML reference starts next to the array.
+     * Reads the number of elements to keep from a field that holds it, resolved in {@code scope}: the program's
+     * parameters for a top-level array (its own scope is the top scope already), or the struct value that holds the
+     * array for a member (kickoff 15, Part B, decision 124), the same scope a PCML {@code count} reference uses.
      */
-    private Optional<Integer> readCount(String path, int size, Scope scope, boolean fromTop, Where where, Problems problems) {
-        Found found = resolve(path, fromTop ? scope.top() : scope, scope);
+    private Optional<Integer> readCount(String path, int size, Scope scope, Where where, Problems problems) {
+        Found found = resolve(path, scope, scope);
         if (found == null) {
             // check() has seen that the field is there; what is missing is its value, because a struct on the way is blank
             problems.add("VAL101", where, "The field that holds the number of elements cannot be read: the output does not have its struct");

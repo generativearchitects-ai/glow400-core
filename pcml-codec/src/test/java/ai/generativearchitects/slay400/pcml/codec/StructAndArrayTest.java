@@ -407,6 +407,34 @@ class StructAndArrayTest {
                 obj("n", integer(1), "t", arr(text("a"))), obj("n", integer(2), "t", arr(text("c"), text("d")))));
     }
 
+    // ---- kickoff 15, Part B: the overlay's trim.countField as a member of the same struct
+
+    @Test
+    void theOverlaysCountFieldOnAMemberCanNameASiblingOfTheSameStructInstance() {
+        Ops.F f = struct("S", field("N", int4()), field("T", chr(1)).count(2).trimCount("N")).count(2).response();
+        DecodeResult r = codec(f).decode(List.of(a(s(i(1), a(t("a"), t("b"))), s(i(2), a(t("c"), t("d"))))));
+        assertThat(r.problems()).isEmpty();
+        assertThat(r.response().orElseThrow().get("s")).isEqualTo(arr(
+                obj("n", integer(1), "t", arr(text("a"))), obj("n", integer(2), "t", arr(text("c"), text("d")))));
+    }
+
+    @Test
+    void aHiddenMemberCountFieldIsUsedForTrimmingButDoesNotAppearInTheResponse() {
+        Ops.F f = struct("S", field("N", int4()).hidden(), field("T", chr(1)).count(2).trimCount("N")).response();
+        DecodeResult r = codec(f).decode(List.of(s(i(1), a(t("a"), t("b")))));
+        assertThat(r.problems()).isEmpty();
+        assertThat(r.response().orElseThrow().get("s")).isEqualTo(obj("t", arr(text("a"))));
+    }
+
+    @Test
+    void aMemberCountFieldOutOfRangeIsVal103() {
+        Ops.F f = struct("S", field("N", int4()), field("T", chr(1)).count(2).trimCount("N")).response();
+        for (long n : new long[] {-1, 3}) {
+            assertThat(problems(codec(f).decode(List.of(s(i(n), a(t("a"), t("b")))))))
+                    .as("count " + n).containsExactly(Tuple.tuple("VAL103", "S.T", "s.t"));
+        }
+    }
+
     @Test
     void aCountCanNameATopLevelFieldThroughTheProgramName() {
         Ops.F f = struct("S", field("T", chr(1)).countRef("PGM.N")).response();
