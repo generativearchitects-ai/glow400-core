@@ -279,6 +279,33 @@ class OverlayScaffoldTest {
         assertThat(text).contains("Y: { name: y }\n").doesNotContain("fields:").doesNotContain("trim:");
     }
 
+    @Test
+    void needsTrimRecursesThroughAMemberThatIsItselfAStructToFindALargeArrayTwoLevelsDown() {
+        // Every other test here calls needsTrim on a plain array (scalar or struct) member directly, which returns
+        // at its very first check (the field's own count). None of them make needsTrim recurse into ANOTHER struct
+        // it finds along the way (the only place it looks up a definition and checks the cycle guard, or loops over
+        // a struct's own members with an early return): C here is a single struct occurrence (not itself an array),
+        // forcing exactly that. CELL's first member (SMALL) does not need trim, so the loop genuinely continues
+        // past a false before BIG, its second member, makes it return true.
+        String pcml = "<pcml version=\"6.0\"><struct name=\"CELL\"><data name=\"SMALL\" type=\"char\" length=\"2\"/>"
+                + "<data name=\"BIG\" type=\"char\" length=\"2\" count=\"50\"/></struct>"
+                + "<struct name=\"ROW\"><data name=\"C\" type=\"struct\" struct=\"CELL\"/></struct>"
+                + "<program name=\"P\" path=\"/Q\"><data name=\"Y\" type=\"struct\" struct=\"ROW\" usage=\"output\"/></program></pcml>";
+        String text = OverlayScaffold.create("f", "A.pcml", Fixtures.document(pcml), 10).text().orElseThrow();
+        assertThat(text).contains("Y:\n").contains("C:\n").contains("BIG:\n").contains("trim:\n").doesNotContain("SMALL:\n");
+    }
+
+    @Test
+    void needsTrimRecursesThroughAMemberThatIsItselfAStructAndCorrectlyFindsNothing() {
+        // The contrasting case: recursion through a struct member (same shape as the test above) whose own search
+        // genuinely completes with no large array anywhere, so Y must stay flat.
+        String pcml = "<pcml version=\"6.0\"><struct name=\"CELL\"><data name=\"SMALL\" type=\"char\" length=\"2\"/></struct>"
+                + "<struct name=\"ROW\"><data name=\"C\" type=\"struct\" struct=\"CELL\"/></struct>"
+                + "<program name=\"P\" path=\"/Q\"><data name=\"Y\" type=\"struct\" struct=\"ROW\" usage=\"output\"/></program></pcml>";
+        String text = OverlayScaffold.create("f", "A.pcml", Fixtures.document(pcml), 10).text().orElseThrow();
+        assertThat(text).contains("Y: { name: y }\n").doesNotContain("fields:").doesNotContain("trim:");
+    }
+
     // ---- golden files and determinism
 
     @Test
