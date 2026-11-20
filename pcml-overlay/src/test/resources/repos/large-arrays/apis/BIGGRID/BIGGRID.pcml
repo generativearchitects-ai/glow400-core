@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pcml version="6.0">
+  <struct name="CELL">
+    <data name="A" type="char" length="4"/>
+    <data name="B" type="char" length="4"/>
+    <data name="AMT" type="packed" length="9" precision="2"/>
+  </struct>
+  <struct name="ROW">
+    <data name="CELLS" type="struct" struct="CELL" count="1000"/>
+  </struct>
+  <program name="BIGGRID" path="/QSYS.LIB/DEMOLIB.LIB/BIGGRID.PGM">
+    <data name="ROWS" type="struct" struct="ROW" count="1000" usage="output"/>
+  </program>
+</pcml>

@@ -44,6 +44,7 @@ final class DescriptorWriter {
         Map<String, Object> defaults = new LinkedHashMap<>();
         defaults.put("inputoutput", lower(model.defaults().inputOutput()));
         defaults.put("largeArrayThreshold", model.defaults().largeArrayThreshold());
+        defaults.put("maxResponseValues", model.defaults().maxResponseValues());
         root.put("defaults", defaults);
         List<Object> apis = new ArrayList<>();
         for (ApiDefinition api : model.apis()) {

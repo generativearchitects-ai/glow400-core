@@ -54,6 +54,7 @@ class RoundTripTest {
             }
             assertThat(back.defaults().inputOutput()).isEqualTo(original.defaults().inputOutput());
             assertThat(back.defaults().largeArrayThreshold()).isEqualTo(original.defaults().largeArrayThreshold());
+            assertThat(back.defaults().maxResponseValues()).isEqualTo(original.defaults().maxResponseValues());
         }
     }
 

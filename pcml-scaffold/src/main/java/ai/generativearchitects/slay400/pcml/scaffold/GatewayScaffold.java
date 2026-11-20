@@ -25,6 +25,7 @@ public final class GatewayScaffold {
         out.append("  # fail: a parameter that is inputoutput needs a direction. Run annotate to give one.\n");
         out.append("  inputoutput: fail\n");
         out.append("  largeArrayThreshold: ").append(standard.largeArrayThreshold()).append('\n');
+        out.append("  maxResponseValues: ").append(standard.maxResponseValues()).append('\n');
         out.append("emitters:\n");
         for (String emitter : standard.emitters()) {
             out.append("  - ").append(YamlText.scalar(emitter)).append('\n');

@@ -105,9 +105,13 @@ public final class DescriptorReader {
         Obj defaults = root.object("defaults");
         InputOutputPolicy policy = defaults.choice("inputoutput", InputOutputPolicy.class, DescriptorReader::lower);
         int threshold = defaults.integer("largeArrayThreshold");
+        int maxResponseValues = defaults.integer("maxResponseValues");
         defaults.end();
-        GatewayDefaults gateway = guard(defaults.at("largeArrayThreshold"),
+        guard(defaults.at("largeArrayThreshold"),
                 () -> new GatewayDefaults(GatewayDefaults.standard().charCodec(), policy, GatewayDefaults.standard().emitters(), threshold));
+        GatewayDefaults gateway = guard(defaults.at("maxResponseValues"),
+                () -> new GatewayDefaults(GatewayDefaults.standard().charCodec(), policy, GatewayDefaults.standard().emitters(), threshold,
+                        maxResponseValues));
 
         List<ApiDefinition> apis = new ArrayList<>();
         List<ApiOperation> operations = new ArrayList<>();

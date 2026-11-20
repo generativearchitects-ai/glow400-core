@@ -22,8 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/** A small DSL to build operations and bindings by hand for the codec tests. */
-final class Ops {
+/** A small DSL to build operations and bindings by hand for the codec tests. Published in the test jar: also used by
+ *  {@code pcml-http}'s large-response benchmark and guard test (kickoff 14, Part D). */
+public final class Ops {
 
     static final SourceLocation AT = new SourceLocation("api.yaml", 1, 1);
 
@@ -46,18 +47,18 @@ final class Ops {
 
     // ---- fields
 
-    static F field(String name, WireType wire) {
+    public static F field(String name, WireType wire) {
         return new F(name, wire);
     }
 
-    static F struct(String name, F... members) {
+    public static F struct(String name, F... members) {
         F f = new F(name, new WireType.Struct(name + "_T"));
         f.members.addAll(List.of(members));
         return f;
     }
 
     /** A fluent builder of one binding with the call-model field behind it. */
-    static final class F {
+    public static final class F {
         final String name;
         WireType wire;
         Count count = new Count.None();
@@ -87,30 +88,30 @@ final class Ops {
             this.pad = wire instanceof WireType.Char ? Pad.RIGHT : Pad.NONE;
         }
 
-        F type(SemanticType t) { semantic = t; return this; }
-        F pad(Pad p, char c) { pad = p; padChar = c; return this; }
-        F pad(Pad p) { pad = p; return this; }
-        F nullAs(String s) { nullAs = s; return this; }
-        F format(String f) { format = Optional.of(f); return this; }
-        F booleans(String t, String f) { trueValue = Optional.of(t); falseValue = Optional.of(f); return this; }
-        F trueValue(String t) { trueValue = Optional.of(t); return this; }
-        F falseValue(String f) { falseValue = Optional.of(f); return this; }
-        F count(int n) { count = new Count.Fixed(n); return this; }
-        F countRef(String path) { count = new Count.Ref(path); return this; }
-        F dir(Direction d) { direction = d; return this; }
-        F response() { direction = Direction.RESPONSE; return this; }
-        F internal() { direction = Direction.INTERNAL; return this; }
-        F both() { direction = Direction.BOTH; return this; }
-        F required() { required = true; return this; }
-        F hidden() { hidden = true; return this; }
-        F exposed(String e) { exposed = e; return this; }
-        F trimCount(String path) { trim = Optional.of(new Trim.CountField(path)); return this; }
-        F trimBlank() { trim = Optional.of(new Trim.DropBlank()); return this; }
-        F example(String e) { example = Optional.of(e); return this; }
-        F inject(String text) { direction = Direction.INJECTED; injection = Optional.of(text); return this; }
-        F usage(Usage u) { usage = u; return this; }
-        F attr(String key, String value) { attributes.put(key, value); return this; }
-        F wire(WireType w) { wire = w; return this; }
+        public F type(SemanticType t) { semantic = t; return this; }
+        public F pad(Pad p, char c) { pad = p; padChar = c; return this; }
+        public F pad(Pad p) { pad = p; return this; }
+        public F nullAs(String s) { nullAs = s; return this; }
+        public F format(String f) { format = Optional.of(f); return this; }
+        public F booleans(String t, String f) { trueValue = Optional.of(t); falseValue = Optional.of(f); return this; }
+        public F trueValue(String t) { trueValue = Optional.of(t); return this; }
+        public F falseValue(String f) { falseValue = Optional.of(f); return this; }
+        public F count(int n) { count = new Count.Fixed(n); return this; }
+        public F countRef(String path) { count = new Count.Ref(path); return this; }
+        public F dir(Direction d) { direction = d; return this; }
+        public F response() { direction = Direction.RESPONSE; return this; }
+        public F internal() { direction = Direction.INTERNAL; return this; }
+        public F both() { direction = Direction.BOTH; return this; }
+        public F required() { required = true; return this; }
+        public F hidden() { hidden = true; return this; }
+        public F exposed(String e) { exposed = e; return this; }
+        public F trimCount(String path) { trim = Optional.of(new Trim.CountField(path)); return this; }
+        public F trimBlank() { trim = Optional.of(new Trim.DropBlank()); return this; }
+        public F example(String e) { example = Optional.of(e); return this; }
+        public F inject(String text) { direction = Direction.INJECTED; injection = Optional.of(text); return this; }
+        public F usage(Usage u) { usage = u; return this; }
+        public F attr(String key, String value) { attributes.put(key, value); return this; }
+        public F wire(WireType w) { wire = w; return this; }
 
         FieldDef fieldDef() {
             return new FieldDef(name, wire, usage != null ? usage : direction == Direction.RESPONSE ? Usage.OUTPUT : Usage.INPUT, count, attributes, AT);
@@ -155,7 +156,7 @@ final class Ops {
 
     // ---- operations
 
-    static ApiOperation op(F... fields) {
+    public static ApiOperation op(F... fields) {
         List<FieldBinding> bindings = new ArrayList<>();
         List<FieldDef> defs = new ArrayList<>();
         for (F f : fields) {

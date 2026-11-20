@@ -199,6 +199,10 @@ class DescriptorReaderTest {
                 c("threshold is fractional", set("defaults/largeArrayThreshold", "@@2.5@@"), "defaults.largeArrayThreshold: expected a whole number"),
                 c("threshold is huge", set("defaults/largeArrayThreshold", 3000000000L), "defaults.largeArrayThreshold: expected a whole number that fits in 32 bits"),
                 c("threshold is zero", set("defaults/largeArrayThreshold", 0), "defaults.largeArrayThreshold: largeArrayThreshold must be at least 1"),
+                c("max response values is text", set("defaults/maxResponseValues", "5"), "defaults.maxResponseValues: expected a whole number"),
+                c("max response values is fractional", set("defaults/maxResponseValues", "@@2.5@@"), "defaults.maxResponseValues: expected a whole number"),
+                c("max response values is huge", set("defaults/maxResponseValues", 3000000000L), "defaults.maxResponseValues: expected a whole number that fits in 32 bits"),
+                c("max response values is zero", set("defaults/maxResponseValues", 0), "defaults.maxResponseValues: maxResponseValues must be at least 1"),
                 c("apis is an object", set("apis", java.util.Map.of()), "apis: expected an array"),
                 c("an api is a string", set("apis/0", "x"), "apis[0]: expected an object"),
                 // an API

@@ -171,6 +171,16 @@ class OverlayEditorTest {
     }
 
     @Test
+    void aBlockEntryWithTheInputoutputCommentHasItRemovedWhenADirectionIsGiven() {
+        // kickoff 14, Part A: init now writes the comment trailing 'name:' even in block form (a parameter large
+        // enough for its own trim), so annotate must remove it from there too, the same way it already did in flow form.
+        String text = single("parameters:\n  QTY:\n    name: qty  " + OverlayScaffold.INPUTOUTPUT_COMMENT + "\n"
+                + "    description: a quantity\n");
+        assertThat(edited(text, direction("QTY", Direction.RESPONSE))).isEqualTo(single(
+                "parameters:\n  QTY:\n    name: qty\n    description: a quantity\n    direction: response\n"));
+    }
+
+    @Test
     void theLastBlockEntryOfAFileWithoutAFinalNewlineGetsItsLinesWithoutOne() {
         String text = single("parameters:\n  QTY:\n    name: qty");
         assertThat(edited(text, direction("QTY", Direction.BOTH))).isEqualTo(single("parameters:\n  QTY:\n    name: qty\n    direction: both"));

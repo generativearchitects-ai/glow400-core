@@ -6,6 +6,7 @@ defaults:
   # fail: a parameter that is inputoutput needs a direction. Run annotate to give one.
   inputoutput: fail
   largeArrayThreshold: 100
+  maxResponseValues: 100000
 emitters:
   - descriptor
   - openapi

@@ -42,19 +42,24 @@ final class GatewayParser {
         List<String> emitters = standard.emitters();
         List<SourceLocation> emitterSources = standard.emitterSources();
         int largeArrayThreshold = standard.largeArrayThreshold();
+        int maxResponseValues = standard.maxResponseValues();
 
         Optional<YamlReader.Entry> defaults = yaml.find(top.get(), "defaults");
         if (defaults.isPresent()) {
             Optional<List<YamlReader.Entry>> entries = yaml.mapping(defaults.get().value(), "'defaults'");
             if (entries.isPresent()) {
-                yaml.knownKeys(entries.get(), Set.of("char", "inputoutput", "largeArrayThreshold"), "'defaults'");
+                yaml.knownKeys(entries.get(), Set.of("char", "inputoutput", "largeArrayThreshold", "maxResponseValues"), "'defaults'");
                 Optional<YamlReader.Entry> charEntry = yaml.find(entries.get(), "char");
                 if (charEntry.isPresent()) {
                     charCodec = charDefaults(charEntry.get(), charCodec);
                 }
                 Optional<YamlReader.Entry> threshold = yaml.find(entries.get(), "largeArrayThreshold");
                 if (threshold.isPresent()) {
-                    largeArrayThreshold = largeArrayThreshold(threshold.get().value()).orElse(largeArrayThreshold);
+                    largeArrayThreshold = positiveInteger(threshold.get().value(), "largeArrayThreshold").orElse(largeArrayThreshold);
+                }
+                Optional<YamlReader.Entry> maxValues = yaml.find(entries.get(), "maxResponseValues");
+                if (maxValues.isPresent()) {
+                    maxResponseValues = positiveInteger(maxValues.get().value(), "maxResponseValues").orElse(maxResponseValues);
                 }
                 Optional<YamlReader.Entry> io = yaml.find(entries.get(), "inputoutput");
                 if (io.isPresent()) {
@@ -82,14 +87,14 @@ final class GatewayParser {
         if (yaml.errorCount() > errorsBefore) {
             return Optional.empty();
         }
-        return Optional.of(new GatewayDefaults(charCodec, policy, emitters, largeArrayThreshold, emitterSources));
+        return Optional.of(new GatewayDefaults(charCodec, policy, emitters, largeArrayThreshold, maxResponseValues, emitterSources));
     }
 
     /** A whole number of at least 1. */
-    private Optional<Integer> largeArrayThreshold(org.snakeyaml.engine.v2.nodes.Node node) {
-        Optional<Located<Integer>> number = yaml.integer(node, "'largeArrayThreshold'");
+    private Optional<Integer> positiveInteger(org.snakeyaml.engine.v2.nodes.Node node, String key) {
+        Optional<Located<Integer>> number = yaml.integer(node, "'" + key + "'");
         if (number.isPresent() && number.get().value() < 1) {
-            yaml.error("OVL012", "'largeArrayThreshold' must be at least 1, not " + number.get().value(), number.get().at());
+            yaml.error("OVL012", "'" + key + "' must be at least 1, not " + number.get().value(), number.get().at());
             return Optional.empty();
         }
         return number.map(Located::value);

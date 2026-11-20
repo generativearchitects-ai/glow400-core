@@ -208,11 +208,13 @@ class SchemaTest {
     void gatewaySchemaRejectsWhatTheLoaderRejects() {
         for (String text : List.of("extra: 1\n", "defaults: { char: { pad: middle } }\n", "defaults: { inputoutput: maybe }\n",
                 "defaults: { char: { padChar: \"ab\" } }\n", "defaults: { other: 1 }\n", "emitters: openapi\n",
-                "defaults: { largeArrayThreshold: 0 }\n", "defaults: { largeArrayThreshold: x }\n", "defaults: { largeArrayThreshold: 1.5 }\n")) {
+                "defaults: { largeArrayThreshold: 0 }\n", "defaults: { largeArrayThreshold: x }\n", "defaults: { largeArrayThreshold: 1.5 }\n",
+                "defaults: { maxResponseValues: 0 }\n", "defaults: { maxResponseValues: x }\n", "defaults: { maxResponseValues: 1.5 }\n")) {
             assertThat(GATEWAY.validate(yaml(text))).as(text).isNotEmpty();
         }
         for (String text : List.of("{}\n", "defaults: { char: { pad: left, padChar: \"0\", nullAs: \"\" }, inputoutput: fail }\n",
-                "emitters: [descriptor, openapi, mock, java]\n", "defaults: { largeArrayThreshold: 1 }\n")) {
+                "emitters: [descriptor, openapi, mock, java]\n", "defaults: { largeArrayThreshold: 1 }\n",
+                "defaults: { maxResponseValues: 1 }\n")) {
             assertThat(GATEWAY.validate(yaml(text))).as(text).isEmpty();
         }
     }

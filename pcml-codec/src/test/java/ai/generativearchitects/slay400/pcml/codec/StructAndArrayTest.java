@@ -269,6 +269,18 @@ class StructAndArrayTest {
     }
 
     @Test
+    void elementsPastACountFieldTrimAreNeitherCheckedNorDecoded() {
+        // kickoff 14, review of PR #20, "to change" #2: a malformed element past the count-field cutoff (one member
+        // instead of two) would be VAL101 if checkShape looked at it; since the cutoff is read before the per-element
+        // shape check, same as a dropBlank trim, it never is.
+        WireValue malformed = s(t("z"));
+        DecodeResult r = codec(field("N", int4()).internal(), rows(3).trimCount("N"))
+                .decode(List.of(i(1), a(row("a ", 1), malformed, malformed)));
+        assertThat(r.problems()).isEmpty();
+        assertThat(r.response().orElseThrow().get("rows")).isEqualTo(arr(obj("x", text("a"), "y", integer(1))));
+    }
+
+    @Test
     void theCountFieldMayBeAMemberOfAStruct() {
         Ops.F f = struct("HDR", field("CNT", int4())).internal();
         DecodeResult r = codec(f, rows(2).trimCount("HDR.CNT")).decode(List.of(s(i(1)), a(row("a", 1), row("b", 2))));
@@ -326,6 +338,53 @@ class StructAndArrayTest {
         // A malformed element is not blank, so it is kept, and then reported.
         assertThat(problems(codec(nested).decode(List.of(a(s(a(t("a"), t(" "))), s(t(" ")))))))
                 .containsExactly(Tuple.tuple("VAL101", "S[1].T", "s[1].t"));
+    }
+
+    // ---- kickoff 14, Part B: trim at more than one nesting level, and dropped elements never checked or decoded
+
+    @Test
+    void anArrayOfStructsInsideAnArrayOfStructsIsTrimmedAtEachLevelThatHasARule() {
+        Ops.F cell = struct("CELL", field("A", chr(1))).count(3).trimBlank();
+        Ops.F row = struct("ROW", cell).count(2).response().trimBlank();
+        WireValue cellA = s(t("a"));
+        WireValue cellBlank = s(t(" "));
+        // row[0] keeps 1 of 3 cells (its own trim); row[1] is entirely blank cells, so the outer trim drops it.
+        DecodeResult r = codec(row).decode(List.of(a(s(a(cellA, cellBlank, cellBlank)), s(a(cellBlank, cellBlank, cellBlank)))));
+        assertThat(r.problems()).isEmpty();
+        ApiValue.Arr rows = (ApiValue.Arr) r.response().orElseThrow().get("row");
+        assertThat(rows.elements()).hasSize(1);
+        ApiValue.Arr cells = (ApiValue.Arr) ((ApiValue.Obj) rows.elements().get(0)).members().get("cell");
+        assertThat(cells.elements()).hasSize(1);
+    }
+
+    @Test
+    void droppedTrailingElementsAreNeitherCheckedNorDecoded() {
+        // 1 real element, then a large blank tail: if the tail were shape-checked and decoded element by element the
+        // way the kept prefix is, this would allocate roughly as many ApiValue/struct-member objects as there are
+        // declared elements; measuring allocated bytes (not wall-clock time, which a fast machine could mask)
+        // catches that directly, with a margin wide enough not to depend on exactly how little is allocated.
+        int n = 500_000;
+        List<WireValue> elements = new java.util.ArrayList<>(n);
+        elements.add(row("a", 1));
+        WireValue blank = row("  ", 0);
+        for (int i = 1; i < n; i++) {
+            elements.add(blank);
+        }
+        Ops.F f = rows(n).trimBlank();
+        OperationCodec c = codec(f);
+        WireValue.Array input = new WireValue.Array(elements);
+        c.decode(List.of(input)); // warm-up, outside the measurement
+
+        com.sun.management.ThreadMXBean threads = (com.sun.management.ThreadMXBean) java.lang.management.ManagementFactory.getThreadMXBean();
+        long before = threads.getThreadAllocatedBytes(Thread.currentThread().threadId());
+        DecodeResult r = c.decode(List.of(input));
+        long allocated = threads.getThreadAllocatedBytes(Thread.currentThread().threadId()) - before;
+
+        assertThat(r.problems()).isEmpty();
+        assertThat(((ApiValue.Arr) r.response().orElseThrow().get("rows")).elements()).hasSize(1);
+        // A few KB for the one kept row and the result wrapping; nowhere near the ~tens of MB a per-element
+        // struct-and-two-scalars allocation for all 500,000 declared elements would cost.
+        assertThat(allocated).as("bytes allocated decoding %d declared elements, 1 kept", n).isLessThan(200_000);
     }
 
     // ---- counts that name another field (PCML count="FIELD")

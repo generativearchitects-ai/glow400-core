@@ -57,7 +57,7 @@ public final class OverlayEditor {
     private static GatewayDefaults defaults() {
         GatewayDefaults standard = GatewayDefaults.standard();
         return new GatewayDefaults(standard.charCodec(), InputOutputPolicy.FAIL, standard.emitters(),
-                standard.largeArrayThreshold(), standard.emitterSources());
+                standard.largeArrayThreshold(), standard.maxResponseValues());
     }
 
     // ------------------------------------------------------------------ types
@@ -351,6 +351,17 @@ public final class OverlayEditor {
                 } else if (!pair.get().value().equals(want.getValue()[0])) {
                     mine.add(new Change(pair.get().valueStart(), pair.get().valueEnd(), want.getValue()[1], 0));
                 }
+            }
+            if (edit.direction().isPresent()) {
+                // In block form the scaffold writes the comment trailing 'name:', the one key every block-form
+                // entry has (kickoff 14, Part A): the same comment, in the same place relative to its own key, as
+                // editFlow removes relative to the whole flow entry's close.
+                entry.pairs().stream().filter(p -> p.key().equals("name")).findFirst().ifPresent(name -> {
+                    int lineEnd = lineEnd(name.valueEnd());
+                    if (INPUTOUTPUT_COMMENT.matcher(text.substring(name.valueEnd(), lineEnd)).matches()) {
+                        mine.add(new Change(name.valueEnd(), lineEnd, "", 0));
+                    }
+                });
             }
             changes.addAll(mine);
             if (!missing.isEmpty()) {

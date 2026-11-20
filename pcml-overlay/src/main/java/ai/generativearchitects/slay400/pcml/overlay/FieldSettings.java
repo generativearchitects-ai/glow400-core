@@ -17,12 +17,14 @@ import java.util.Optional;
  * The overlay settings for one program parameter (an entry under {@code parameters}) or one struct member
  * (an entry under {@code fields}), exactly as authored: nothing is defaulted yet.
  *
- * <p>{@code direction}, {@code in} and {@code trim} are accepted for parameters only, and {@code hidden}
- * for struct members only; the loader reports the other combinations as unknown keys.
+ * <p>{@code direction} and {@code in} are accepted for parameters only, and {@code hidden} for struct members
+ * only; the loader reports the other combinations as unknown keys. {@code trim} is accepted at any depth
+ * (kickoff 14, decisions 112-113): a struct member that is itself an array may carry its own {@code trim},
+ * trimmed independently of any {@code trim} on an array it is nested inside.
  *
  * @param direction   {@code direction}; never {@link Direction#INJECTED}
  * @param in          {@code in}
- * @param trim        {@code trim}
+ * @param trim        {@code trim}: how an array is shortened, for a parameter or a struct member
  * @param name        {@code name}: the exposed name
  * @param type        {@code type}: the semantic type
  * @param format      {@code format}

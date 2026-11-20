@@ -6,7 +6,8 @@
   },
   "defaults": {
     "inputoutput": "both",
-    "largeArrayThreshold": 100
+    "largeArrayThreshold": 100,
+    "maxResponseValues": 100000
   },
   "apis": [
     {

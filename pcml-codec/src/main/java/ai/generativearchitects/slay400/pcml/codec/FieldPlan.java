@@ -8,6 +8,7 @@ import ai.generativearchitects.slay400.pcml.model.FieldDef;
 import ai.generativearchitects.slay400.pcml.model.WireType;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -83,15 +84,16 @@ final class FieldPlan {
 
     // ------------------------------------------------------------------ blanks
 
-    /** The value for a field nobody gave a value for: the whole array, struct or scalar, blank. */
+    /**
+     * The value for a field nobody gave a value for: the whole array, struct or scalar, blank. Every element of a
+     * fixed array is the same blank value, so they share one instance instead of each being built separately
+     * (kickoff 14, Part D): cheap even for the largest declared arrays, and still the full declared size, which a
+     * request needs and which trimming (Part B) then shortens on the way out.
+     */
     WireValue blankValue() {
         if (isArray()) {
             if (field.count() instanceof Count.Fixed fixed) {
-                List<WireValue> elements = new ArrayList<>();
-                for (int i = 0; i < fixed.value(); i++) {
-                    elements.add(blankElement());
-                }
-                return new WireValue.Array(elements);
+                return new WireValue.Array(Collections.nCopies(fixed.value(), blankElement()));
             }
             return new WireValue.Array(List.of());
         }
@@ -209,13 +211,20 @@ final class FieldPlan {
      * of elements of a fixed count, a struct where there is a struct, with its members. A mismatch is a VAL101 and everything
      * under it is left alone. Scalars are not looked at here: their own codec reads them. A {@link WireValue.Blank} fits any
      * shape. Decoding, trimming and the error mapping rely on this having been done for the whole output.
+     *
+     * <p>Trim is applied here too, before any element beyond the kept part is looked at (kickoff 14, Part B): the
+     * declared size is still checked against the field (the program always returns it in full), but the expensive
+     * per-element shape check runs only for the elements {@link #decodeArray} will go on to decode. A
+     * {@code countField} trim is read the same way {@link #decodeArray} reads it, but silently: a problem reading
+     * the count field itself is not reported twice, it is left for {@link #decodeArray}'s own read to report; until
+     * then, the full declared size is checked, same as before this narrowing existed.
      */
-    void checkShape(WireValue value, Where where, Problems problems) {
+    void checkShape(WireValue value, Where where, Problems problems, Scope scope) {
         if (value instanceof WireValue.Blank) {
             return;
         }
         if (!isArray()) {
-            checkElementShape(value, where, problems);
+            checkElementShape(value, where, problems, scope);
             return;
         }
         if (!(value instanceof WireValue.Array array)) {
@@ -226,12 +235,32 @@ final class FieldPlan {
             problems.add("VAL101", where, "The list does not have the number of elements of the field");
             return;
         }
-        for (int i = 0; i < array.elements().size(); i++) {
-            checkElementShape(array.elements().get(i), where.element(i), problems);
+        int limit = array.elements().size();
+        if (binding.trim().isPresent() && binding.trim().get() instanceof Trim.DropBlank) {
+            limit = trimmedLength(array.elements());
+        } else if (binding.trim().isPresent() && binding.trim().get() instanceof Trim.CountField countField) {
+            limit = probeCount(countField.path(), array.elements().size(), scope).orElse(limit);
+        }
+        for (int i = 0; i < limit; i++) {
+            checkElementShape(array.elements().get(i), where.element(i), problems, scope);
         }
     }
 
-    private void checkElementShape(WireValue value, Where where, Problems problems) {
+    /** How many elements are left once a trailing run of blanks is dropped, found directly on the wire values. */
+    private int trimmedLength(List<WireValue> elements) {
+        int end = elements.size();
+        while (end > 0 && isBlankElement(elements.get(end - 1))) {
+            end--;
+        }
+        return end;
+    }
+
+    /** {@link #readCount}, but silent: a problem reading the count field is left for {@link #decodeArray} to report. */
+    private Optional<Integer> probeCount(String path, int size, Scope scope) {
+        return readCount(path, size, scope, true, Where.ROOT, new Problems());
+    }
+
+    private void checkElementShape(WireValue value, Where where, Problems problems, Scope scope) {
         if (!isStruct() || value instanceof WireValue.Blank) {
             return;
         }
@@ -239,22 +268,23 @@ final class FieldPlan {
             problems.add("VAL101", where, "A struct with " + children.size() + " members was expected");
             return;
         }
+        Scope inner = new Scope(children, struct.members(), scope.top(), scope.top().program());
         for (int i = 0; i < children.size(); i++) {
-            children.get(i).checkShape(struct.members().get(i), children.get(i).where(where), problems);
+            children.get(i).checkShape(struct.members().get(i), children.get(i).where(where), problems, inner);
         }
     }
 
     // ------------------------------------------------------------------ decoding
 
     /** Decodes a returned field; empty, after a problem was reported, if it cannot be read. */
-    Optional<ApiValue> decodeField(WireValue value, Where where, Problems problems, Scope scope) {
+    Optional<ApiValue> decodeField(WireValue value, Where where, Problems problems, Scope scope, ValueBudget budget) {
         if (value instanceof WireValue.Blank) {
             return Optional.of(isArray() ? new ApiValue.Arr(List.of()) : isStruct() ? new ApiValue.Obj(Map.of()) : new ApiValue.Absent());
         }
-        return isArray() ? decodeArray(value, where, problems, scope) : decodeElement(value, where, problems, scope);
+        return isArray() ? decodeArray(value, where, problems, scope, budget) : decodeElement(value, where, problems, scope, budget);
     }
 
-    private Optional<ApiValue> decodeArray(WireValue value, Where where, Problems problems, Scope scope) {
+    private Optional<ApiValue> decodeArray(WireValue value, Where where, Problems problems, Scope scope, ValueBudget budget) {
         // checkShape has seen that this is an array, and of the right size for a fixed count
         List<WireValue> elements = ((WireValue.Array) value).elements();
         if (field.count() instanceof Count.Ref ref) {
@@ -272,16 +302,15 @@ final class FieldPlan {
             }
             elements = elements.subList(0, n.get());
         } else if (trim.isPresent()) {
-            int end = elements.size();
-            while (end > 0 && isBlankElement(elements.get(end - 1))) {
-                end--;
-            }
-            elements = elements.subList(0, end);
+            elements = elements.subList(0, trimmedLength(elements));
         }
         List<ApiValue> decoded = new ArrayList<>();
         boolean ok = true;
         for (int i = 0; i < elements.size(); i++) {
-            Optional<ApiValue> element = decodeElement(elements.get(i), where.element(i), problems, scope);
+            if (budget.exceeded()) {
+                break;
+            }
+            Optional<ApiValue> element = decodeElement(elements.get(i), where.element(i), problems, scope, budget);
             if (element.isPresent()) {
                 decoded.add(element.get());
             } else {
@@ -291,10 +320,16 @@ final class FieldPlan {
         return ok ? Optional.of(new ApiValue.Arr(decoded)) : Optional.empty();
     }
 
-    private Optional<ApiValue> decodeElement(WireValue value, Where where, Problems problems, Scope outer) {
+    private Optional<ApiValue> decodeElement(WireValue value, Where where, Problems problems, Scope outer, ValueBudget budget) {
         if (!isStruct()) {
             if (value instanceof WireValue.Blank) {
                 return Optional.of(new ApiValue.Absent());
+            }
+            if (!budget.take()) {
+                if (budget.reportOnce()) {
+                    problems.add("VAL104", where, "The response has more values than the limit allows; it is not built beyond that point");
+                }
+                return Optional.empty();
             }
             return scalar.decode(value, where, problems);
         }
@@ -307,11 +342,14 @@ final class FieldPlan {
         Map<String, ApiValue> members = new LinkedHashMap<>();
         boolean ok = true;
         for (int i = 0; i < children.size(); i++) {
+            if (budget.exceeded()) {
+                break;
+            }
             FieldPlan child = children.get(i);
             if (child.binding.hidden()) {
                 continue;
             }
-            Optional<ApiValue> member = child.decodeField(struct.members().get(i), child.where(where), problems, scope);
+            Optional<ApiValue> member = child.decodeField(struct.members().get(i), child.where(where), problems, scope, budget);
             if (member.isEmpty()) {
                 ok = false;
             } else if (!(member.get() instanceof ApiValue.Absent)) {
@@ -321,13 +359,17 @@ final class FieldPlan {
         return ok ? Optional.of(new ApiValue.Obj(members)) : Optional.empty();
     }
 
-    /** Blank means every scalar inside is blank text, zero or zero bytes. */
+    /** Blank means every scalar inside is blank text, zero or zero bytes. Safe to call before the shape has been
+     *  checked (kickoff 14, Part B, trimming ahead of {@link #checkShape}): a value of the wrong shape is simply
+     *  not blank, leaving the real problem for {@link #checkElementShape} to report. */
     private boolean isBlankElement(WireValue value) {
         if (value instanceof WireValue.Blank) {
             return true;
         }
         if (isStruct()) {
-            WireValue.Struct struct = (WireValue.Struct) value; // the shape has been checked
+            if (!(value instanceof WireValue.Struct struct) || struct.members().size() != children.size()) {
+                return false;
+            }
             for (int i = 0; i < children.size(); i++) {
                 if (!children.get(i).isBlankValue(struct.members().get(i))) {
                     return false;
@@ -396,6 +438,13 @@ final class FieldPlan {
             FieldPlan plan = plans.get(i);
             if (!plan.field.name().equals(parts[from])) {
                 continue;
+            }
+            if (values != null && i >= values.size()) {
+                // A struct on the way has fewer wire values than its model expects: unresolvable, same as a blank
+                // one. Only reachable from checkShape's own, silent probe of a countField trim (kickoff 14, Part B),
+                // before that struct's own shape has necessarily been checked yet; every other caller runs after a
+                // clean checkShape, where plans and values always agree in length.
+                return null;
             }
             WireValue value = values == null ? null : values.get(i);
             if (from == parts.length - 1) {

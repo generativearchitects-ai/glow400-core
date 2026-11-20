@@ -40,6 +40,11 @@
           "type": "integer",
           "minimum": 1,
           "description": "A fixed output array of at least this many elements without trim is reported (OVL005). Default 100."
+        },
+        "maxResponseValues": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The largest number of scalar values a response may hold after trimming. Default 100000."
         }
       },
       "additionalProperties": false

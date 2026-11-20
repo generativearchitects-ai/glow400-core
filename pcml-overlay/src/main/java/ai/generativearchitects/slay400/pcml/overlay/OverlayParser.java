@@ -45,7 +45,7 @@ final class OverlayParser {
     private static final Set<String> PARAMETER_KEYS = Set.of("direction", "name", "in", "type", "format", "pad", "padChar",
             "nullAs", "required", "description", "example", "trim", "trueValue", "falseValue", "fields");
     private static final Set<String> MEMBER_KEYS = Set.of("name", "type", "format", "pad", "padChar", "nullAs",
-            "required", "description", "example", "hidden", "trueValue", "falseValue", "fields");
+            "required", "description", "example", "hidden", "trueValue", "falseValue", "fields", "trim");
 
     private final YamlReader yaml;
     private final GatewayParser scalars;
@@ -341,7 +341,7 @@ final class OverlayParser {
                 switch (e.key()) {
                     case "direction" -> { if (parameter) { direction = yaml.choice(e, Vocabulary.DIRECTION); } }
                     case "in" -> { if (parameter) { in = yaml.choice(e, Vocabulary.IN); } }
-                    case "trim" -> { if (parameter) { trim = trim(e); } }
+                    case "trim" -> trim = trim(e);
                     case "name" -> name = yaml.nonBlankString(e);
                     case "type" -> type = yaml.choice(e, Vocabulary.TYPE);
                     case "format" -> format = yaml.string(e);

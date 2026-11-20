@@ -97,6 +97,17 @@ class GatewayTest {
         assertThat(set.charCodec()).isEqualTo(GatewayDefaults.standard().charCodec());
     }
 
+    @Test
+    void theMaxResponseValuesDefaultsTo100000AndCanBeSet(@TempDir Path dir) {
+        assertThat(GatewayDefaults.standard().maxResponseValues()).isEqualTo(100_000);
+        assertThat(defaults(dir.resolve("a"), "").maxResponseValues()).isEqualTo(100_000);
+        assertThat(defaults(dir.resolve("b"), "defaults:\n  maxResponseValues: 1\n").maxResponseValues()).isEqualTo(1);
+        GatewayDefaults set = defaults(dir.resolve("c"), "defaults:\n  maxResponseValues: 2500\n  inputoutput: fail\n");
+        assertThat(set.maxResponseValues()).isEqualTo(2500);
+        assertThat(set.inputOutput()).isEqualTo(InputOutputPolicy.FAIL);
+        assertThat(set.largeArrayThreshold()).isEqualTo(GatewayDefaults.standard().largeArrayThreshold());
+    }
+
     static Stream<Arguments> invalid() {
         return Stream.of(
                 Arguments.of("a zero threshold", "defaults:\n  largeArrayThreshold: 0\n", "OVL012", 2),
@@ -104,6 +115,11 @@ class GatewayTest {
                 Arguments.of("a threshold that is text", "defaults:\n  largeArrayThreshold: many\n", "OVL012", 2),
                 Arguments.of("a threshold with decimals", "defaults:\n  largeArrayThreshold: 1.5\n", "OVL012", 2),
                 Arguments.of("a threshold out of range", "defaults:\n  largeArrayThreshold: 99999999999\n", "OVL012", 2),
+                Arguments.of("a zero max response values", "defaults:\n  maxResponseValues: 0\n", "OVL012", 2),
+                Arguments.of("a negative max response values", "defaults:\n  maxResponseValues: -5\n", "OVL012", 2),
+                Arguments.of("a max response values that is text", "defaults:\n  maxResponseValues: many\n", "OVL012", 2),
+                Arguments.of("a max response values with decimals", "defaults:\n  maxResponseValues: 1.5\n", "OVL012", 2),
+                Arguments.of("a max response values out of range", "defaults:\n  maxResponseValues: 99999999999\n", "OVL012", 2),
                 Arguments.of("an unknown key", "extra: 1\n", "OVL011", 1),
                 Arguments.of("an unknown key in defaults", "defaults:\n  other: 1\n", "OVL011", 2),
                 Arguments.of("an unknown key in char", "defaults:\n  char:\n    align: left\n", "OVL011", 3),

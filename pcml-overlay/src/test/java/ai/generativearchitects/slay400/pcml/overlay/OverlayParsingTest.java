@@ -158,13 +158,30 @@ class OverlayParsingTest {
 
     /** Keys that a struct member does not accept; the member is not in the PCML either, so OVL002 comes with them. */
     @ParameterizedTest(name = "{0}")
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"direction: request", "in: body", "trim: { dropBlank: true }"})
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"direction: request", "in: body"})
     void aKeyThatAMemberDoesNotAcceptIsReportedWithTheMissingMember(String setting, @TempDir Path dir) {
         RepositoryResult result = new Repos.Temp(dir).file("apis/A/ORDSTATUS.pcml", Repos.ORDSTATUS_PCML)
                 .file("apis/A/api.yaml", overlay("parameters:\n  P0ORDN:\n    fields:\n      M: { " + setting + " }\n")).load();
         assertThat(result.diagnostics()).extracting(Diagnostic::code, d -> d.location().line())
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("OVL002", 9), org.assertj.core.groups.Tuple.tuple("OVL011", 9));
         assertThat(result.diagnostics().get(0).location().column()).isLessThan(result.diagnostics().get(1).location().column());
+        assertThat(result.model().orElseThrow().operations()).isEmpty();
+    }
+
+    /**
+     * {@code trim} is accepted on a struct member since kickoff 14 (decisions 112-113), unlike {@code direction} and
+     * {@code in} above: it parses without {@code OVL011}, but the member here still does not exist in the PCML
+     * (P0ORDN is not a struct), so {@code OVL002} is the only error from the member itself. With nothing else wrong,
+     * the operation now builds far enough to reach the route check, so this fixture's unmatched {@code {orderNumber}}
+     * placeholder surfaces as {@code OVL004} too (the shared {@code overlay()} route is deliberately mismatched; every
+     * other test in this file happens to fail earlier, before that check runs).
+     */
+    @Test
+    void trimOnAMissingMemberIsAcceptedButTheMemberIsStillUnmatched(@TempDir Path dir) {
+        RepositoryResult result = new Repos.Temp(dir).file("apis/A/ORDSTATUS.pcml", Repos.ORDSTATUS_PCML)
+                .file("apis/A/api.yaml", overlay("parameters:\n  P0ORDN:\n    fields:\n      M: { trim: { dropBlank: true } }\n")).load();
+        assertThat(result.diagnostics()).extracting(Diagnostic::code, d -> d.location().line())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("OVL004", 3), org.assertj.core.groups.Tuple.tuple("OVL002", 9));
         assertThat(result.model().orElseThrow().operations()).isEmpty();
     }
 
